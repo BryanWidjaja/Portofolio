@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.vite-react-ssg-temp/
+.env*
