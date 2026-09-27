@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-hidden="true">
+  <rect width="800" height="1000" rx="32" fill="#F2F2F2" />
+  <text
+    x="400"
+    y="500"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Georgia, serif"
+    font-style="italic"
+    font-size="300"
+    fill="#262626"
+  >BW</text>
+</svg>

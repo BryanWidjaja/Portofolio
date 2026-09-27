@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f2ecde" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/favicon-180.png" />
+
+    <!-- Above-the-fold font only (42-ink-direction.md §Tokens: "preload
+         [display] roman"; 46 §Fonts / 45 §Polish round decision 1 swaps
+         Alegreya -> Cormorant 700, the hero name's actual weight): E2 adds
+         the two hero media preloads alongside this one (budget: 3 total). -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/cormorant-latin-700-normal.woff2"
+    />
+
+    <!-- No static <title> here: vite-react-ssg's Head/react-helmet-async
+         injects the per-route <title> (see src/components/Seo.tsx) as the
+         first element in <head> for every prerendered page. -->
+    <script>
+      // 12-motion.md §Storyboards, flow 1 (row 0/1): adds `motion-ready`
+      // synchronously, before first paint, unless the user prefers reduced
+      // motion (flow 9: reduced motion never gets this class, so entrance
+      // CSS never hides anything). The 3s failsafe removes it again if the
+      // JS bundle never finishes booting (main.tsx sets `__booted`), so a
+      // broken deploy can't leave real content hidden.
+      (function () {
+        var root = document.documentElement;
+        var reduced =
+          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduced) return;
+        root.classList.add('motion-ready');
+        setTimeout(function () {
+          if (!window.__booted) root.classList.remove('motion-ready');
+        }, 3000);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

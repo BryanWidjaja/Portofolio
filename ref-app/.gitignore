@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.vite-react-ssg-temp/
+scripts/.cache/
+
+# env: keep .env.about-accordion (no secrets, needed for the D3 variant build)
+.env
+.env.local
+.env.*.local
+!.env.about-accordion
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+*.log
+.DS_Store
+Thumbs.db
+

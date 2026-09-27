@@ -1,0 +1,7 @@
+/* Single Tailwind entry: `@import "tailwindcss"` and every partial must sit
+ * in the same CSS `@import` graph for Tailwind's Vite plugin (and things
+ * like `@utility`) to see them. main.tsx imports only this file. */
+@import 'tailwindcss';
+@import './theme.css';
+@import './base.css';
+@import './motion.css';

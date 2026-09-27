@@ -1,0 +1,211 @@
+/* Fonts: 46-polish-plan.md §Fonts / 45-ink-approved.md §Polish round decision 1
+ * -- Cormorant 600/700 + Cormorant italic 400 (display) + Public Sans 400/500
+ * (text), replacing Alegreya + Alegreya Sans (94 kB of latin woff2 vs 131 kB).
+ * Loading approach unchanged: self-hosted, latin subset only, font-display:
+ * swap (Fontsource default), plus a size-adjusted fallback face per family so
+ * swapping in the real font doesn't reflow the 10rem hero. The five woff2
+ * files are copied into public/fonts/ (see index.html preload) instead of
+ * importing Fontsource's multi-subset CSS, so exactly one file per
+ * family/weight/style is fetched. Both families ship static weights only --
+ * no variable-font axis on either side of this pairing. */
+@font-face {
+  font-family: 'Cormorant';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/cormorant-latin-600-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cormorant';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('/fonts/cormorant-latin-700-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cormorant';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/cormorant-latin-400-italic.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/public-sans-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('/fonts/public-sans-latin-500-normal.woff2') format('woff2');
+}
+
+/* Metric-compatible fallbacks, measured (not approximate) via opentype.js off
+ * the actual shipped files: xAvgCharWidth/unitsPerEm for size-adjust, then
+ * hhea ascent/descent/lineGap normalised by that size-adjust, same method
+ * fontaine/next-font use. Cormorant read off its 700 cut, Public Sans off
+ * its 400 -- both families share one vertical-metrics table across weights,
+ * so this holds for every weight actually shipped. Keeps CLS low without a
+ * webfont dependency. */
+@font-face {
+  font-family: 'Cormorant Fallback';
+  src: local('Georgia');
+  ascent-override: 76%;
+  descent-override: 23.6%;
+  line-gap-override: 0%;
+  size-adjust: 121.6%;
+}
+
+@font-face {
+  font-family: 'Public Sans Fallback';
+  src: local('Arial');
+  ascent-override: 73.3%;
+  descent-override: 17.4%;
+  line-gap-override: 0%;
+  size-adjust: 129.6%;
+}
+
+/* Fluid two-point sizes (mobile -> md, 42-ink-direction.md §Tokens). Held
+ * as plain custom properties, then re-exposed to Tailwind's theme via
+ * `@theme inline` so `text-lead`/`text-body`/`text-eyebrow` pick up the
+ * breakpoint change automatically. */
+:root {
+  --fs-lead: 1.25rem;
+  --fs-body: 1rem;
+  --fs-eyebrow: 1.25rem;
+  /* G8 (46 item 8): nav links had no size of their own -- they inherited
+   * the browser default (1rem, never scaling at md) and read small once
+   * `.label`'s all-small-caps shrunk them further. A dedicated two-point
+   * token, same fluid pattern as the three above, applied to the nav
+   * `<ul>` and the menu button only -- `.label`'s other 11 users
+   * (captions, card categories, etc.) are untouched. */
+  --fs-nav: 1.125rem;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --fs-lead: 1.5rem;
+    --fs-body: 1.125rem;
+    --fs-eyebrow: 1.5rem;
+    --fs-nav: 1.25rem;
+  }
+}
+
+@theme {
+  /* Color — 45-ink-approved.md §Decisions D1 + 42-ink-direction.md
+   * §Tokens final: xuan paper, a 5-tone h240 ink ramp (chroma <= .020 so it
+   * never reads as slate UI), and cinnabar reserved for the focus ring
+   * only (D8 dropped the seal — 45 §Owner feedback item 4 — so D1's own
+   * "<= 5% of pixels" cap is now nowhere near binding). `primary`/`secondary`/
+   * `surface` are gone — no component may reference them (see the E1
+   * build-gate grep in 44-ink-build-plan.md §Exec tasks). */
+  --color-background: #f2ecde;
+  --color-ink: #141a1e;
+  --color-ink-muted: #434b52;
+  --color-ink-subtle: #566068;
+  --color-ink-faint: #7c8992;
+  --color-line: #c4cbd1;
+  --color-cinnabar: #c0392b;
+
+  /* Type families. `--font-display` covers every display/heading/accent
+   * role (42 §Tokens) on one family, distinguished purely by which
+   * weight/style a component applies. 46-polish-plan.md §Fonts / 45
+   * §Polish round decision 1: Cormorant replaces Alegreya, Public Sans
+   * replaces Alegreya Sans. */
+  --font-sans: 'Public Sans', 'Public Sans Fallback', Arial, sans-serif;
+  --font-display: 'Cormorant', 'Cormorant Fallback', Georgia, serif;
+
+  /* Type scale — size/leading/tracking only; weight and family are applied
+   * per component (e.g. font-display font-bold) since @theme text tokens
+   * don't carry either. Values per 42 §Tokens Type table. */
+  --text-hero: clamp(4.5rem, 8.5vw + 3.2rem, 10rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.01em;
+
+  --text-display: clamp(3rem, 4vw + 2rem, 6rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.005em;
+
+  --text-heading: clamp(2rem, 2.4vw + 1.35rem, 3.75rem);
+  --text-heading--line-height: 1.1;
+
+  --text-title: clamp(1.625rem, 0.9vw + 1.35rem, 2.25rem);
+  --text-title--line-height: 1.2;
+
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.4;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0.06em;
+
+  /* Space — 42 §Tokens final: fluid gaps for negative space between
+   * and within major sections. Gutters are unchanged. */
+  --spacing-leaf: clamp(6rem, 3rem + 8vw, 12rem);
+  --spacing-breath: clamp(3rem, 2rem + 4vw, 6rem);
+
+  /* z-index — namespace must be `--z-index-*`, not `--z-*`: Tailwind v4
+   * only generates `z-<name>` utilities from that namespace (bug found in
+   * an earlier review — `z-nav`/`z-curtain` etc. silently produced no CSS
+   * under the old `--z-*` names). */
+  --z-index-menu: 40;
+  --z-index-nav: 50;
+  --z-index-curtain: 90;
+  --z-index-cursor: 100;
+  --z-index-skip-link: 110;
+
+  /* Extra breakpoint above Tailwind's default 2xl (1536px) */
+  --breakpoint-3xl: 1920px;
+
+  /* Ease — 42-ink-direction.md §Tokens Motion table, mirrored in
+   * `src/motion/tokens.ts` (GSAP ease names). V5 (41-ink-replace-map.md):
+   * mechanical rename off the old vocabulary — ui->dry, sidebar->unroll,
+   * reveal->bleed, follow->follow, settle->lift, cover->unroll,
+   * travel->travel, bulge->disperse, pop->bleed. `back.out`/`elastic` are
+   * gone entirely. `mist` is new (hero planes); its GSAP-side ease lives
+   * in motion/tokens.ts since it never drives a CSS transition. `stamp`
+   * (seal approach/settle) shipped the same way and left with the seal
+   * (45 §Owner feedback item 4). */
+  --ease-press: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-travel: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-lift: cubic-bezier(0.61, 1, 0.88, 1);
+  --ease-dry: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-bleed: cubic-bezier(0, 0.55, 0.45, 1);
+  --ease-disperse: cubic-bezier(0.37, 0, 0.63, 1);
+  --ease-unroll: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-follow: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-fade: linear;
+}
+
+@theme inline {
+  --text-lead: var(--fs-lead);
+  --text-lead--line-height: 1.3;
+  --text-lead--letter-spacing: -0.01em;
+
+  --text-body: var(--fs-body);
+  --text-body--line-height: 1.5;
+
+  --text-eyebrow: var(--fs-eyebrow);
+  --text-eyebrow--line-height: 1.1;
+
+  /* G8 (46 item 8): 18px -> 20px at md, `text-nav` utility. */
+  --text-nav: var(--fs-nav);
+  --text-nav--line-height: 1;
+}

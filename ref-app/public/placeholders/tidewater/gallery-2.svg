@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-hidden="true">
+  <rect width="900" height="1200" fill="#F2ECDE" />
+  <g transform="translate(450 600) scale(1.0000) rotate(0) translate(-450 -600)">
+    <rect x="4.0" y="4.0" width="172.0" height="192.0" fill="#0096a8" />
+    <rect x="184.0" y="4.0" width="172.0" height="192.0" fill="#00afdc" />
+    <rect x="364.0" y="4.0" width="172.0" height="192.0" fill="#00beff" />
+    <rect x="544.0" y="4.0" width="172.0" height="192.0" fill="#0088cb" />
+    <rect x="724.0" y="4.0" width="172.0" height="192.0" fill="#3e9afd" />
+    <rect x="4.0" y="204.0" width="172.0" height="192.0" fill="#6492ff" />
+    <rect x="184.0" y="204.0" width="172.0" height="192.0" fill="#8e99ff" />
+    <rect x="364.0" y="204.0" width="172.0" height="192.0" fill="#7f6fce" />
+    <rect x="544.0" y="204.0" width="172.0" height="192.0" fill="#ab7bef" />
+    <rect x="724.0" y="204.0" width="172.0" height="192.0" fill="#d67fff" />
+    <rect x="4.0" y="404.0" width="172.0" height="192.0" fill="#e777ef" />
+    <rect x="184.0" y="404.0" width="172.0" height="192.0" fill="#b35c9e" />
+    <rect x="364.0" y="404.0" width="172.0" height="192.0" fill="#e266a9" />
+    <rect x="544.0" y="404.0" width="172.0" height="192.0" fill="#ff6aa3" />
+    <rect x="724.0" y="404.0" width="172.0" height="192.0" fill="#c36034" />
+    <rect x="4.0" y="604.0" width="172.0" height="192.0" fill="#be6517" />
+    <rect x="184.0" y="604.0" width="172.0" height="192.0" fill="#dc7f00" />
+    <rect x="364.0" y="604.0" width="172.0" height="192.0" fill="#ff7b00" />
+    <rect x="544.0" y="604.0" width="172.0" height="192.0" fill="#ba6900" />
+    <rect x="724.0" y="604.0" width="172.0" height="192.0" fill="#d68300" />
+    <rect x="4.0" y="804.0" width="172.0" height="192.0" fill="#c88d00" />
+    <rect x="184.0" y="804.0" width="172.0" height="192.0" fill="#cfa800" />
+    <rect x="364.0" y="804.0" width="172.0" height="192.0" fill="#888600" />
+    <rect x="544.0" y="804.0" width="172.0" height="192.0" fill="#8aa700" />
+    <rect x="724.0" y="804.0" width="172.0" height="192.0" fill="#75c41e" />
+    <rect x="4.0" y="1004.0" width="172.0" height="192.0" fill="#41ca51" />
+    <rect x="184.0" y="1004.0" width="172.0" height="192.0" fill="#0d985d" />
+    <rect x="364.0" y="1004.0" width="172.0" height="192.0" fill="#00b886" />
+    <rect x="544.0" y="1004.0" width="172.0" height="192.0" fill="#00d1b2" />
+    <rect x="724.0" y="1004.0" width="172.0" height="192.0" fill="#009997" />
+  </g>
+</svg>

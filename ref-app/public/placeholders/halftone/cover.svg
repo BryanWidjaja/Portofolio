@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-hidden="true">
+  <rect width="1600" height="1000" fill="#F2ECDE" />
+  <g transform="translate(800 500) scale(1.1618) rotate(-6) translate(-800 -500)">
+    <rect x="4.0" y="4.0" width="192.0" height="192.0" fill="#6079d3" />
+    <rect x="204.0" y="4.0" width="192.0" height="192.0" fill="#8489fe" />
+    <rect x="404.0" y="4.0" width="192.0" height="192.0" fill="#a890ff" />
+    <rect x="604.0" y="4.0" width="192.0" height="192.0" fill="#8a6cc9" />
+    <rect x="804.0" y="4.0" width="192.0" height="192.0" fill="#b378ea" />
+    <rect x="1004.0" y="4.0" width="192.0" height="192.0" fill="#d97dff" />
+    <rect x="1204.0" y="4.0" width="192.0" height="192.0" fill="#a860af" />
+    <rect x="1404.0" y="4.0" width="192.0" height="192.0" fill="#d46bc5" />
+    <rect x="4.0" y="204.0" width="192.0" height="192.0" fill="#dc68b5" />
+    <rect x="204.0" y="204.0" width="192.0" height="192.0" fill="#ff6cba" />
+    <rect x="404.0" y="204.0" width="192.0" height="192.0" fill="#c1587d" />
+    <rect x="604.0" y="204.0" width="192.0" height="192.0" fill="#ec6482" />
+    <rect x="804.0" y="204.0" width="192.0" height="192.0" fill="#ff7a07" />
+    <rect x="1004.0" y="204.0" width="192.0" height="192.0" fill="#bd6710" />
+    <rect x="1204.0" y="204.0" width="192.0" height="192.0" fill="#dd7e00" />
+    <rect x="1404.0" y="204.0" width="192.0" height="192.0" fill="#f29200" />
+    <rect x="4.0" y="404.0" width="192.0" height="192.0" fill="#ff7f00" />
+    <rect x="204.0" y="404.0" width="192.0" height="192.0" fill="#b96a00" />
+    <rect x="404.0" y="404.0" width="192.0" height="192.0" fill="#d78200" />
+    <rect x="604.0" y="404.0" width="192.0" height="192.0" fill="#e99800" />
+    <rect x="804.0" y="404.0" width="192.0" height="192.0" fill="#a17a00" />
+    <rect x="1004.0" y="404.0" width="192.0" height="192.0" fill="#b39800" />
+    <rect x="1204.0" y="404.0" width="192.0" height="192.0" fill="#b9b100" />
+    <rect x="1404.0" y="404.0" width="192.0" height="192.0" fill="#7b8a00" />
+    <rect x="4.0" y="604.0" width="192.0" height="192.0" fill="#6b8e1f" />
+    <rect x="204.0" y="604.0" width="192.0" height="192.0" fill="#67ae34" />
+    <rect x="404.0" y="604.0" width="192.0" height="192.0" fill="#47c94e" />
+    <rect x="604.0" y="604.0" width="192.0" height="192.0" fill="#269756" />
+    <rect x="804.0" y="604.0" width="192.0" height="192.0" fill="#00b777" />
+    <rect x="1004.0" y="604.0" width="192.0" height="192.0" fill="#00d19a" />
+    <rect x="1204.0" y="604.0" width="192.0" height="192.0" fill="#009a83" />
+    <rect x="1404.0" y="604.0" width="192.0" height="192.0" fill="#00b7ae" />
+    <rect x="4.0" y="804.0" width="192.0" height="192.0" fill="#00b6be" />
+    <rect x="204.0" y="804.0" width="192.0" height="192.0" fill="#00caea" />
+    <rect x="404.0" y="804.0" width="192.0" height="192.0" fill="#0093b5" />
+    <rect x="604.0" y="804.0" width="192.0" height="192.0" fill="#00abe6" />
+    <rect x="804.0" y="804.0" width="192.0" height="192.0" fill="#00bbff" />
+    <rect x="1004.0" y="804.0" width="192.0" height="192.0" fill="#1387cc" />
+    <rect x="1204.0" y="804.0" width="192.0" height="192.0" fill="#3a9bfd" />
+    <rect x="1404.0" y="804.0" width="192.0" height="192.0" fill="#5ea6ff" />
+  </g>
+</svg>

@@ -1,0 +1,38 @@
+/* 45-ink-approved.md §Storyboards intro: the only static hiding mechanism
+ * for GSAP-driven entrances. Everything else about M1-M6 is transform,
+ * opacity or a mask custom property, set imperatively at pageEnter
+ * (motion/brushText.ts, motion/bleed.ts, components/Nav.tsx), so
+ * prerendered HTML is always real, visible content the moment
+ * `motion-ready` is absent — reduced motion (flow 9) or the index.html
+ * boot failsafe both fall back to this same default. `.brush-word` and
+ * `.blot-mask` (M1/M2/M3/M4) gate themselves the same way via their own
+ * `html.motion-ready` rule in styles/base.css, next to their mask
+ * declarations, instead of duplicating that list here. M17's
+ * `[data-seal-animate]` hook is gone with the seal (45 §Owner feedback
+ * item 4). */
+/* `media`/`cover` kinds are excluded: `.blot-mask` (styles/base.css) is
+ * their only hiding mechanism, so an element carrying both would start
+ * double-hidden (opacity AND mask) and motion/bleed.ts's media/cover
+ * branch, which only ever animates `--blot-size`, would leave it stuck at
+ * opacity:0 forever once the mask finished opening. */
+html.motion-ready [data-intro]:not([data-intro='media']):not([data-intro='cover']),
+html.motion-ready [data-reveal]:not([data-reveal='media']),
+html.motion-ready [data-nav-item] {
+  opacity: 0;
+}
+
+/* 46-polish-plan.md item 3(c): diagnosis measured 349-414ms (6x: 1089ms) of
+ * compositor Commit during `swapping` alone -- the destination route mounts
+ * and its images decode while `#main` is still visible, so every frame of
+ * that work re-commits real pixels nobody can see under the opaque ink.
+ * Hiding it here (not with the ink cover's own opacity/visibility, which
+ * only affects the curtain layer) drops that phase's Commit to 5-7ms (6x:
+ * 14-18ms). Scoped to exactly `swapping`, not `covering`/`revealing`: the
+ * outgoing page must stay visible while the ink still covers *it*, and
+ * TransitionProvider.tsx flips the phase to `holding` (no CSS rule below)
+ * the moment the mount + scroll-refresh work is done, restoring visibility
+ * for the whole hold + recede so the new page rasterizes under the ink
+ * instead of popping in after it lifts. */
+html[data-transition='swapping'] #main {
+  visibility: hidden;
+}

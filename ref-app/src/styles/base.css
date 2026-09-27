@@ -1,0 +1,421 @@
+/* Base layer: selection, focus-visible ring, balanced headings, label utility,
+ * the paper tile underlay (V2). `tabular-nums` (years, tabular figures) is
+ * Tailwind's built-in utility; nothing to add for it here. */
+
+/* V7 (41-ink-replace-map.md): pale-line background, ink text -- 10.71 contrast (42 §Tokens). */
+::selection {
+  background-color: var(--color-line);
+  color: var(--color-ink);
+}
+
+html {
+  background-color: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* V2: 512x512 grain+fibre tile (scripts/ink-textures.mjs -> public/ink/paper.webp)
+ * under every paper surface, starting with the page itself. */
+body {
+  min-height: 100svh;
+  background: url('/ink/paper.webp') 0 0 / 512px, var(--color-background);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* V8 (41-ink-replace-map.md): 2px cinnabar outline, offset 2, plus a 2px paper
+ * halo -- over a mid-grey image the ring alone is only ~1.2:1, so the halo
+ * carries the separation there (42 §Tokens). One constant ring color
+ * everywhere now (unlike the old ink/background flip for on-ink surfaces),
+ * since cinnabar already clears 3:1 against both paper and ink. */
+:focus-visible {
+  outline: 2px solid var(--color-cinnabar);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-background);
+}
+
+/* Programmatic focus after a transition (h1s via BrushWords, the
+ * #work/#contact h2 hash targets) never shows a ring. Scoped to
+ * tabindex="-1" specifically, since that value is never a keyboard Tab
+ * stop, so this can't hide a ring anyone actually tabbed to. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
+/* Cursor "Enable / disable": only applied once CursorProvider has actually
+ * initialised (fine pointer, motion not reduced), so touch devices and
+ * no-JS both keep the native cursor. */
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none;
+}
+
+/* label role (42-ink-direction.md §Tokens final): nav, meta labels, card
+ * category. All-small-caps +.06em tracking, replacing the old uppercase
+ * +.1em treatment (V4). */
+@utility label {
+  font-variant-caps: all-small-caps;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+/* M9/V11 (41-ink-replace-map.md), 42 §Brush reveal: every project image's
+ * grey base layer. `html.brush-ready` is added once src/ink/brush.ts
+ * actually mounts a figure's canvas -- reduced motion never adds it (its
+ * BrushReveal never mounts a canvas), so `:not(.brush-ready)` also covers
+ * no-JS/SSR and reduced motion with the same instant CSS swap (bar §F). */
+.brush-grey {
+  filter: grayscale(1);
+  mix-blend-mode: multiply;
+}
+
+html:not(.brush-ready) .brush-figure:hover .brush-grey,
+html:not(.brush-ready) .brush-figure:focus-within .brush-grey {
+  filter: none;
+}
+
+/* M3/M4 (41-ink-replace-map.md), motion/bleed.ts: a figure's blot-bleed
+ * entrance. `--blot-size` grows the blot mask from nothing (0%) outward
+ * from the centre (not a pinned corner: `blot.webp`'s own alpha is a
+ * blob centred in its 512x512 frame, so pinning `mask-position` to a
+ * corner and growing `mask-size` shrinks the box's *visible window* into
+ * that frame as it grows -- it samples closer and closer to the blob's
+ * transparent corner, the opposite of a fill. Anchoring on the centre
+ * instead means the growing window always samples outward from the
+ * blob's own opaque middle, reaching nearly full coverage by 300% with a
+ * soft, organic vignette at the box's own corners -- consistent with the
+ * bloom `src/ink/brush.ts` already uses for a figure's focus reveal, and
+ * with bar §B's "feathered bleed" over a hard-edged wipe). Same
+ * motion-ready-gated default-open pattern as `.brush-word` above. */
+.blot-mask {
+  --blot-size: 300%;
+  mask-image: url('/ink/blot.webp');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: var(--blot-size) var(--blot-size);
+  -webkit-mask-image: url('/ink/blot.webp');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: var(--blot-size) var(--blot-size);
+}
+
+html.motion-ready .blot-mask {
+  --blot-size: 0%;
+}
+
+/* G10 (46 item 10): `.brush-word`'s L->R `mask-position` wipe read as an
+ * off-theme directional slide, and per item 2/4's own finding is exactly
+ * the "large mask-size/mask-position tween" pattern this round removes
+ * everywhere else -- replaced by a 晕染 (bleed) reveal from the word's own
+ * centre, `.blot-mask`'s technique above applied to text: same
+ * `/ink/blot.webp` asset and centre-anchored `mask-position`, its own
+ * `--bleed-size` grown 0% -> 420% by motion/brushText.ts (`EASE.bleed`) --
+ * bigger than `.blot-mask`'s 300% ceiling because a wide word (the hero's
+ * "Widjaja", `text-hero`) needs more zoom to clear its own corners than a
+ * figure's aspect-ratio box does. brushText.ts sets `maskImage:'none'` on
+ * complete so settled text carries no idle paint layer and is never
+ * clipped by the blot's own soft corner vignette. Same default-open,
+ * `motion-ready`-gated pattern as `.brush-word`/`.blot-mask`: no-JS/SSR/
+ * reduced motion (which never sets `html.motion-ready`) always render
+ * real, unclipped text. */
+.bleed-word {
+  --bleed-size: 420%;
+  display: inline-block;
+  /* S5 (owner-reported: "Widjaja"'s j descenders sliced flat in
+   * notes/plan/shots/ink-s4/home-1440.png -- not a font problem, this
+   * container). `mask-clip`'s initial value is `border-box`: content
+   * outside a masked element's own box is never painted, no matter what
+   * the mask image itself contains, so a word's inline-block box being
+   * exactly its line-height tall (--text-hero--line-height: 0.95, well
+   * under Cormorant 700's real glyph extents -- measured off the shipped
+   * woff via opentype.js: descenders (j/y) to -0.282em, tallest lowercase
+   * ascenders (d/h/l/b) to +0.725em) flat-clips anything outside that box
+   * at every `--bleed-size`, including the reduced-motion/no-JS default
+   * of a fully "open" mask -- so this was never fixable by touching the
+   * typeface. padding-block gives the border-box (and therefore
+   * mask-clip) real room above and below; the equal-and-opposite
+   * margin-block cancels the padding back out of the inline-block's
+   * margin-box, which is what the surrounding line box measures for
+   * stacking/spacing, so no role's line spacing shifts. */
+  padding-block: 0.3em 0.35em;
+  margin-block: -0.3em -0.35em;
+  mask-image: url('/ink/blot.webp');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: var(--bleed-size) var(--bleed-size);
+  -webkit-mask-image: url('/ink/blot.webp');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: var(--bleed-size) var(--bleed-size);
+}
+
+html.motion-ready .bleed-word {
+  --bleed-size: 0%;
+}
+
+/* Registers `--underline-x` as an animatable <percentage> (initial: fully
+ * hidden) so the plain CSS `transition` below can interpolate it natively
+ * -- without this, browsers treat an untyped custom property as
+ * discrete and the mask would jump instead of wipe. Unsupported browsers
+ * (pre-2023 Firefox) fall back to an instant, undecorated jump: no error,
+ * no hidden content. */
+@property --underline-x {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
+/* V18/M11 (41-ink-replace-map.md): the dry-brush underline utility, shared
+ * by UnderlineLink and ArrowLink. `::after` masks a straight bar with the
+ * brush-edge strip, so the same ink-front texture that writes a word also
+ * wipes this underline in from the left, .25s dry-in / .18s dry-out (42
+ * §Tokens "dry"). `data-current` (aria-current pages) and reduced motion
+ * both keep the bar fully drawn without ever animating the mask. */
+.ink-underline {
+  position: relative;
+}
+
+.ink-underline::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -0.05em;
+  height: 1px;
+  background-color: currentColor;
+  pointer-events: none;
+  mask-image: url('/ink/brush-edge.webp');
+  mask-repeat: no-repeat;
+  mask-size: 300% 100%;
+  mask-position: var(--underline-x) 0;
+  -webkit-mask-image: url('/ink/brush-edge.webp');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 300% 100%;
+  -webkit-mask-position: var(--underline-x) 0;
+  transition: --underline-x 180ms var(--ease-dry);
+  /* F1 (45 §Owner feedback item 2): every link on the site carries one of
+   * these — small and permanent is cheaper here than toggling per hover. */
+  will-change: mask-position;
+}
+
+.ink-underline[data-current]::after,
+.ink-underline:hover::after,
+.ink-underline:focus-visible::after,
+.group:hover .ink-underline::after,
+.group:focus-visible .ink-underline::after {
+  --underline-x: 0%;
+  transition-duration: 250ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-underline::after {
+    transition: none;
+    opacity: 0;
+  }
+
+  .ink-underline[data-current]::after,
+  .ink-underline:hover::after,
+  .ink-underline:focus-visible::after,
+  .group:hover .ink-underline::after,
+  .group:focus-visible .ink-underline::after {
+    --underline-x: 0%;
+    opacity: 1;
+  }
+}
+
+/* V19 (41-ink-replace-map.md), components/BrushLine.tsx: the two masks
+ * (line silhouette ∩ brush-edge strip) intersect so only the overlap of
+ * "inside the tapered stroke" and "already swept by the ink front" paints.
+ * `mask-image`/`-webkit-mask-image` (two layers) and the line colour are
+ * set inline per instance (the SVG path and its currentColor fill vary);
+ * everything else is shared here. `-webkit-mask-composite: source-in` is
+ * the legacy-WebKit equivalent of `mask-composite: intersect` (44
+ * §Exec tasks E4 risk note — the keyword sets don't match). Defaults fully
+ * drawn and visible, same as `.brush-word`/`.blot-mask` above, so no-JS/SSR
+ * and reduced motion (which never sets `html.motion-ready`) both render a
+ * real, visible line without any JS. */
+.brush-line {
+  --line-x: 0%;
+  opacity: 1;
+  color: var(--color-ink-faint);
+  background-color: currentColor;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size: 100% 100%, 300% 100%;
+  mask-position:
+    0 0,
+    var(--line-x) 0;
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-size: 100% 100%, 300% 100%;
+  -webkit-mask-position:
+    0 0,
+    var(--line-x) 0;
+  -webkit-mask-composite: source-in;
+}
+
+html.motion-ready .brush-line {
+  --line-x: 100%;
+  opacity: 0;
+}
+
+/* M10/V17/V27 (41-ink-replace-map.md): PillButton/NextProject's wash fill.
+ * A blot-masked layer that scales from 0 to 1 from the pointer's entry
+ * point (`--wash-x`/`--wash-y`, set on pointerenter; 50/50 default covers
+ * keyboard focus) instead of animating the mask itself, so the mask never
+ * renders above its own resolution (42 §Components "mask <= 1x"). */
+.ink-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  background-color: var(--color-ink);
+  transform: scale(0);
+  transform-origin: var(--wash-x, 50%) var(--wash-y, 50%);
+  transition: transform 180ms var(--ease-dry);
+  mask-image: url('/ink/blot.webp');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 160% 160%;
+  -webkit-mask-image: url('/ink/blot.webp');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 160% 160%;
+}
+
+.group:hover .ink-wash,
+.group:focus-visible .ink-wash {
+  transform: scale(1);
+  transition-duration: 250ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-wash {
+    transition: none;
+  }
+}
+
+/* V13 (41-ink-replace-map.md), 42-ink-direction.md §Hero "Dissolve": a CSS
+ * safety net for an ultra-wide `object-fit: cover` crop. The master itself
+ * already dissolves its own bottom quarter to paper (scripts/hero.mjs
+ * levels it to #FFFFFF) -- this just guarantees the rendered edge can never
+ * fall short of that under a viewport wide enough to crop past it. */
+.hero-painting {
+  mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+}
+
+/* F10 (45 §Owner feedback item 10): the hero's first-load entrance --
+ * "brushed onto the paper". This is a *sibling* paper panel over the
+ * painting, not anything on the `<img>` itself: the image's own opacity
+ * never changes, at rest or mid-animation, so it stays the LCP element and
+ * is never gated behind JS (the hard constraint) -- a slow/broken JS load
+ * leaves the image exactly as visible as a fast one. The panel's mask is a
+ * static gradient (computed once, not animated) so the only thing moving
+ * is a `transform: translateX` -- composited, cheap regardless of the
+ * hero's own size, which is deliberately the opposite of item 2's "large
+ * mask-size/mask-position animation": animating *this* mask directly
+ * would be that same mistake at full-viewport scale. `.ink-paper`
+ * (styles/base.css) gives it the same paper/grain tile as the page. Under
+ * reduced motion (`motion-reduce:hidden`, applied in components/Hero.tsx)
+ * the panel is removed outright -- the image was always fully painted
+ * underneath it, so removing the cover is instant with nothing left to
+ * "show". */
+.hero-brush-in {
+  position: absolute;
+  inset: 0;
+  mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 100%);
+  animation: hero-brush-in 0.9s var(--ease-travel) forwards;
+}
+
+@keyframes hero-brush-in {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(108%);
+  }
+}
+
+/* M7 (41-ink-replace-map.md), components/MenuOverlay.tsx: the same 512x512
+ * paper tile `body` uses, at the same 0,0 origin so grain never seams
+ * between the two -- the menu panel is an opaque surface over the page, not
+ * a see-through one, so it needs its own copy rather than inheriting. */
+.ink-paper {
+  background: url('/ink/paper.webp') 0 0 / 512px, var(--color-background);
+}
+
+/* G6 (46 item 6 / 45 owner decision 2): the menu panel's dark variant --
+ * 浓 fill instead of paper. The tile's own grain pixels sit lighter than
+ * 浓 (they read as paper-toned fibres, ~#C2BDB2), so on a dark ground they
+ * *lighten* instead of darkening it -- the same `background: image, color`
+ * shorthand `.ink-paper` uses can't scale the image layer's opacity
+ * independently of the color layer, so this splits them: solid 浓 on the
+ * panel itself, the tile on a `::before` whose own `opacity` is tuned down.
+ *
+ * Re-tuned 2026-09-24 alongside the paper.webp regeneration (owner review:
+ * "far too coarse" on the dark panel, std-dev ~19 vs ~0.6 on paper -- the
+ * mean/max channel-delta metric below doesn't capture that, since the same
+ * absolute alpha swing reads as a much bigger *relative* contrast against
+ * a darker base; scripts/ink-textures.mjs). Opacity dropped 0.44->0.38 to
+ * match: measured against the regenerated tile (plain sRGB channel-average
+ * delta, and per-32px-patch std-dev as a roughness proxy) -- mean 1.65%,
+ * max 4.13%, std-dev 2.2-2.8 (was ~19 at the old tile/opacity; the paper
+ * surface itself now measures 2.4-2.9, so the two surfaces read as the
+ * same order of grain instead of the dark one being ~7x rougher). Text/
+ * ring contrast against the flat 浓 token colour (7.53 paper, 5.41 清,
+ * 1.63 cinnabar) is unaffected by this tuning either way -- but even the
+ * worst single grain pixel anywhere on the tile now leaves 清 at 4.58:1
+ * and paper at 6.37:1, both still >=4.5.
+ *
+ * Re-verified 2026-09-25 (`47` R3-3, alongside the paper.webp rebuild for
+ * the "fine not blurry" fix, scripts/ink-textures.mjs): the new tile drops
+ * the old interpolated fbm entirely for a flat per-pixel Bernoulli "tooth"
+ * plus sparse speckle/fibre (see that file's doc comment) -- opacity stays
+ * at 0.38, unchanged, since the new tile's own per-block std-dev already
+ * lands at 2.22-2.27 at this same opacity (target 2.2-2.8, no retune
+ * needed). Worst-pixel contrast re-measured against the new tile (not
+ * assumed): paper 6.41:1, 清 4.60:1, both still >=4.5. */
+.ink-paper-dark {
+  background-color: var(--color-ink-muted);
+}
+
+.ink-paper-dark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/ink/paper.webp') 0 0 / 512px;
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* G-follow-up (coordinator review, 2026-09-24): `data-on-ink` marks an
+ * element that must flip to paper whenever `data-menu-open` is set on
+ * <html> -- currently just Nav.tsx's `BW` monogram, which sits in the
+ * fixed header above the menu panel (z-nav 50 > z-menu 40) and was still
+ * 焦 (2.20:1 on 浓) after G6 flipped every element actually inside the
+ * panel. Colour only, no transition: the panel's translateY covers the
+ * header within the first ~10% of its open tween (it slides down from
+ * off-screen top, top-to-bottom) and stays covering it for the *entire*
+ * close tween (same geometry in reverse -- the header is the last strip
+ * to clear), so there is no visible window where this would be flipped
+ * against a not-yet-covered background. */
+html[data-menu-open] [data-on-ink] {
+  color: var(--color-background);
+}
+
+/* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens), so inside the dark menu
+ * panel the ring's paper halo -- already the load-bearing separation over
+ * any mid-tone image (42 §Tokens) -- is the *only* thing carrying it here.
+ * Widened from the global 2px (`:focus-visible` above) to 3px, scoped to
+ * the panel so every other surface keeps the thinner halo. */
+[data-menu-overlay] :focus-visible {
+  box-shadow: 0 0 0 3px var(--color-background);
+}
