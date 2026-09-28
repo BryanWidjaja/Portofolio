@@ -3,10 +3,9 @@
  * scripts/project-images.mjs
  *
  * Turns each project's master images into the files the site serves:
- * `public/projects/<slug>/<name>-{960,1600}[-grey].{avif,webp}` -- the same
- * widths, formats and baked-grey counterpart (R4-4, what BrushReveal's
- * overlay <img> shows until the brush paints colour in) that
- * scripts/placeholders.mjs produces for stand-ins.
+ * `public/projects/<slug>/<name>-{960,1600}.{avif,webp}`, plus a baked-grey
+ * `-grey` twin of each cover (R4-4: what a home card's BrushReveal shows
+ * until the brush paints colour in).
  *
  * Masters live in `assets/projects/<slug>/<name>.webp` (lossless-quality
  * WebP, 1600px wide), outside `public/` so they're never served. Each one
@@ -57,7 +56,10 @@ async function main() {
       const master = path.join(SRC, slug, file)
       for (const width of WIDTHS) {
         await render(master, path.join(outDir, `${name}-${width}`), width, false)
-        await render(master, path.join(outDir, `${name}-${width}-grey`), width, true)
+        // Only the cover gets a grey twin: it's the one image shown on a
+        // home card, the only place the brush paint-out runs. Project pages
+        // show their images in plain colour.
+        if (name === 'cover') await render(master, path.join(outDir, `${name}-${width}-grey`), width, true)
       }
       console.log(`[project-images] ${slug}/${name}`)
     }

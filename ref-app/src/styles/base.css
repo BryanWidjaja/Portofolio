@@ -69,18 +69,27 @@ html.has-custom-cursor * {
 }
 
 /* M9/V11 (41-ink-replace-map.md), 42 §Brush reveal, R4-4 (41 R4-4,
- * 49-round4-plan.md §E2): every project image's grey base layer, now a
- * pre-baked grey raster (scripts/placeholders.mjs) stacked over the colour
- * `<img>` beneath it -- no `filter`/`mix-blend-mode` left on any image
- * layer (45's 633ms compositor-Commit measurement). `html.brush-ready` is
- * added once src/ink/brush.ts actually mounts a figure's canvas -- reduced
- * motion never adds it (its BrushReveal never mounts a canvas), so
- * `:not(.brush-ready)` also covers no-JS/SSR and reduced motion with the
- * same instant CSS swap (bar §F): the grey overlay's opacity drops to 0,
- * revealing the colour image underneath, instead of a filter toggling off. */
-html:not(.brush-ready) .brush-figure:hover .brush-grey,
-html:not(.brush-ready) .brush-figure:focus-within .brush-grey {
+ * 49-round4-plan.md §E2): a home card's image is a pre-baked grey raster
+ * with the colour `<img>` stacked above it -- no `filter`/`mix-blend-mode`
+ * on any image layer (45's 633ms compositor-Commit measurement). Once
+ * src/ink/brush.ts mounts it adds `html.brush-ready` and reveals the colour
+ * layer by animating its `clip-path`. Reduced motion never mounts the
+ * engine, so `:not(.brush-ready)` covers no-JS/SSR and reduced motion with
+ * one instant swap (bar §F): the colour layer is hidden at rest and shown
+ * on hover/focus. */
+html:not(.brush-ready) .brush-colour {
   opacity: 0;
+}
+
+html:not(.brush-ready) .brush-figure:hover .brush-colour,
+html:not(.brush-ready) .brush-figure:focus-within .brush-colour {
+  opacity: 1;
+}
+
+/* Fully clipped until the engine takes over a figure (it sets the clip
+ * inline), so no colour layer flashes unclipped in between. */
+html.brush-ready .brush-colour {
+  clip-path: polygon(0 0, 0 0, 0 0);
 }
 
 /* M3/M4 (41-ink-replace-map.md), motion/bleed.ts: a figure's blot-bleed

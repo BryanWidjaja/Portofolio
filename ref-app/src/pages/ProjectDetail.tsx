@@ -7,7 +7,6 @@ import { Eyebrow } from '../components/Eyebrow'
 import { PillButton } from '../components/PillButton'
 import { DividerRow } from '../components/DividerRow'
 import { Gallery } from '../components/Gallery'
-import { BrushReveal } from '../components/BrushReveal'
 import { NextProject } from '../components/NextProject'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
@@ -120,12 +119,19 @@ export function ProjectDetail() {
             data-intro="cover"
             className="blot-mask isolate aspect-[4/5] overflow-hidden rounded-none md:aspect-[16/10]"
           >
-            <BrushReveal
+            {/* Owner, 2026-09-28: a project's own page shows its images in
+                plain colour -- the brush paint-out lives on the home page's
+                cards only. As the page's likely LCP element, the cover loads
+                eagerly at high priority. */}
+            <img
               src={project.cover.src}
               alt={project.cover.alt}
               width={project.cover.width}
               height={project.cover.height}
-              eager
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="size-full object-cover"
             />
           </figure>
         </Container>
