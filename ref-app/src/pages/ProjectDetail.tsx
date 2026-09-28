@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useParams } from 'react-router-dom'
 import { Seo } from '../components/Seo'
 import { Container } from '../components/Container'
@@ -50,7 +51,8 @@ export function ProjectDetail() {
   }
 
   const next = projects[(index + 1) % projects.length]
-  const hasLinks = Boolean(project.links.live || project.links.repo)
+  const repos = project.links.repos ?? []
+  const hasLinks = Boolean(project.links.live || repos.length)
 
   return (
     <>
@@ -80,13 +82,19 @@ export function ProjectDetail() {
               <dt className="label text-ink-muted">Stack</dt>
               <dd className="mt-2 text-body">
                 {project.stack.map((item, i) => (
-                  // whitespace-nowrap keeps multi-word tool names (e.g. "MapLibre GL")
-                  // from splitting across lines; the break opportunity stays at the
-                  // comma+space between items (R1 finding 3).
-                  <span key={item} className="whitespace-nowrap">
-                    {item}
-                    {i < project.stack.length - 1 ? ', ' : ''}
-                  </span>
+                  // whitespace-nowrap keeps multi-word tool names (e.g. "Chrome
+                  // Extensions") from splitting across lines; the break
+                  // opportunity stays at the comma+space between items (R1
+                  // finding 3). The separator sits *outside* the nowrap span --
+                  // inside it, its space was nowrap too, so a row could never
+                  // break at all and overflowed the 390px viewport.
+                  <Fragment key={item}>
+                    <span className="whitespace-nowrap">
+                      {item}
+                      {i < project.stack.length - 1 ? ',' : ''}
+                    </span>
+                    {i < project.stack.length - 1 ? ' ' : ''}
+                  </Fragment>
                 ))}
               </dd>
             </div>
@@ -97,11 +105,11 @@ export function ProjectDetail() {
                     Visit site
                   </PillButton>
                 ) : null}
-                {project.links.repo ? (
-                  <PillButton href={project.links.repo} icon="arrow-up-right" external>
-                    View source
+                {repos.map((repo) => (
+                  <PillButton key={repo.href} href={repo.href} icon="arrow-up-right" external>
+                    {repo.label}
                   </PillButton>
-                ) : null}
+                ))}
               </div>
             ) : null}
           </dl>
