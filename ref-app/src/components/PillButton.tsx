@@ -23,6 +23,12 @@ type PillButtonProps = {
    * honest and non-breaking instead of linking into a 404 (E6 hardening). */
   disabled?: boolean
   title?: string
+  /** `outline` (default): ink outline that fills with the blot-masked ink
+   * wash on hover. `solid`: a flat grey fill at rest that deepens on hover,
+   * no wash texture (owner, 2026-09-28: the home "About me" button). */
+  variant?: 'outline' | 'solid'
+  /** Passed to an `href` link, e.g. `download` for the CV file. */
+  download?: boolean | string
   /** M3/M4 hooks (12-motion.md): passed straight through to the root element. */
   'data-intro'?: string
   'data-reveal'?: string
@@ -54,18 +60,28 @@ function setWashOrigin(e: PointerEvent<HTMLElement>) {
 // selector) -- they can never match the `.group` element itself, so the
 // colour flip below has to be a plain `hover:`/`focus-visible:` on this
 // same root instead.
-const base =
-  'group relative isolate inline-flex h-11 items-center gap-2 overflow-hidden rounded-full border border-ink px-6 ' +
-  'text-body text-ink transition-[transform,color] duration-[120ms] ease-dry active:scale-[0.97] ' +
-  'pointer-fine:hover:text-background focus-visible:text-background ' +
+const shared =
+  'group relative isolate inline-flex h-11 items-center gap-2 overflow-hidden rounded-full border px-6 ' +
+  'text-body active:scale-[0.97] ' +
   'disabled:border-ink-muted disabled:text-ink-muted disabled:pointer-events-none disabled:active:scale-100'
 
-function PillContent({ children, icon, disabled }: { children: ReactNode; icon?: IconName; disabled?: boolean }) {
+const variants = {
+  outline:
+    'border-ink text-ink transition-[transform,color] duration-[120ms] ease-dry ' +
+    'pointer-fine:hover:text-background focus-visible:text-background',
+  // Paper on --color-ink-subtle is 5.45:1, on --color-ink-muted 7.53:1 (AA).
+  solid:
+    'border-ink-subtle bg-ink-subtle text-background ' +
+    'transition-[transform,background-color,border-color] duration-[200ms] ease-dry ' +
+    'pointer-fine:hover:border-ink-muted pointer-fine:hover:bg-ink-muted focus-visible:border-ink-muted focus-visible:bg-ink-muted',
+} as const
+
+function PillContent({ children, icon, disabled, wash }: { children: ReactNode; icon?: IconName; disabled?: boolean; wash: boolean }) {
   const IconComponent = icon ? icons[icon] : null
 
   return (
     <>
-      {disabled ? null : <span aria-hidden="true" className="ink-wash" />}
+      {disabled || !wash ? null : <span aria-hidden="true" className="ink-wash" />}
       <span className="relative">{children}</span>
       {IconComponent ? (
         <IconComponent
@@ -88,14 +104,18 @@ export function PillButton({
   disabled = false,
   className = '',
   title,
+  variant = 'outline',
+  download,
   ...rest
 }: PillButtonProps) {
-  const classes = `${base} ${className}`.trim()
+  const classes = `${shared} ${variants[variant]} ${className}`.trim()
+  const wash = variant === 'outline'
+  const onPointerEnter = wash ? setWashOrigin : undefined
 
   if (disabled) {
     return (
       <button type="button" disabled aria-disabled="true" title={title} className={classes} {...rest}>
-        <PillContent icon={icon} disabled>
+        <PillContent icon={icon} disabled wash={wash}>
           {children}
         </PillContent>
       </button>
@@ -104,8 +124,8 @@ export function PillButton({
 
   if (to) {
     return (
-      <TransitionLink to={to} className={classes} onPointerEnter={setWashOrigin} {...rest}>
-        <PillContent icon={icon}>{children}</PillContent>
+      <TransitionLink to={to} className={classes} onPointerEnter={onPointerEnter} {...rest}>
+        <PillContent icon={icon} wash={wash}>{children}</PillContent>
       </TransitionLink>
     )
   }
@@ -117,17 +137,18 @@ export function PillButton({
         className={classes}
         target={external ? '_blank' : undefined}
         rel={external ? 'noopener noreferrer' : undefined}
-        onPointerEnter={setWashOrigin}
+        download={download}
+        onPointerEnter={onPointerEnter}
         {...rest}
       >
-        <PillContent icon={icon}>{children}</PillContent>
+        <PillContent icon={icon} wash={wash}>{children}</PillContent>
       </a>
     )
   }
 
   return (
-    <button type="button" onClick={onClick} className={classes} onPointerEnter={setWashOrigin} {...rest}>
-      <PillContent icon={icon}>{children}</PillContent>
+    <button type="button" onClick={onClick} className={classes} onPointerEnter={onPointerEnter} {...rest}>
+      <PillContent icon={icon} wash={wash}>{children}</PillContent>
     </button>
   )
 }

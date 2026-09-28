@@ -50,6 +50,11 @@ export function createScrollReveals(root: HTMLElement, reduced: boolean) {
 
         if (kind === 'heading') {
           writeHeadingWords(el, reduced)
+        } else if (kind === 'scroll') {
+          // A project card's mounted scroll (styles/base.css `.scroll`): it
+          // starts rolled up under `motion-ready` and unrolls by pure CSS
+          // transition once this attribute lands -- no per-frame JS.
+          gsap.delayedCall(delay, () => el.setAttribute('data-unrolled', ''))
         } else if (kind === 'media') {
           // F1 (45 §Owner feedback item 2): see motion/bleed.ts's identical
           // branch for why `--blot-size` (mask-size) gets a transient

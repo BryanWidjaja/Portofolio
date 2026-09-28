@@ -131,6 +131,9 @@ function hexToRgb(hex) {
  *   worst single grain pixel (the speckle layer's own alpha, 60/255) on
  *   the dark panel: paper-text 6.41:1, line-text (清, `--color-line`)
  *   4.60:1 (both >=4.5 required)
+ *   (2026-09-28: tooth/speckle now drawn in 2x2 device-px cells, see
+ *   GRAIN_CELL below -- same mean darkening, 9.11% vs 9.13% mean alpha;
+ *   the lossless file drops to 41.1kB)
  *   file size: LOSSLESS WebP, 117.2kB (<=120kB budget) -- chosen over
  *   lossy after measuring both: a uniform-fill Bernoulli mask compresses
  *   losslessly to a smaller file than *any* lossy encode of a design with
@@ -155,27 +158,39 @@ async function buildPaper(rand) {
     buf[i + 3] = a
   }
 
-  // 1. Tooth: independent per-pixel Bernoulli draw, one fixed alpha for
-  // every "on" pixel (see the doc comment above for why a fixed value,
-  // not a random one, is deliberate).
+  // Owner, 2026-09-28: "bg paper noise is slightly too fine, hv it be
+  // slightly more coarse". Tooth and speckle are drawn in GRAIN_CELL x
+  // GRAIN_CELL device-px cells: 2 = one CSS px per grain, where it was half
+  // a CSS px (per device px) -- which a 1x screen averaged four-to-one into
+  // near-flat tone, the "too fine" read. Same probability and alpha per
+  // cell, so the paper's mean darkening is unchanged; only the grain size
+  // moves. Fibres keep their ~1 device-px width.
+  const GRAIN_CELL = 2
+  function setCell(cx, cy, a) {
+    for (let dy = 0; dy < GRAIN_CELL; dy++) for (let dx = 0; dx < GRAIN_CELL; dx++) setPx(cx + dx, cy + dy, a)
+  }
+
+  // 1. Tooth: independent per-cell Bernoulli draw, one fixed alpha for
+  // every "on" cell (see the doc comment above for why a fixed value, not a
+  // random one, is deliberate).
   const TOOTH_P = 0.75
   const TOOTH_ALPHA = 31
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (rand() < TOOTH_P) setPx(x, y, TOOTH_ALPHA)
+  for (let y = 0; y < size; y += GRAIN_CELL) {
+    for (let x = 0; x < size; x += GRAIN_CELL) {
+      if (rand() < TOOTH_P) setCell(x, y, TOOTH_ALPHA)
     }
   }
 
-  // 2. Sparse 1-2 device-px speckle flecks, brighter than the tooth.
+  // 2. Sparse 1-2 cell speckle flecks, brighter than the tooth.
   const SPECKLE_ALPHA = 60
-  const speckleCount = Math.round(size * size * 0.0002)
+  const speckleCount = Math.round((size / GRAIN_CELL) * (size / GRAIN_CELL) * 0.0002)
   for (let s = 0; s < speckleCount; s++) {
-    const cx = Math.floor(rand() * size)
-    const cy = Math.floor(rand() * size)
-    setPx(cx, cy, SPECKLE_ALPHA)
+    const cx = Math.floor(rand() * (size / GRAIN_CELL)) * GRAIN_CELL
+    const cy = Math.floor(rand() * (size / GRAIN_CELL)) * GRAIN_CELL
+    setCell(cx, cy, SPECKLE_ALPHA)
     if (rand() < 0.5) {
-      setPx(cx + 1, cy, SPECKLE_ALPHA)
-      setPx(cx, cy + 1, SPECKLE_ALPHA)
+      setCell(cx + GRAIN_CELL, cy, SPECKLE_ALPHA)
+      setCell(cx, cy + GRAIN_CELL, SPECKLE_ALPHA)
     }
   }
 

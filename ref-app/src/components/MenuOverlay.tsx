@@ -3,6 +3,7 @@ import { Container } from './Container'
 import { TransitionLink } from './TransitionLink'
 import { EmailCopy } from './EmailCopy'
 import { ArrowLink } from './ArrowLink'
+import { CvButton } from './CvButton'
 import { useMenuControls } from '../app/MenuProvider'
 import { gsap, useGSAP } from '../motion/gsap'
 import { DURATION, EASE } from '../motion/tokens'
@@ -256,15 +257,20 @@ export function MenuOverlay() {
             className="flex flex-col gap-6 text-line md:flex-row md:items-baseline md:justify-between"
           >
             <EmailCopy email={site.email} size="lg" />
-            <ul className="flex gap-6">
-              {site.socials.map((social) => (
-                <li key={social.href}>
-                  <ArrowLink href={social.href} external size="sm">
-                    {social.label}
-                  </ArrowLink>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-wrap items-center gap-6">
+              <ul className="flex gap-6">
+                {site.socials.map((social) => (
+                  <li key={social.href}>
+                    <ArrowLink href={social.href} external size="sm">
+                      {social.label}
+                    </ArrowLink>
+                  </li>
+                ))}
+              </ul>
+              {/* The nav's CV button, for when its links are collapsed into
+                  this panel (scrolled, and always on phones). */}
+              <CvButton tone="paper" />
+            </div>
           </div>
         </Container>
         {/* 42 §Components "a 10px 焦 brush-line rod on its bottom edge",

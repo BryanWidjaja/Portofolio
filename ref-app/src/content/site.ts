@@ -17,11 +17,14 @@ export const site = {
   // TODO(owner): confirm production domain before launch (used for canonical/OG URLs and the sitemap).
   url: 'https://bryanwidjaja.com',
   email: 'bryan.widjaja1708@gmail.com',
-  // TODO(owner): add the real file at public/resume.pdf, then flip
-  // `resumeAvailable` to true. Until then the About page renders the pill
-  // disabled instead of linking to a 404 (src/pages/About.tsx).
-  resumeUrl: '/resume.pdf',
-  resumeAvailable: false,
+  // The owner's CV (public/Bryan-Widjaja-CV.pdf), downloaded under
+  // `resumeFileName`. `resumeAvailable: false` would put the About page's
+  // pill back to disabled and drop the nav/menu CV buttons (CvButton.tsx)
+  // instead of linking to a missing file.
+  resumeUrl: '/Bryan-Widjaja-CV.pdf',
+  resumeFileName: 'Bryan-Widjaja-CV.pdf',
+  resumeAvailable: true,
+  cvButton: { label: 'CV', ariaLabel: 'Download CV (PDF)' },
   location: 'Banten, Indonesia',
   ogImage: '/og/default.png',
 

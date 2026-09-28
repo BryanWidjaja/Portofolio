@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Container } from './Container'
 import { Monogram } from './Monogram'
 import { UnderlineLink } from './UnderlineLink'
+import { CvButton } from './CvButton'
 import { gsap, ScrollTrigger, useGSAP } from '../motion/gsap'
 import { usePageEnter, type PageEnterMode } from '../motion/pageEnter'
 import { useReducedMotion } from '../app/MotionProvider'
@@ -338,6 +339,14 @@ export function Nav() {
                 </UnderlineLink>
               </li>
             ))}
+            {/* The CV download sits last in the row, so it's the first item
+                the scroll collapse above sweeps into the burger (nearest
+                first) -- and it lives in the menu panel too for that state. */}
+            {site.resumeAvailable ? (
+              <li data-nav-item className="flex items-center">
+                <CvButton />
+              </li>
+            ) : null}
           </ul>
 
           {/* 47-round3-plan.md §R5 item 6 / 49-round4-plan.md §E3 item 2: a

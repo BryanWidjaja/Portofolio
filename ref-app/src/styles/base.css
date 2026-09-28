@@ -92,6 +92,221 @@ html.brush-ready .brush-colour {
   clip-path: polygon(0 0, 0 0, 0 0);
 }
 
+/* Owner, 2026-09-28: every home project card sits on a beige mounted scroll
+ * (components/ProjectCard.tsx). Anatomy follows real Chinese mounting:
+ *   .scroll-body     the silk mount (绫), beige, with the paper grain
+ *   .scroll-brocade  the narrow darker border strip framing the painting
+ *   .scroll-art      the painting core (画心): the brush-reveal image, plus
+ *                    a light grain layer so it reads as printed on paper
+ *   .scroll-rod      lacquered black rollers with ivory knobs (象牙轴头)
+ * Wide cards (md+) are a handscroll (手卷): rollers stand at the left and
+ * right ends. Phones get a hanging scroll (立轴): a slim top rod (天杆), a
+ * heavier bottom roller (地杆) with knobs, a deeper top margin than bottom
+ * (天头 > 地头, the traditional proportion) and two hanging ribbons (惊燕)
+ * in that top margin.
+ *
+ * Unroll: under `motion-ready` the scroll starts rolled up -- the body
+ * clipped to nothing, the end roller parked beside the start one -- and
+ * motion/reveal.ts sets `data-unrolled` as it scrolls in; the rest is a CSS
+ * transition (`--ease-unroll`, the menu panel's own 立轴 curve). The roller
+ * travels on `translate` (compositor); only the body's clip repaints, once.
+ * Reduced motion/no-JS never set `motion-ready`, so they render it open.
+ * `cqw`/`cqh` are the stage's own size (it's a size container), which is
+ * what lets the parked roller sit exactly at the far edge in pure CSS. */
+/* One animated progress (0 rolled -> 1 open) drives both the paper's clip
+ * and the roller's travel, so the paper edge stays attached to the roller.
+ * (Animating the two properties separately let the compositor-driven
+ * roller drift ~100px ahead of the main-thread clip mid-unroll.)
+ * Registered so it interpolates; unregistered it would just snap open. */
+@property --unroll {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+.scroll {
+  --scroll-silk: #e4d7bb;
+  --scroll-brocade: #c9b690;
+  --scroll-edge: rgb(20 26 30 / 0.16);
+  --rod: 16px;
+  --unroll: 1;
+  transition: --unroll 1100ms var(--ease-unroll);
+}
+
+.scroll-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.scroll-body {
+  position: absolute;
+  /* phones: rods run left-right, so the body leaves their knob overhang */
+  inset: 0 10px;
+  display: flex;
+  flex-direction: column;
+  padding: 16cqh 7cqw 8cqh; /* 天头 > 地头 */
+  background:
+    url('/ink/paper.webp') 0 0 / 512px,
+    var(--scroll-silk);
+  box-shadow:
+    0 1px 0 var(--scroll-edge),
+    0 18px 36px -24px rgb(20 26 30 / 0.45);
+  /* hanging scroll: unrolls downward */
+  clip-path: inset(0 0 calc((1 - var(--unroll)) * 100%) 0);
+}
+
+.scroll-brocade {
+  flex: 1;
+  min-height: 0;
+  padding: 5px;
+  background:
+    url('/ink/paper.webp') 0 0 / 512px,
+    var(--scroll-brocade);
+  box-shadow: inset 0 0 0 1px var(--scroll-edge);
+}
+
+.scroll-art {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--scroll-edge);
+}
+
+/* Paper grain over the painting itself: the same alpha-only tile, static,
+ * no blend mode (45's compositor measurements), so it costs one layer. */
+.scroll-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: url('/ink/paper.webp') 0 0 / 512px;
+  opacity: 0.55;
+}
+
+/* 惊燕: two narrow ribbons hanging from the top rod (hanging scroll only). */
+.scroll-ribbons {
+  position: absolute;
+  top: 0;
+  left: 30%;
+  right: 30%;
+  height: 13cqh;
+  border-inline: 6px solid var(--scroll-brocade);
+  box-shadow: inset 1px 0 0 var(--scroll-edge), inset -1px 0 0 var(--scroll-edge);
+}
+
+/* Rollers: a lacquered cylinder (light catches its middle) with ivory knobs
+ * past each end of the mount. Phones: horizontal, along the top and
+ * bottom edges; the top rod is the slimmer 天杆. */
+.scroll-rod {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--rod);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, #15191c, #3f474e 45%, #22282d 70%, #101316);
+  box-shadow: 0 3px 6px -3px rgb(20 26 30 / 0.55);
+}
+
+.scroll-rod::before,
+.scroll-rod::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 9px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, #cfc2a6, #f3ead6 45%, #d9ccb0 70%, #b9aa8a);
+}
+
+.scroll-rod::before {
+  left: 0;
+}
+
+.scroll-rod::after {
+  right: 0;
+}
+
+.scroll-rod-start {
+  top: 0;
+  height: calc(var(--rod) * 0.62);
+}
+
+.scroll-rod-start::before,
+.scroll-rod-start::after {
+  display: none; /* the 天杆 has no knobs */
+}
+
+.scroll-rod-end {
+  bottom: 0;
+  translate: 0 calc((var(--unroll) - 1) * (100cqh - var(--rod)));
+}
+
+/* Handscroll on wide cards: rollers stand upright at both ends. */
+@media (min-width: 768px) {
+  .scroll-body {
+    inset: 10px 8px;
+    padding: 7cqh 3.5cqw;
+    /* handscroll: unrolls rightward */
+    clip-path: inset(0 calc((1 - var(--unroll)) * 100%) 0 0);
+  }
+
+  .scroll-ribbons {
+    display: none;
+  }
+
+  .scroll-rod {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: auto;
+    width: var(--rod);
+    height: auto;
+    background: linear-gradient(to right, #15191c, #3f474e 45%, #22282d 70%, #101316);
+    box-shadow: 3px 0 6px -3px rgb(20 26 30 / 0.55);
+  }
+
+  .scroll-rod::before,
+  .scroll-rod::after {
+    top: auto;
+    bottom: auto;
+    left: -2px;
+    right: -2px;
+    width: auto;
+    height: 12px;
+    background: linear-gradient(to right, #cfc2a6, #f3ead6 45%, #d9ccb0 70%, #b9aa8a);
+  }
+
+  .scroll-rod::before {
+    top: 0;
+  }
+
+  .scroll-rod::after {
+    bottom: 0;
+  }
+
+  .scroll-rod-start {
+    left: 0;
+    height: auto;
+  }
+
+  .scroll-rod-start::before,
+  .scroll-rod-start::after {
+    display: block;
+  }
+
+  .scroll-rod-end {
+    right: 0;
+    bottom: 0;
+    translate: calc((var(--unroll) - 1) * (100cqw - var(--rod))) 0;
+  }
+}
+
+/* Rolled up until reveal.ts unrolls it (motion only). */
+html.motion-ready .scroll:not([data-unrolled]) {
+  --unroll: 0;
+}
+
 /* M3/M4 (41-ink-replace-map.md), motion/bleed.ts: a figure's blot-bleed
  * entrance. `--blot-size` grows the blot mask from nothing (0%) outward
  * from the centre (not a pinned corner: `blot.webp`'s own alpha is a

@@ -75,6 +75,15 @@ const STOP_GRACE_MS = 50
 // retained) — generous headroom above the longest possible trail (130px)
 // so the backward walk never runs out of history mid-trail.
 const SPINE_MAX_PX = 220
+// Owner, 2026-09-28: "cursor trail lasts too long when near 0 velocity ...
+// the cursor lingers too long". Length alone (above) never forgets: a slow
+// or intermittent drag stays 'active' (the stop grace below never trips)
+// with the *longest* target length, so it kept drawing path laid down
+// seconds ago. Only path from the last TRAIL_MAX_AGE_MS is ever drawn now:
+// at normal/fast speed (>~0.93px/ms) the length cap still binds, so that
+// feel is unchanged; slower, the trail shortens with speed (0.2px/ms ->
+// ~28px) and a near-still pointer draws essentially just the tip.
+const TRAIL_MAX_AGE_MS = 140
 
 function targetDiameter(state: CursorState): number {
   if (state === 'brush') return BRUSH_DIAMETER
@@ -99,7 +108,7 @@ function targetTrailLength(v: number): number {
 }
 
 type RawPt = { x: number; y: number; t: number }
-type SpinePt = { x: number; y: number; d: number }
+type SpinePt = { x: number; y: number; d: number; t: number } // t: when the pointer was here (event time)
 type BBox = { x0: number; y0: number; x1: number; y1: number }
 
 function unionBBox(a: BBox | null, b: BBox | null): BBox | null {
@@ -212,7 +221,7 @@ export function Cursor() {
       function commitPoint(x: number, y: number, now: number) {
         raw.push({ x, y, t: now })
         if (raw.length > 4) raw.shift()
-        if (spine.length === 0) spine.push({ x, y, d: 0 })
+        if (spine.length === 0) spine.push({ x, y, d: 0, t: now })
         if (raw.length < 2) return
         const p1 = raw[raw.length - 2]
         const p2 = raw[raw.length - 1]
@@ -225,7 +234,7 @@ export function Cursor() {
           const pt = catmullRomPoint(p0, p1, p2, p3, t)
           const last = spine[spine.length - 1]
           const d = last.d + Math.hypot(pt.x - last.x, pt.y - last.y)
-          spine.push({ x: pt.x, y: pt.y, d })
+          spine.push({ x: pt.x, y: pt.y, d, t: p1.t + (p2.t - p1.t) * t })
         }
         const total = spine[spine.length - 1].d
         let cut = 0
@@ -243,19 +252,36 @@ export function Cursor() {
 
       type DrawJob = { x: number; y: number; size: number; alpha: number }
 
-      function buildJobs(): DrawJob[] {
+      /** How much of the spine (px back from the tip) is younger than
+       * TRAIL_MAX_AGE_MS at `now`, in the same event-time clock `t` was
+       * recorded on. */
+      function freshLength(now: number): number {
+        if (spine.length < 2) return 0
+        const cutoff = now - TRAIL_MAX_AGE_MS
+        const tipD = spine[spine.length - 1].d
+        let i = spine.length - 1
+        while (i > 0 && spine[i - 1].t >= cutoff) i--
+        return tipD - spine[i].d
+      }
+
+      function buildJobs(now: number): DrawJob[] {
         const jobs: DrawJob[] = []
         if (state === 'hidden') return jobs
+        // The painted length this frame: the speed-driven length, capped by
+        // how much path is still fresh (TRAIL_MAX_AGE_MS). The taper below
+        // spans whatever that is, so a short slow trail still reads as a
+        // whole tapered stroke, not a clipped one.
+        const drawLen = Math.min(trailLen, freshLength(now))
         // Trail: walk the spine backward from the tip for `trailLen` px,
         // tapering scale 1.0->0.2 and alpha 1.0->~0.3 on an ease-in curve
         // (47 §R2), so it reads as one continuous stroke shrinking to a
         // tail rather than a row of identical dots. R4-4c fix 2: suppressed
         // entirely for the brush-full "open" handoff -- only the tip (the
         // label cursor's own dot) is drawn in that state.
-        if (!suppressTrail && trailLen > 1 && spine.length > 1) {
+        if (!suppressTrail && drawLen > 1 && spine.length > 1) {
           const tipD = spine[spine.length - 1].d
           const spacing = Math.max(1, curDiameter * TRAIL_SPACING_RATIO)
-          const steps = Math.floor(trailLen / spacing)
+          const steps = Math.floor(drawLen / spacing)
           let searchIdx = spine.length - 1
           for (let k = 1; k <= steps; k++) {
             const distFromTip = k * spacing
@@ -268,7 +294,7 @@ export function Cursor() {
             const frac = span > 0 ? (targetD - a.d) / span : 0
             const x = a.x + (b.x - a.x) * frac
             const y = a.y + (b.y - a.y) * frac
-            const t = clamp(distFromTip / trailLen, 0, 1)
+            const t = clamp(distFromTip / drawLen, 0, 1)
             const scale = 1 - 0.8 * t // 1.0 -> 0.2
             const alphaT = t * t // ease-in, not linear
             const alpha = (1 - 0.7 * alphaT) * curAlpha // 1.0 -> ~0.3 of curAlpha
@@ -311,7 +337,7 @@ export function Cursor() {
 
         const color = inkColor()
         const tipImg = makeTip(color, BASE_TIP_PX, dpr)
-        const jobs = buildJobs()
+        const jobs = buildJobs(now)
 
         let frameBBox: BBox | null = null
         for (const job of jobs) {
