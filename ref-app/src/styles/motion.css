@@ -16,7 +16,7 @@
  * branch, which only ever animates `--blot-size`, would leave it stuck at
  * opacity:0 forever once the mask finished opening. */
 html.motion-ready [data-intro]:not([data-intro='media']):not([data-intro='cover']),
-html.motion-ready [data-reveal]:not([data-reveal='media']),
+html.motion-ready [data-reveal]:not([data-reveal='media']):not([data-reveal='scroll']),
 html.motion-ready [data-nav-item] {
   opacity: 0;
 }

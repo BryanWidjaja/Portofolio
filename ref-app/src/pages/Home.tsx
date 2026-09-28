@@ -145,7 +145,7 @@ export function Home() {
         <section className="relative isolate overflow-hidden">
           <Hero />
           <Container
-            className="relative z-10 flex min-h-svh flex-col justify-end pb-10 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-16 xl:gap-x-8"
+            className="relative z-10 flex min-h-svh flex-col justify-end pb-16 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-24 xl:gap-x-8"
           >
             {/* 45 §Owner feedback item 4: the seal that used to sit at the
                 hero name's lower right (42 §Components Seal row) and at the
@@ -253,7 +253,7 @@ export function Home() {
             {aboutLead.after}
           </p>
           <div data-reveal="text" className="mt-breath md:col-span-3 md:col-start-5">
-            <PillButton to="/about" icon="arrow-right">
+            <PillButton to="/about" icon="arrow-right" variant="solid">
               {site.home.aboutCta.pill}
             </PillButton>
           </div>

@@ -225,6 +225,22 @@ const FIRST_PROJECT_CARD = 'a[href="/projects/malware-detection"]'
 const FIRST_PROJECT_FIGURE = `${FIRST_PROJECT_CARD} [data-brush]`
 const FIRST_PROJECT_CANVAS = `${FIRST_PROJECT_FIGURE} .brush-colour` // the clipped colour layer (was the display canvas)
 
+// 2026-09-28: home project cards sit on mounted scrolls that start rolled up
+// (clipped) and unroll over 1.1s once they scroll in (styles/base.css
+// `.scroll`, motion/reveal.ts). A clipped region takes no pointer events, so
+// every hover test has to wait for the scroll to be open before touching it
+// -- exactly like a visitor, who can't hover what isn't visible yet. Under
+// reduced motion there's no unroll (never rolled up), so nothing to wait for.
+async function showCard(page) {
+  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  await page.waitForFunction(
+    (sel) => !document.documentElement.classList.contains('motion-ready') || Boolean(document.querySelector(`${sel} [data-reveal="scroll"][data-unrolled]`)),
+    FIRST_PROJECT_CARD,
+    { timeout: 5000 },
+  )
+  await page.waitForTimeout(1200)
+}
+
 // B1: hover then leave a card; once the splash, the D4 hold (1.5s) and the
 // fade (1.2s) have all settled, the frame counter goes quiet and the mask
 // reads back to 0.
@@ -244,7 +260,7 @@ async function testBrushIdle(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const card = page.locator(FIRST_PROJECT_CARD).first()
-  await card.scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await card.boundingBox()
 
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
@@ -277,7 +293,7 @@ async function testBrushOffscreen(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const card = page.locator(FIRST_PROJECT_CARD).first()
-  await card.scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await card.boundingBox()
 
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
@@ -331,7 +347,7 @@ async function testBrushReducedMotion(browser, base) {
   await page.waitForTimeout(1200)
 
   const card = page.locator(FIRST_PROJECT_CARD).first()
-  await card.scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await card.boundingBox()
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.waitForTimeout(50)
@@ -374,7 +390,7 @@ async function testBrushFastStroke(browser, base) {
   // the figure/canvas the fractions land on -- sampling against the
   // link's box put "top" test points tens of pixels above where the mouse
   // actually was on the canvas.
-  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const start = { x: box.x + box.width * 0.08, y: box.y + box.height * 0.12 }
@@ -471,7 +487,7 @@ async function testBrushEntrySplash(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
@@ -523,7 +539,7 @@ async function testBrushDryBackDirection(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
@@ -573,7 +589,7 @@ async function testBrushCursorHandoff(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const card = page.locator(FIRST_PROJECT_CARD).first()
-  await card.scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
   const cx = box.x + box.width / 2
   const cy = box.y + box.height / 2
@@ -655,7 +671,7 @@ async function testBrushReentryNoRestart(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  await showCard(page)
   const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
@@ -1325,7 +1341,7 @@ async function testCursorReset(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const card = page.locator('a[href="/projects/malware-detection"]').first()
-  await card.scrollIntoViewIfNeeded()
+  await showCard(page)
   await page.waitForTimeout(100)
   // 44 §check:transitions "changed (2)": hovering the card's *media*
   // specifically now resolves to the 'brush' state (src/components/

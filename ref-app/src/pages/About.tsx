@@ -134,6 +134,7 @@ export function About() {
           />
           <PillButton
             href={site.resumeUrl}
+            download={site.resumeFileName}
             disabled={!site.resumeAvailable}
             title={site.resumeAvailable ? undefined : aboutCommon.resume.unavailableTitle}
             icon="download"

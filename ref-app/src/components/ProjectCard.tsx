@@ -35,17 +35,31 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
         cursor="open"
         className="group block focus-visible:outline-offset-8"
       >
-        <figure
-          data-reveal="media"
-          className={`blot-mask relative isolate aspect-[4/5] overflow-hidden rounded-none md:aspect-auto ${mediaHeight[slot]}`}
-        >
-          <BrushReveal
-            src={project.cover.src}
-            alt={project.cover.alt}
-            width={project.cover.width}
-            height={project.cover.height}
-            eager={eager}
-          />
+        {/* Owner, 2026-09-28: each project sits on a beige mounted scroll
+            (styles/base.css `.scroll`) -- a handscroll (手卷, rollers at the
+            left and right) on wide cards, a hanging scroll (立轴, rods top
+            and bottom, 惊燕 ribbons in the top margin) on phones. It unrolls
+            once as it enters (motion/reveal.ts `scroll`). */}
+        <figure data-reveal="scroll" className={`scroll relative isolate aspect-[4/5] md:aspect-auto ${mediaHeight[slot]}`}>
+          <div className="scroll-stage">
+            <div className="scroll-body">
+              <span aria-hidden="true" className="scroll-ribbons" />
+              <div className="scroll-brocade">
+                <div className="scroll-art">
+                  <BrushReveal
+                    src={project.cover.src}
+                    alt={project.cover.alt}
+                    width={project.cover.width}
+                    height={project.cover.height}
+                    eager={eager}
+                  />
+                  <span aria-hidden="true" className="scroll-grain" />
+                </div>
+              </div>
+            </div>
+            <span aria-hidden="true" className="scroll-rod scroll-rod-start" />
+            <span aria-hidden="true" className="scroll-rod scroll-rod-end" />
+          </div>
         </figure>
         <div data-reveal="label" className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 md:mt-5">
           <h3 className="flex items-center gap-2 text-title font-display font-medium">
