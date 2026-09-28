@@ -35,30 +35,40 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
         cursor="open"
         className="group block focus-visible:outline-offset-8"
       >
-        {/* Owner, 2026-09-28: each project sits on a beige mounted scroll
-            (styles/base.css `.scroll`) -- a handscroll (手卷, rollers at the
-            left and right) on wide cards, a hanging scroll (立轴, rods top
-            and bottom, 惊燕 ribbons in the top margin) on phones. It unrolls
-            once as it enters (motion/reveal.ts `scroll`). */}
-        <figure data-reveal="scroll" className={`scroll relative isolate aspect-[4/5] md:aspect-auto ${mediaHeight[slot]}`}>
+        {/* Owner, 2026-09-28: each project sits on an old paper handscroll
+            (styles/base.css `.scroll`) -- horizontal at every width, torn
+            and aged, with brushed ink rules and gold. It unrolls once as it
+            enters (motion/reveal.ts `scroll`), then the ink rules write
+            themselves, the gilt traces around the painting and the gold
+            flecks surface in the paper. */}
+        <figure data-reveal="scroll" className={`scroll relative isolate aspect-[4/3] md:aspect-auto ${mediaHeight[slot]}`}>
           <div className="scroll-stage">
             <div className="scroll-body">
-              <span aria-hidden="true" className="scroll-ribbons" />
-              <div className="scroll-brocade">
-                <div className="scroll-art">
-                  <BrushReveal
-                    src={project.cover.src}
-                    alt={project.cover.alt}
-                    width={project.cover.width}
-                    height={project.cover.height}
-                    eager={eager}
-                  />
-                  <span aria-hidden="true" className="scroll-grain" />
+              <div className="scroll-sheet">
+                <span aria-hidden="true" className="scroll-tear scroll-tear-top" />
+                <span aria-hidden="true" className="scroll-tear scroll-tear-bottom" />
+                <span aria-hidden="true" className="scroll-ink scroll-ink-top" />
+                <span aria-hidden="true" className="scroll-ink scroll-ink-bottom" />
+                <div className="scroll-frame">
+                  <div className="scroll-art">
+                    <BrushReveal
+                      src={project.cover.src}
+                      alt={project.cover.alt}
+                      width={project.cover.width}
+                      height={project.cover.height}
+                      eager={eager}
+                    />
+                    <span aria-hidden="true" className="scroll-grain" />
+                  </div>
+                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-top" />
+                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-right" />
+                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-bottom" />
+                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-left" />
                 </div>
               </div>
             </div>
-            <span aria-hidden="true" className="scroll-rod scroll-rod-start" />
-            <span aria-hidden="true" className="scroll-rod scroll-rod-end" />
+            <span aria-hidden="true" className="scroll-roll scroll-roll-start" />
+            <span aria-hidden="true" className="scroll-roll scroll-roll-end" />
           </div>
         </figure>
         <div data-reveal="label" className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 md:mt-5">

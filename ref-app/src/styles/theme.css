@@ -163,7 +163,7 @@
    * per component (e.g. font-display font-bold) since @theme text tokens
    * don't carry either. Values per 42 §Tokens Type table. */
   --text-hero: clamp(4.5rem, 8.5vw + 3.2rem, 10rem);
-  --text-hero--line-height: 0.95;
+  --text-hero--line-height: 1.02; /* owner, 2026-09-28: was 0.95, "increase lineheight slightly" */
   --text-hero--letter-spacing: -0.01em;
 
   --text-display: clamp(3rem, 4vw + 2rem, 6rem);

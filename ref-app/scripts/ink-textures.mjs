@@ -9,6 +9,11 @@
  *   - public/ink/blot.webp         512² fibrous blot mask (E3/E4)
  *   - public/ink/mist-{1,2,3}.webp 2048x600 hero mist planes (E2)
  *   - public/ink/line-{1,2,3}.svg  variable-width brush lines (E4)
+ *   - public/ink/gold-flecks.webp  512² sparse gold-leaf fleck tile (洒金
+ *                                  paper) for the home cards' paper scrolls
+ *   - public/ink/scroll-tear-{top,bottom}.webp  torn-edge masks (tiled x)
+ *   - public/ink/scroll-aged.webp  non-tiling stain/foxing/browning overlay
+ *   - public/ink/scroll-rule.svg   stretchable calligraphic brush rule mask
  *
  * Every buffer is built from a seeded PRNG (mulberry32), so two runs are
  * byte-identical -- `npm run assets:textures` twice gives the same
@@ -233,6 +238,194 @@ async function buildPaper(rand) {
   return sharp(buf, { raw: { width: size, height: size, channels: 4 } }).webp({ lossless: true, effort: 6 }).toBuffer()
 }
 
+/** 洒金 (gold-flecked paper), owner 2026-09-28: "more like paper scrolls,
+ * with some gold accents". A 1024² device-px tile drawn at 512 CSS px (same
+ * 2x convention as the paper tile): sparse, irregular gold-leaf flakes --
+ * each a small jagged polygon (3-9 vertices) of a slightly different antique
+ * gold, a few with a brighter facet where the leaf catches light, the odd
+ * sliver. Transparent everywhere else; layered over the scroll paper. */
+async function buildGoldFlecks(rand) {
+  const size = 1024
+  const golds = ['#9c7a2e', '#b08d3c', '#c29d4a', '#d4b262', '#a8843a']
+  const flakes = []
+  const count = 72
+  for (let i = 0; i < count; i++) {
+    const cx = rand() * size
+    const cy = rand() * size
+    // Mostly tiny, a few larger leaves: squared distribution.
+    const r = 1.5 + Math.pow(rand(), 2.2) * 9
+    const sliver = rand() < 0.25
+    const n = 3 + Math.floor(rand() * 7)
+    const rot = rand() * Math.PI * 2
+    const pts = []
+    for (let k = 0; k < n; k++) {
+      const a = rot + (k / n) * Math.PI * 2 + (rand() - 0.5) * 0.9
+      const rr = r * (0.45 + rand() * 0.75)
+      const sx = sliver ? 2.6 : 1
+      const x = Math.cos(a) * rr * sx
+      const y = Math.sin(a) * rr / sx
+      pts.push([cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)])
+    }
+    const fill = golds[Math.floor(rand() * golds.length)]
+    const alpha = (0.55 + rand() * 0.4).toFixed(2)
+    const poly = (p) => p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+    // Draw wrapped copies near edges so the tile stays seamless.
+    for (const ox of [-size, 0, size]) {
+      for (const oy of [-size, 0, size]) {
+        if ((ox !== 0 && Math.abs(cx + ox - size / 2) > size / 2 + 20) || (oy !== 0 && Math.abs(cy + oy - size / 2) > size / 2 + 20)) continue
+        const shifted = pts.map(([x, y]) => [x + ox, y + oy])
+        flakes.push(`<polygon points="${poly(shifted)}" fill="${fill}" fill-opacity="${alpha}"/>`)
+        if (r > 5 && rand() < 0.6) {
+          // A brighter facet across part of a larger leaf.
+          const facet = shifted.slice(0, Math.max(3, Math.floor(shifted.length / 2)))
+          flakes.push(`<polygon points="${poly(facet)}" fill="#ecd592" fill-opacity="0.55"/>`)
+        }
+      }
+    }
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${flakes.join('')}</svg>`
+  return sharp(Buffer.from(svg)).webp({ lossless: true, effort: 6 }).toBuffer()
+}
+
+/** Torn paper edges for the home cards' handscrolls (owner, 2026-09-28:
+ * "more ragged ... ancient, old"). A 1024x48 device-px strip, drawn at
+ * 512x24 CSS px and tiled along x. It's the *tear* mask: opaque above an
+ * irregular edge line (the page showing through where the paper is torn
+ * away), transparent below -- a thin static strip painted in the page's
+ * paper tone uses it to eat into the sheet's edge. (Masking the sheet
+ * itself made it a composited mask surface re-applied on every brush frame
+ * inside it: ~20 janky frames per hover at 4x CPU.) The edge is tileable value noise
+ * at two scales (broad wander + fine fibre jitter) plus a few deeper
+ * notches where the paper has torn, and a fringe of short, faint fibres
+ * standing proud of the edge so it reads as torn paper, not a cut curve.
+ * `flip` gives the bottom edge. */
+async function buildDeckle(rand, { flip }) {
+  const W = 1024
+  const H = 48
+  const broad = makeLattice(7, rand)
+  const fine = makeLattice(61, rand)
+  const notches = Array.from({ length: 5 }, () => ({ x: rand(), w: 0.006 + rand() * 0.018, d: 5 + rand() * 9 }))
+  const edge = new Float32Array(W)
+  for (let x = 0; x < W; x++) {
+    const u = x / W
+    let y = 14 + (broad(u, 0.37) - 0.5) * 16 + (fine(u, 0.71) - 0.5) * 5
+    for (const n of notches) {
+      const dx = Math.min(Math.abs(u - n.x), 1 - Math.abs(u - n.x)) // wrapped distance
+      if (dx < n.w) y += n.d * (1 - dx / n.w) ** 2
+    }
+    edge[x] = y
+  }
+  const buf = Buffer.alloc(W * H * 4)
+  for (let x = 0; x < W; x++) {
+    // Fibres: a few columns get a thin, faint strand rising above the edge.
+    const fibre = rand() < 0.07 ? 2 + rand() * 7 : 0
+    const fibreAlpha = 0.25 + rand() * 0.35
+    for (let y = 0; y < H; y++) {
+      const d = y - edge[x] // >0 inside the paper
+      let a = clamp(d / 1.8 + 0.5, 0, 1) // ~2px feathered edge
+      if (fibre && d < 0 && -d < fibre) a = Math.max(a, fibreAlpha * (1 + d / fibre))
+      const yy = flip ? H - 1 - y : y
+      const i = (yy * W + x) * 4
+      buf[i] = 0
+      buf[i + 1] = 0
+      buf[i + 2] = 0
+      buf[i + 3] = Math.round((1 - a) * 255) // opaque where torn away
+    }
+  }
+  return sharp(buf, { raw: { width: W, height: H, channels: 4 } }).webp({ lossless: true, effort: 6 }).toBuffer()
+}
+
+/** Aging for the handscroll paper: a non-tiling 1600x640 overlay, stretched
+ * over each scroll, of warm brown (alpha only carries it): low-frequency
+ * mottling, a handful of tea stains whose rims are darker than their
+ * middles (the way a dried water mark rings), scattered foxing spots, and
+ * edges browned deeper at the top and bottom where the paper was handled. */
+async function buildAgedPaper(rand) {
+  const W = 1600
+  const H = 640
+  const mottle = makeFbm(rand, 5, 17, 0.65)
+  const rimNoise = makeLattice(23, rand)
+  const edgeNoise = makeLattice(29, rand)
+  const stains = Array.from({ length: 6 }, () => ({ x: rand() * W, y: rand() * H, r: 60 + rand() * 170, a: 0.05 + rand() * 0.07 }))
+  const fox = Array.from({ length: 70 }, () => ({ x: rand() * W, y: rand() * H, r: 1 + rand() * 4.5, a: 0.18 + rand() * 0.3 }))
+  const [br, bg, bb] = hexToRgb('#6e4a1f')
+  const buf = Buffer.alloc(W * H * 4)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const u = x / W
+      const v = y / H
+      let a = Math.max(0, mottle(u, v) - 0.42) * 0.22
+      for (const s of stains) {
+        const d = Math.hypot(x - s.x, y - s.y) / (s.r * (0.85 + rimNoise(u * 3, v * 3) * 0.3))
+        if (d < 1.08) a += s.a * (0.45 + 0.55 * smoothstep(clamp((d - 0.72) / 0.28, 0, 1))) * (d > 1 ? 1 - (d - 1) / 0.08 : 1)
+      }
+      for (const f of fox) {
+        const d = Math.hypot(x - f.x, y - f.y)
+        if (d < f.r * 3) a += f.a * Math.exp(-((d / f.r) ** 2))
+      }
+      const n = edgeNoise(u * 2, v * 2)
+      const tb = Math.min(v, 1 - v) * H // px from top/bottom
+      const lr = Math.min(u, 1 - u) * W
+      a += (1 - smoothstep(clamp(tb / (26 + n * 34), 0, 1))) * 0.3
+      a += (1 - smoothstep(clamp(lr / (18 + n * 22), 0, 1))) * 0.14
+      const i = (y * W + x) * 4
+      buf[i] = br
+      buf[i + 1] = bg
+      buf[i + 2] = bb
+      buf[i + 3] = Math.round(clamp(a, 0, 0.6) * 255)
+    }
+  }
+  return sharp(buf, { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 80, alphaQuality: 80, effort: 6 }).toBuffer()
+}
+
+/** A calligraphic horizontal brush rule, stretchable (preserveAspectRatio
+ * none): several bristle strands laid side by side, the stroke pressing in
+ * heavy at the start (起笔), undulating through the belly and lifting to a
+ * taper (收笔), with strands running out early in places so the stroke
+ * breaks into dry-brush streaks (飞白). Used as a mask; the colour is CSS. */
+function buildRuleSvg(rand) {
+  const W = 1000
+  const H = 20
+  const strands = 5
+  const samples = 40
+  const paths = []
+  for (let s = 0; s < strands; s++) {
+    const offset = (s - (strands - 1) / 2) * 1.9
+    // Dry-brush: some strands skip a stretch or two.
+    // outer strands run dry sooner and more often than the core
+    const edgeStrand = s === 0 || s === strands - 1
+    const gaps = Array.from({ length: (edgeStrand ? rand() < 0.9 : rand() < 0.5) ? 1 + Math.floor(rand() * (edgeStrand ? 3 : 2)) : 0 }, () => {
+      const g0 = 0.18 + rand() * 0.7
+      return [g0, g0 + 0.03 + rand() * (edgeStrand ? 0.2 : 0.1)]
+    })
+    let seg = []
+    const flush = () => {
+      if (seg.length > 1) {
+        const top = seg.map(([x, y, w]) => [x, y - w / 2])
+        const bot = seg.map(([x, y, w]) => [x, y + w / 2]).reverse()
+        const pts = [...top, ...bot].map(([x, y]) => `${x.toFixed(1)},${y.toFixed(2)}`).join(' ')
+        paths.push(`<polygon points="${pts}"/>`)
+      }
+      seg = []
+    }
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples
+      if (gaps.some(([a, b]) => t > a && t < b)) {
+        flush()
+        continue
+      }
+      const press = 1 + 1.4 * Math.exp(-(((t - 0.035) / 0.055) ** 2)) // 起笔
+      const lift = smoothstep(clamp((1 - t) / 0.12, 0, 1)) // 收笔 taper
+      const belly = 0.85 + 0.3 * Math.sin(t * Math.PI * 2.3 + s)
+      const w = 2.3 * press * belly * lift * (0.65 + rand() * 0.55)
+      const y = H / 2 + offset * (0.8 + 0.35 * press) + Math.sin(t * Math.PI * 1.4) * 1.2
+      seg.push([t * W, y, w])
+    }
+    flush()
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g fill="#000">${paths.join('')}</g></svg>\n`
+}
+
 /** Brush-edge strip (44 §Assets): 1024x128, 40% solid ink / 20% bristle
  * front with 飞白 (dry-brush) streaks / 40% clear. A hover/reveal mask, not
  * yet consumed until E3 wires up BrushReveal. */
@@ -400,6 +593,11 @@ async function main() {
     writeFile(path.join(OUT_DIR, 'line-1.svg'), buildLineSvg(mulberry32(SEED ^ 0x4001), 0)),
     writeFile(path.join(OUT_DIR, 'line-2.svg'), buildLineSvg(mulberry32(SEED ^ 0x4002), 1)),
     writeFile(path.join(OUT_DIR, 'line-3.svg'), buildLineSvg(mulberry32(SEED ^ 0x4003), 2)),
+    buildGoldFlecks(mulberry32(SEED ^ 0x5001)).then((buf) => writeFile(path.join(OUT_DIR, 'gold-flecks.webp'), buf)),
+    buildDeckle(mulberry32(SEED ^ 0x5002), { flip: false }).then((buf) => writeFile(path.join(OUT_DIR, 'scroll-tear-top.webp'), buf)),
+    buildDeckle(mulberry32(SEED ^ 0x5003), { flip: true }).then((buf) => writeFile(path.join(OUT_DIR, 'scroll-tear-bottom.webp'), buf)),
+    buildAgedPaper(mulberry32(SEED ^ 0x5004)).then((buf) => writeFile(path.join(OUT_DIR, 'scroll-aged.webp'), buf)),
+    writeFile(path.join(OUT_DIR, 'scroll-rule.svg'), buildRuleSvg(mulberry32(SEED ^ 0x5005))),
   ])
 
   console.log('[ink-textures] wrote paper, brush-edge, blot, mist x3, line x3 ->', OUT_DIR)
