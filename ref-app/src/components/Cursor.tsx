@@ -48,6 +48,12 @@ const BASE_TIP_PX = 64
 const BRUSH_DIAMETER = 64
 const TIP_ALPHA = 0.92
 const BRUSH_ALPHA = 0.3
+// Orchestrator review (47-round3-plan.md §R5 fix-up): at 1.6x diameter and
+// TIP_ALPHA, the stuck tip sat fully opaque over the nav burger/X -- both
+// paper-flipped the same colour, so the icon vanished underneath it. Low
+// alpha here (not a colour change) keeps the control's own icon reading
+// through in both the ink and paper colour, in both directions.
+const STICK_ALPHA = 0.2
 
 // Trail length adapts to speed (owner: "current length ok, too long at max
 // speed"): 130px at v <= 0.8px/ms, easing down to ~75px at v >= 3px/ms. An
@@ -79,7 +85,9 @@ function targetDiameter(state: CursorState): number {
 }
 
 function targetAlpha(state: CursorState): number {
-  return state === 'brush' ? BRUSH_ALPHA : TIP_ALPHA
+  if (state === 'brush') return BRUSH_ALPHA
+  if (state === 'stick') return STICK_ALPHA
+  return TIP_ALPHA
 }
 
 /** L(v): 130px at slow/normal speed, easing (smoothstep) down to ~75px by
@@ -241,8 +249,10 @@ export function Cursor() {
         // Trail: walk the spine backward from the tip for `trailLen` px,
         // tapering scale 1.0->0.2 and alpha 1.0->~0.3 on an ease-in curve
         // (47 §R2), so it reads as one continuous stroke shrinking to a
-        // tail rather than a row of identical dots.
-        if (trailLen > 1 && spine.length > 1) {
+        // tail rather than a row of identical dots. R4-4c fix 2: suppressed
+        // entirely for the brush-full "open" handoff -- only the tip (the
+        // label cursor's own dot) is drawn in that state.
+        if (!suppressTrail && trailLen > 1 && spine.length > 1) {
           const tipD = spine[spine.length - 1].d
           const spacing = Math.max(1, curDiameter * TRAIL_SPACING_RATIO)
           const steps = Math.floor(trailLen / spacing)
@@ -352,23 +362,55 @@ export function Cursor() {
       let moved = false
       let locked = false
       let pressDown = false
-      let currentEl: HTMLElement | null = null
+      let currentEl: HTMLElement | null = null // closest(CURSOR_TARGETS) match -- boundary-crossing dedup key, never the fallthrough ancestor
+      let resolvedEl: HTMLElement | null = null // element whose own dataset actually drove the current state/text (may be currentEl's [data-cursor] ancestor -- see resolveState)
       let stuckEl: HTMLElement | null = null
       let stuckSetX: ((v: number) => void) | null = null
       let stuckSetY: ((v: number) => void) | null = null
       let lastX = 0
       let lastY = 0
       let scrollScheduled = false
+      // R4-4c fix 2 ("with no trail"): true only while the current target
+      // resolved via the brush-figure-full handoff (resolveState's
+      // `viaBrushFull`) -- the "open" label cursor shown once a project
+      // image is fully painted must draw no trail, but every other
+      // `data-cursor="text"` target keeps its trail unchanged.
+      let suppressTrail = false
 
       const textObserver = new MutationObserver(() => {
-        if (currentEl?.dataset.cursor === 'text') {
-          const text = currentEl.dataset.cursorText ?? null
+        if (resolvedEl?.dataset.cursor === 'text') {
+          const text = resolvedEl.dataset.cursorText ?? null
           if (text) showLabel(text)
         }
       })
 
+      // 49-round4-plan.md §E2 item 4 fix 4: `src/ink/brush.ts` -- not this
+      // module -- owns the "is this figure fully painted yet" fact and
+      // publishes it as `data-brush-full` on the `[data-brush]` figure
+      // itself (loosely coupled: an attribute, not an import). `resolveState`
+      // below reads it once per `enterTarget`, but a still pointer never
+      // re-fires `pointerover`/`pointerout` on its own, so without this
+      // observer the cursor would stay pinned at whatever it resolved to at
+      // entry even after the figure finishes painting mid-hover. Mirrors
+      // `textObserver` above: re-resolve and reapply on the one attribute
+      // changing, never a rAF poll ("no rAF while idle").
+      const brushFullObserver = new MutationObserver(() => {
+        if (currentEl) enterTarget(currentEl)
+      })
+
       function setDotState(next: CursorState) {
         canvas.dataset.cursorState = next
+      }
+
+      // R4-4c fix 2: mirrors `suppressTrail` onto the canvas as a plain
+      // `data-*` flag (same testability pattern as `data-cursor-state`/
+      // `data-brush-full`) so check:transitions can assert "no trail" is
+      // actually active for the brush-full handoff without having to
+      // sample rendered pixels against a geometry it can't see ahead of
+      // time.
+      function setNoTrail(v: boolean) {
+        if (v) canvas.dataset.cursorNoTrail = ''
+        else delete canvas.dataset.cursorNoTrail
       }
 
       function showLabel(text: string) {
@@ -407,15 +449,37 @@ export function Cursor() {
         else hideLabel()
       }
 
-      function resolveState(el: HTMLElement | null): CursorState {
-        if (!el) return 'default'
-        if (el.dataset.cursor) return el.dataset.cursor as CursorState
+      // 49-round4-plan.md §E2 item 4 fix 4: returns the resolved state, the
+      // element whose own dataset produced it -- `enterTarget` needs the
+      // latter to read `data-cursor-text` and to arm/observe the right
+      // node, since a fully-painted brush figure resolves to an *ancestor's*
+      // state, not its own -- and (R4-4c fix 2) whether this resolution
+      // *is* that brush-figure-full handoff, so `enterTarget` can suppress
+      // the trail for exactly that state and nothing else (an ordinary
+      // `data-cursor="text"` target, e.g. EmailCopy's "copy" label, keeps
+      // its trail as before).
+      function resolveState(el: HTMLElement | null): { state: CursorState; source: HTMLElement | null; viaBrushFull: boolean } {
+        if (!el) return { state: 'default', source: null, viaBrushFull: false }
+        if (el.dataset.cursor) return { state: el.dataset.cursor as CursorState, source: el, viaBrushFull: false }
         // BrushReveal figures (src/ink/brush.ts) carry `data-brush`, not
         // `data-cursor` — ProjectCard/Gallery never need to know about the
         // cursor at all, the same way they don't already know about it for
         // "text"/"open" (that comes from the wrapping TransitionLink).
-        if (el.dataset.brush !== undefined) return 'brush'
-        return 'default'
+        if (el.dataset.brush !== undefined) {
+          // fix 4: once brush.ts marks the figure fully painted, its own
+          // brush-footprint state no longer applies -- fall through to
+          // whatever `[data-cursor]` target actually encloses it (typically
+          // the card's own TransitionLink, `cursor="open"`) instead. Scoped
+          // to `[data-cursor]` only, not the full CURSOR_TARGETS list: this
+          // is "hand off to the enclosing link", not "find the next brush
+          // figure" (there is no such thing as a nested one).
+          if (el.dataset.brushFull !== undefined) {
+            const ancestor = (el.parentElement?.closest('[data-cursor]') as HTMLElement | null) ?? null
+            return { ...resolveState(ancestor), viaBrushFull: true }
+          }
+          return { state: 'brush', source: el, viaBrushFull: false }
+        }
+        return { state: 'default', source: el, viaBrushFull: false }
       }
 
       function armStick(el: HTMLElement) {
@@ -443,24 +507,38 @@ export function Cursor() {
 
       function enterTarget(el: HTMLElement | null) {
         currentEl = el
-        applyState(resolveState(el), el?.dataset.cursorText ?? null)
-        if (el?.dataset.cursor === 'stick') armStick(el)
-        if (el?.dataset.cursor === 'text') {
-          textObserver.observe(el, { attributes: true, attributeFilter: ['data-cursor-text'] })
+        const resolved = resolveState(el)
+        resolvedEl = resolved.source
+        suppressTrail = resolved.viaBrushFull
+        setNoTrail(suppressTrail)
+        applyState(resolved.state, resolved.source?.dataset.cursorText ?? null)
+        if (resolved.source?.dataset.cursor === 'stick') armStick(resolved.source)
+        if (resolved.source?.dataset.cursor === 'text') {
+          textObserver.observe(resolved.source, { attributes: true, attributeFilter: ['data-cursor-text'] })
+        }
+        // fix 4: watch the brush figure itself (not resolved.source, which
+        // may already be the fallthrough ancestor) for the one attribute
+        // that can change the resolution while still hovering it.
+        if (el?.dataset.brush !== undefined) {
+          brushFullObserver.observe(el, { attributes: true, attributeFilter: ['data-brush-full'] })
         }
       }
 
-      function leaveTarget(el: HTMLElement) {
+      function leaveTarget() {
         textObserver.disconnect()
-        if (el.dataset.cursor === 'stick') releaseStick(el)
+        brushFullObserver.disconnect()
+        if (resolvedEl?.dataset.cursor === 'stick') releaseStick(resolvedEl)
         currentEl = null
+        resolvedEl = null
+        suppressTrail = false
+        setNoTrail(false)
       }
 
       function onPointerOver(e: PointerEvent) {
         if (e.pointerType === 'touch' || locked) return
         const el = (e.target as Element | null)?.closest?.(CURSOR_TARGETS) as HTMLElement | null
         if (el === currentEl) return
-        if (currentEl) leaveTarget(currentEl)
+        if (currentEl) leaveTarget()
         enterTarget(el)
       }
 
@@ -470,7 +548,7 @@ export function Cursor() {
         if (!left || left !== currentEl) return
         const related = (e.relatedTarget as Element | null)?.closest?.(CURSOR_TARGETS)
         if (related === currentEl) return
-        leaveTarget(left)
+        leaveTarget()
         applyState('default', null)
       }
 
@@ -539,7 +617,7 @@ export function Cursor() {
             const el = document.elementFromPoint(x, y) as Element | null
             const target = (el?.closest?.(CURSOR_TARGETS) as HTMLElement | null) ?? null
             if (target !== currentEl) {
-              if (currentEl) leaveTarget(currentEl)
+              if (currentEl) leaveTarget()
               enterTarget(target)
             }
           }
@@ -597,7 +675,7 @@ export function Cursor() {
         lastY = e.clientY
         lastTipX = e.clientX
         lastTipY = e.clientY
-        applyState(state, currentEl?.dataset.cursorText ?? null)
+        applyState(state, resolvedEl?.dataset.cursorText ?? null)
       }
 
       function onScroll() {
@@ -608,7 +686,7 @@ export function Cursor() {
           const el = document.elementFromPoint(lastX, lastY) as Element | null
           const target = el?.closest?.(CURSOR_TARGETS) as HTMLElement | null
           if (target === currentEl) return
-          if (currentEl) leaveTarget(currentEl)
+          if (currentEl) leaveTarget()
           enterTarget(target)
         })
       }
@@ -619,7 +697,7 @@ export function Cursor() {
 
       function doReset() {
         state = 'default'
-        if (currentEl) leaveTarget(currentEl)
+        if (currentEl) leaveTarget()
         canvas.dataset.cursorState = 'default'
         gsap.set(label, { opacity: 0, scale: 0.6 })
         clearTrail()
@@ -680,6 +758,7 @@ export function Cursor() {
             document.removeEventListener('visibilitychange', onVisibilityChange)
             window.removeEventListener('scroll', onScroll)
             textObserver.disconnect()
+            brushFullObserver.disconnect()
             document.documentElement.classList.remove('has-custom-cursor')
             clearTrail()
             gsap.set(label, { opacity: 0, willChange: 'auto' })

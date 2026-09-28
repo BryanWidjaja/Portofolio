@@ -22,9 +22,33 @@ export const EASE = {
   bleed: 'circ.out', // blot bleed, focus bloom, ink-in, cover spread
   disperse: 'sine.inOut', // exits, ink drying, cover recede
   unroll: 'power2.inOut', // menu, accordion
-  mist: 'sine.inOut', // hero planes
+  // 49-round4-plan.md §E1: the hero mist's idle drift moved from a GSAP
+  // tween to a CSS animation (styles/base.css `.hero-mist`), so this token
+  // is no longer imported by JS -- it documents the feel the CSS
+  // `cubic-bezier(0.445, 0.05, 0.55, 0.95)` ("easeInOutSine") approximates
+  // by hand, kept here rather than deleted so the two stay traceable to
+  // one intent.
+  mist: 'sine.inOut', // hero planes (mirrored in styles/base.css `.hero-mist`)
   follow: 'power3.out', // cursor follow, stick
   fade: 'none', // every reduced-motion fade
+
+  // 47-round3-plan.md §R6b (BW collapse): "different eases on x and y … so
+  // the path arcs" — x settles first, y keeps curving a beat longer, which
+  // is what reads as an arc instead of a straight line between the two
+  // rects. Retuned 49-round4-plan.md §F2 (owner: "slightly faster and less
+  // bouncelike"): both were `.inOut` (slow start, fast middle, slow
+  // finish) — that S-shape, combined with x and y hitting their own
+  // fastest point at different moments, is what read as a bounce. Plain
+  // `.out` curves move immediately and only ever decelerate into the
+  // landing (a settle, never a swoop), and moving the pair up to
+  // power3/power4 (from power2/power3) narrows the real gap between the
+  // two curves — higher-power eases converge toward each other, so the arc
+  // is gentler without flattening to a straight line. `back`/`elastic`
+  // remain unused (banned, quality-bar §D).
+  flyX: 'power3.out',
+  flyY: 'power4.out',
+  eraseOut: 'power2.in', // ryan/idjaja brush-out (collapse)
+  eraseIn: 'power2.out', // ryan/idjaja re-write (expand)
 } as const
 
 export const DURATION = {
@@ -41,12 +65,13 @@ export const DURATION = {
   state: 0.3, // Cursor only
   stateOut: 0.2, // Cursor only
 
-  // Ink cover (M13, D7, E5): cover .6 (bleed spread) / hold >=.1 / recede .7
-  // (disperse, "ink sinking into paper") — the actual WebGL/CSS-fallback
-  // tween lives in app/inkCover.ts (framework-free, own copies of these two
-  // durations in ms), kept in sync with these by hand.
-  cover: 0.6,
-  recede: 0.7,
+  // Ink cover (M13, D7, E5, retimed 47 §R4): cover .45 (bleed spread) /
+  // hold >=.1 / recede .65 (disperse, "ink sinking into paper") — the
+  // actual WebGL/CSS-fallback tween lives in app/inkCover.ts (framework-
+  // free, own copies of these two durations in ms as COVER_MS/RECEDE_MS),
+  // kept in sync with these by hand.
+  cover: 0.45,
+  recede: 0.65,
   hold: 0.1,
 
   // Menu (M7, E5, 立轴 unroll): panel .9 open / .65 close, .15 delay before
@@ -123,16 +148,33 @@ export const DURATION = {
   navIntro: 0.3,
   navStagger: 0.06,
 
-  // M6 (Nav scroll collapse, md+): links disperse out .25 each 60ms from
-  // the end; button inks in .3 after a .15 delay; reverse: button fades
-  // .25, links lift back in .3 after .1, each 80 apart. No back.out/elastic.
-  navLinkOut: 0.25,
-  navButtonIn: 0.3,
-  navButtonInDelay: 0.15,
+  // 47-round3-plan.md §R5 item 6 (Nav scroll collapse, md+, supersedes the
+  // plain opacity swap the M6 tokens below described): links travel toward
+  // the burger's centre (x/y measured at trigger time, scale ~.6,
+  // power2.in -- "absorbed"), opacity dropping only over the last ~40% of
+  // each link's own travel; nearest-to-button first, .04 apart. The burger
+  // inks in (scale .7->1 + autoAlpha) as the first (nearest) link arrives,
+  // so its own delay is `navCollapseTravel`. Total <= .55s: .32 travel +
+  // .2 ink-in, and the farthest link (2 stagger steps, +.08) still lands
+  // at .4, inside the burger's own .32-.52 window.
+  navCollapseTravel: 0.32,
+  navCollapseStagger: 0.04,
+  navButtonIn: 0.2,
+  // Reverse: the burger fades first (unchanged .25), then links fade in
+  // *at* the burger's position (opacity over the travel's first 40%) and
+  // travel out to their own places, power3.out, nearest first, .04 apart.
+  // A scroll reversal mid-flight reuses these same two calls per link
+  // (Nav.tsx's `overwrite: 'auto'`) rather than a fixed sequence, so it
+  // always continues from wherever the link currently is -- never a jump
+  // back to a "start" position it may already be past.
+  navExpandTravel: 0.35,
+  navExpandStagger: 0.04,
   navButtonOut: 0.25,
-  navLinkBack: 0.3,
-  navLinkBackDelay: 0.1,
-  navSwapStagger: 0.08,
+  // The burger's own two-line <-> X morph (Nav.tsx svg paths, rotate +
+  // translate only): "the same hand as the existing X" bowed-path shapes,
+  // just re-oriented -- open drives them to the X's own untransformed
+  // geometry, close drives them to a rotated + offset horizontal pair.
+  burgerMorph: 0.3,
 
   // Accordion (M16): panel unrolls .45 (42 §Storyboards "panel unrolls
   // .45"), Plus/Minus crossfade .2; V28's row wash bleeds in .3 (dry).
@@ -172,4 +214,28 @@ export const DURATION = {
   fontsCapMs: 800,
   failsafeMs: 1500,
   bootFailsafeMs: 3000,
+
+  // 49-round4-plan.md §E4b (R4-5, raindrop splash hero intro), ms --
+  // motion/heroSplash.ts keeps its own copy of the total in sync by hand
+  // (same pattern as app/inkCover.ts's COVER_MS/RECEDE_MS). Replaces 47
+  // §R6a's one-stroke phase durations (heroStrokePressMs et al, deleted
+  // with that module) -- this intro has no named phases, just
+  // independently-timed drops within one total window. Trimmed 2300 -> 1900
+  // by R4-5b (owner: "more and faster paint drops" — 11 drops now, each
+  // growing quicker, so the total comes down toward ~2.0s per the plan
+  // rather than leaving a bare tail once every drop has already resolved).
+  heroSplashTotalMs: 900,
+
+  // 47-round3-plan.md §R6b (BW collapse) — motion/heroCollapse.ts's own
+  // copies, same hand-sync pattern. Retuned 49-round4-plan.md §F2 (owner:
+  // "slightly faster and less bouncelike"): flight 700 -> 550ms, and the
+  // "ryan"/"idjaja" brush-out trimmed in proportion (300 -> 235, same
+  // ~0.79x factor) so it doesn't look slow relative to the now-quicker
+  // flight. heroExpandRewriteLeadMs is an absolute ms offset from the
+  // landing moment (not a fraction of FLIGHT_MS), so it stays correct
+  // unchanged — the re-write still starts 0.15s before the ghost lands and
+  // finishes 0.15s after, regardless of how long the flight itself takes.
+  heroCollapseFlightMs: 550,
+  heroCollapseEraseMs: 235,
+  heroExpandRewriteLeadMs: 150,
 } as const

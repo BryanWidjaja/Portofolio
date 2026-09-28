@@ -29,6 +29,14 @@ const DESKTOP_MEDIA = '(min-aspect-ratio: 3/4)'
  * image-preload hoist stacking a third, unbudgeted preload onto the two
  * explicit ones (44 §Exec tasks E2 risk note).
  *
+ * 47-round3-plan.md §R6a supersedes 45 §Owner feedback item 10's own cover
+ * mechanism (the CSS-only `.hero-brush-in` sliding panel): the paper cover
+ * and its reveal now live in pages/Home.tsx (a canvas layered above
+ * `Container`'s name, not just this component's own image), driven by
+ * motion/heroSplash.ts (49 §E4b, R4-5 -- replacing that module's own
+ * earlier one-stroke version). Item 10's LCP contract carries over
+ * unchanged — see that module's own header comment.
+ *
  * 46-polish-plan.md item 3(a)/owner decision 5: the paper grain used to
  * reach the image via `mix-blend-mode: multiply` against this wrapper's own
  * paper-tile background -- diagnosis measured that blend alone at ~180ms of
@@ -114,16 +122,6 @@ export function Hero() {
               style={{ top: `${30 + i * 20}%`, backgroundImage: `url('/ink/${name}.webp')` }}
             />
           ))}
-      {/* F10 (45 §Owner feedback item 10): "brushed onto the paper" on
-          first load -- a pure-CSS paper panel (styles/base.css
-          `.hero-brush-in`) that slides clear over the already-fully-
-          painted image below it. No React state, no GSAP: it can't be
-          gated behind JS because nothing here depends on JS running at
-          all, and `motion-reduce:hidden` removes it outright under
-          reduced motion (the image needs no further change to "show"
-          immediately). Last child so it covers the image, the nav scrim
-          and the mist alike while it's still in front. */}
-      <div aria-hidden="true" className="hero-brush-in ink-paper pointer-events-none motion-reduce:hidden" />
     </div>
   )
 }

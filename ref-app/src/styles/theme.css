@@ -1,6 +1,11 @@
 /* Fonts: 46-polish-plan.md §Fonts / 45-ink-approved.md §Polish round decision 1
- * -- Cormorant 600/700 + Cormorant italic 400 (display) + Public Sans 400/500
- * (text), replacing Alegreya + Alegreya Sans (94 kB of latin woff2 vs 131 kB).
+ * -- EB Garamond 600/700 + EB Garamond italic 400 (display) + Public Sans
+ * 400/500 (text), replacing Alegreya + Alegreya Sans (94 kB of latin woff2 vs
+ * 131 kB). 49-round4-plan.md R4-6 (owner: "the j actually has a tail, the
+ * current font doesn't"): Cormorant's 700 cut ends the `j` in a flat, blunt
+ * stem -- EB Garamond is the Garamond original Cormorant is a display
+ * interpretation of, so the mood holds and the `j` gets a proper hooked
+ * descender. Same three faces (600/700 normal, 400 italic), same subsetting.
  * Loading approach unchanged: self-hosted, latin subset only, font-display:
  * swap (Fontsource default), plus a size-adjusted fallback face per family so
  * swapping in the real font doesn't reflow the 10rem hero. The five woff2
@@ -9,33 +14,33 @@
  * family/weight/style is fetched. Both families ship static weights only --
  * no variable-font axis on either side of this pairing. */
 @font-face {
-  font-family: 'Cormorant';
+  font-family: 'EB Garamond';
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url('/fonts/cormorant-latin-600-normal.woff2') format('woff2');
+  src: url('/fonts/eb-garamond-latin-600-normal.woff2') format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Cormorant';
+  font-family: 'EB Garamond';
   font-style: normal;
   font-display: swap;
   font-weight: 700;
-  src: url('/fonts/cormorant-latin-700-normal.woff2') format('woff2');
+  src: url('/fonts/eb-garamond-latin-700-normal.woff2') format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Cormorant';
+  font-family: 'EB Garamond';
   font-style: italic;
   font-display: swap;
   font-weight: 400;
-  src: url('/fonts/cormorant-latin-400-italic.woff2') format('woff2');
+  src: url('/fonts/eb-garamond-latin-400-italic.woff2') format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -60,17 +65,31 @@
 /* Metric-compatible fallbacks, measured (not approximate) via opentype.js off
  * the actual shipped files: xAvgCharWidth/unitsPerEm for size-adjust, then
  * hhea ascent/descent/lineGap normalised by that size-adjust, same method
- * fontaine/next-font use. Cormorant read off its 700 cut, Public Sans off
+ * fontaine/next-font use. EB Garamond read off its 700 cut (the hero name's
+ * actual weight, same convention as Cormorant before it), Public Sans off
  * its 400 -- both families share one vertical-metrics table across weights,
  * so this holds for every weight actually shipped. Keeps CLS low without a
- * webfont dependency. */
+ * webfont dependency.
+ *
+ * R4-6: recomputed for the EB Garamond swap, not carried over from
+ * Cormorant. EB Garamond 700's own hhea/OS2 metrics (unitsPerEm 1000,
+ * xAvgCharWidth 599, ascent 1007, descent -298, lineGap 0) sit close to
+ * Cormorant 700's (xAvgCharWidth 535, ascent 924, descent -287) but not
+ * identical, so every number below moved: size-adjust 121.6% -> 136.1%,
+ * ascent-override 76% -> 74%, descent-override 23.6% -> 21.9%. The Georgia
+ * width ratio used as the size-adjust denominator is unchanged (Georgia's
+ * own file didn't move) -- backed out algebraically from the
+ * already-published Cormorant numbers above (xAvgCharWidth/unitsPerEm =
+ * 0.43997) rather than read off a system font file, then re-applied here;
+ * re-deriving it from Cormorant's own shipped-file metrics reproduces
+ * 121.6/76/23.6/0 exactly, so the same ratio is trusted for this face too. */
 @font-face {
-  font-family: 'Cormorant Fallback';
+  font-family: 'EB Garamond Fallback';
   src: local('Georgia');
-  ascent-override: 76%;
-  descent-override: 23.6%;
+  ascent-override: 74%;
+  descent-override: 21.9%;
   line-gap-override: 0%;
-  size-adjust: 121.6%;
+  size-adjust: 136.1%;
 }
 
 @font-face {
@@ -119,6 +138,15 @@
   --color-background: #f2ecde;
   --color-ink: #141a1e;
   --color-ink-muted: #434b52;
+  /* 49-round4-plan.md §E3 item 3 (owner pick, `45` R4a): a darker grey for
+   * the menu button and the dark menu panel only (styles/base.css
+   * `.ink-paper-dark`, components/Nav.tsx's button fill) -- `--color-ink-
+   * muted` above is unchanged and stays in wide use elsewhere (body-copy
+   * "muted" text across Footer/About/ProjectCard/etc.), so this is a new
+   * token, not a re-point of the old one. Paper text on it is 11.34:1
+   * (no contrast risk); cinnabar only reaches 2.46:1, so anything focusable
+   * on this tone still leans on the paper focus-ring halo. */
+  --color-ink-dark: #2a3035;
   --color-ink-subtle: #566068;
   --color-ink-faint: #7c8992;
   --color-line: #c4cbd1;
@@ -128,9 +156,10 @@
    * role (42 §Tokens) on one family, distinguished purely by which
    * weight/style a component applies. 46-polish-plan.md §Fonts / 45
    * §Polish round decision 1: Cormorant replaces Alegreya, Public Sans
-   * replaces Alegreya Sans. */
+   * replaces Alegreya Sans. 49-round4-plan.md R4-6: EB Garamond replaces
+   * Cormorant (owner: the `j` needs a tail Cormorant's cut doesn't have). */
   --font-sans: 'Public Sans', 'Public Sans Fallback', Arial, sans-serif;
-  --font-display: 'Cormorant', 'Cormorant Fallback', Georgia, serif;
+  --font-display: 'EB Garamond', 'EB Garamond Fallback', Georgia, serif;
 
   /* Type scale — size/leading/tracking only; weight and family are applied
    * per component (e.g. font-display font-bold) since @theme text tokens
@@ -170,6 +199,16 @@
   --z-index-curtain: 90;
   --z-index-cursor: 100;
   --z-index-skip-link: 110;
+  /* 47-round3-plan.md §R6: the hero paper cover (one-stroke intro) and the
+   * B/W collapse ghost both have to sit above Home's `Container` (z-10 in
+   * that section's own `isolate` stacking context) so the erase/flight
+   * reads as happening in front of the name and painting, not behind them.
+   * The ghost itself is a `position: fixed` DOM node outside the section
+   * entirely (so it can fly across the fixed nav), so it also needs to
+   * clear `--z-index-nav` (50) — set inline in motion/heroCollapse.ts,
+   * kept in sync with this by hand (55, just above nav, below the ink
+   * curtain's 90). */
+  --z-index-hero-cover: 20;
 
   /* Extra breakpoint above Tailwind's default 2xl (1536px) */
   --breakpoint-3xl: 1920px;

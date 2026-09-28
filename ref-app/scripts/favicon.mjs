@@ -10,11 +10,14 @@
  * only place it lives.
  *
  * 46-polish-plan.md §Fonts / 45 §Polish round decision 1: re-pointed from
- * Alegreya Bold to Cormorant 700 (the shipped display bold). opentype.js
- * can't parse woff2 (no brotli support), so this reads the plain .woff
- * Fontsource also publishes, straight out of node_modules instead of the
- * old gstatic fetch+cache -- the font is already an installed dependency,
- * so there is nothing left to fetch or cache.
+ * Alegreya Bold to Cormorant 700 (the shipped display bold). 49-round4-
+ * plan.md R4-6: re-pointed again, Cormorant 700 -> EB Garamond 700 (owner:
+ * the `j` needs a tail Cormorant's cut doesn't have -- doesn't touch `B`/`W`
+ * here, but same file, same extraction code). opentype.js can't parse woff2
+ * (no brotli support), so this reads the plain .woff Fontsource also
+ * publishes, straight out of node_modules instead of the old gstatic
+ * fetch+cache -- the font is already an installed dependency, so there is
+ * nothing left to fetch or cache.
  *
  * Usage: node scripts/favicon.mjs
  * Outputs: public/favicon.svg (<=2kB), public/favicon-32.png, public/favicon-180.png
@@ -24,7 +27,7 @@ import path from 'node:path'
 import opentype from 'opentype.js'
 import sharp from 'sharp'
 
-const FONT_PATH = path.resolve('node_modules/@fontsource/cormorant/files/cormorant-latin-700-normal.woff')
+const FONT_PATH = path.resolve('node_modules/@fontsource/eb-garamond/files/eb-garamond-latin-700-normal.woff')
 const OUT_SVG = path.resolve('public/favicon.svg')
 const OUT_32 = path.resolve('public/favicon-32.png')
 const OUT_180 = path.resolve('public/favicon-180.png')

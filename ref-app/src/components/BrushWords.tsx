@@ -1,12 +1,13 @@
 import type { ElementType } from 'react'
 
 type BrushWordsProps = {
-  /** Single string, split into per-word brush masks (M2: detail/About/404/
-   * heading h1s and scroll-revealed headings). */
-  text?: string
-  /** Explicit lines, each its own word group (M1: the Index hero, two
-   * lines that overlap instead of queuing — see motion/brushText.ts). */
-  lines?: string[]
+  /** Split into per-word brush masks (M2: detail/About/404/heading h1s and
+   * scroll-revealed headings). 47-round3-plan.md §R6a: the old `lines`
+   * prop (M1, the Home hero's two overlapping lines) is gone along with
+   * that hero's own per-word bleed — pages/Home.tsx writes its h1 by hand
+   * now, since the collapse (§R6b) also needs a letter-level split this
+   * component's word-level masking doesn't produce. */
+  text: string
   as: ElementType
   className?: string
   /** Overrides the auto tabIndex below — Home's `#work`/`#contact` h2s are
@@ -31,39 +32,28 @@ type BrushWordsProps = {
  */
 export function BrushWords({
   text,
-  lines,
   as: As,
   className = '',
   tabIndex: tabIndexProp,
   'data-reveal': dataReveal,
 }: BrushWordsProps) {
-  const label = lines ? lines.join(' ') : (text ?? '')
+  const label = text
   // Every h1 this renders is the page-transition's focus target (E5), so it
   // needs to be programmatically focusable without ever joining the Tab
   // order (base.css suppresses the ring for tabindex="-1" specifically,
   // since that value is never a keyboard stop).
   const tabIndex = tabIndexProp ?? (As === 'h1' ? -1 : undefined)
 
-  function renderLine(line: string, keyPrefix: string) {
-    return line.split(' ').map((word, wordIndex) => (
-      <span key={`${keyPrefix}-${wordIndex}`}>
-        {wordIndex > 0 ? ' ' : null}
-        <span data-word aria-hidden="true" className="bleed-word">
-          {word}
-        </span>
-      </span>
-    ))
-  }
-
   return (
     <As aria-label={label} className={className} tabIndex={tabIndex} data-reveal={dataReveal}>
-      {lines
-        ? lines.map((line, lineIndex) => (
-            <span key={lineIndex} data-brush-line className="block">
-              {renderLine(line, `l${lineIndex}`)}
-            </span>
-          ))
-        : renderLine(label, 'w')}
+      {label.split(' ').map((word, wordIndex) => (
+        <span key={wordIndex}>
+          {wordIndex > 0 ? ' ' : null}
+          <span data-word aria-hidden="true" className="bleed-word">
+            {word}
+          </span>
+        </span>
+      ))}
     </As>
   )
 }

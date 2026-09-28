@@ -1,5 +1,4 @@
 import { gsap, ScrollTrigger } from './gsap'
-import { EASE } from './tokens'
 
 type HeroMistRefs = {
   root: HTMLElement
@@ -32,19 +31,32 @@ type HeroMistRefs = {
  * animation for an ambient effect nobody can register mid-transition
  * anyway. A MutationObserver on the one attribute TransitionProvider.tsx
  * sets keeps this self-contained -- no import of the transition state.
+ *
+ * 49-round4-plan.md §E1 (headline perf fix): the idle drift used to be 3
+ * infinite GSAP yoyo tweens on `xPercent` -- a main-thread `gsap.set` on
+ * every plane, every frame, forever, for a +-2% sway. Diagnosis measured
+ * ~32-38 style recalcs/s from exactly this. The drift is now a compositor-
+ * driven CSS animation (`.hero-mist` / `hero-mist-drift-pos|neg` in
+ * styles/base.css) on the independent `translate` property, which composes
+ * with -- never fights -- the scrub's own `transform` (`gsap.set(el,
+ * {yPercent})` below): CSS Transforms Level 2 applies `translate` before
+ * `transform`, so both are visibly live at once. This module still owns
+ * every pause gate (`load`, IntersectionObserver, hidden tab, page
+ * transition) exactly as before; only the mechanism `sync()` toggles
+ * changed, from `tween.play()/.pause()` to `animation-play-state` +
+ * scoped `will-change`.
  */
 export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
   const MIST_PERIODS = [43, 51, 59] // 42 §Tokens: near-coprime so the planes never lock in step
-  const drifts = mist.map((el, i) =>
-    gsap.to(el, {
-      xPercent: i % 2 === 0 ? 2 : -2,
-      duration: MIST_PERIODS[i],
-      ease: EASE.mist,
-      repeat: -1,
-      yoyo: true,
-      paused: true,
-    }),
-  )
+  mist.forEach((el, i) => {
+    // Alternate sway direction per plane (i%2===0 ? +2% : -2%), matching the
+    // old tween's `xPercent` target. `animation-direction: alternate` plus
+    // the `from 0 / to <target>` keyframe reproduces the old `yoyo: true`
+    // leg-for-leg: one keyframe iteration === one old tween "leg" of
+    // `duration` = MIST_PERIODS[i] seconds.
+    el.style.animationName = i % 2 === 0 ? 'hero-mist-drift-pos' : 'hero-mist-drift-neg'
+    el.style.animationDuration = `${MIST_PERIODS[i]}s`
+  })
 
   let intersecting = false
   let loaded = document.readyState === 'complete'
@@ -56,7 +68,7 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
 
   function sync() {
     const shouldRun = loaded && intersecting && !document.hidden && !transitionActive()
-    drifts.forEach((tween) => (shouldRun ? tween.play() : tween.pause()))
+    mist.forEach((el) => (el.style.animationPlayState = shouldRun ? 'running' : 'paused'))
   }
 
   function onLoad() {
@@ -84,6 +96,14 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
     start: 'top top',
     end: 'bottom top',
     scrub: true,
+    // 49-round4-plan.md §E1 item 3: will-change scoped to exactly the
+    // scroll-scale window (this trigger's active range), not permanent --
+    // permanent will-change wastes memory and this harness can't credit it
+    // anyway (software rasterizer), but it's a no-regret real-browser fix.
+    // Cleared on leave so the image re-rasterises crisp.
+    onToggle: (self) => {
+      image.style.willChange = self.isActive ? 'transform' : 'auto'
+    },
     onUpdate: (self) => {
       if (transitionActive()) return
       gsap.set(image, { scale: 1 + self.progress * 0.04 })
@@ -96,7 +116,7 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
     document.removeEventListener('visibilitychange', sync)
     io.disconnect()
     transitionObserver.disconnect()
-    drifts.forEach((tween) => tween.kill())
+    image.style.willChange = ''
     scrub.kill()
   }
 }

@@ -36,3 +36,19 @@ html.motion-ready [data-nav-item] {
 html[data-transition='swapping'] #main {
   visibility: hidden;
 }
+
+/* 47-round3-plan.md §R4 (diagnosis: the bare-page gap between cover and
+ * recede): app/inkCover.ts's `preserveDrawingBuffer: true` is the actual
+ * fix — the curtain's canvas keeps its last-drawn frame across compositor
+ * presents once that's set, with zero extra draw calls needed while React
+ * mounts the destination route. This rule is a second, CSS-only layer on
+ * top of it, not a substitute: a solid `background-color` under the canvas
+ * for exactly the two phases where the ink must stay opaque with nothing
+ * redrawing it (`swapping` and `holding`), so even a driver that failed to
+ * honour `preserveDrawingBuffer` would still show solid ink, never bare
+ * page, underneath. `--color-ink` is the same custom property
+ * app/inkCover.ts reads via `getComputedStyle` for the WebGL fill. */
+html[data-transition='swapping'] [data-curtain] canvas,
+html[data-transition='holding'] [data-curtain] canvas {
+  background-color: var(--color-ink);
+}

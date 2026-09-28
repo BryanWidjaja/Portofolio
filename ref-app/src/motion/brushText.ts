@@ -24,47 +24,11 @@ function wordsIn(root: HTMLElement | null, selector: string) {
   return root ? Array.from(root.querySelectorAll<HTMLElement>(selector)) : []
 }
 
-/**
- * M1: the Home hero's two-line name. Replays on every pageEnter mode
- * (first/push/pop) — 45-ink-approved.md §Storyboards "Back/forward:
- * entrances replay" — only motion/stamp.ts's seal beat is first-load-only.
- * "the brush breaks, the meaning carries on" (41 M1): line 2 starts at
- * T0+.55, before line 1's .8s stroke lifts, so the two overlap instead of
- * queuing. Returns the timeline so
- * the caller (motion/Page.tsx) can sequence the seal — and later, the
- * hero inscription (deferred to E2) — right after it without a rewrite:
- * anything added as a further sequential `tl.to(...)` call lands after
- * line 2 automatically, and a `"+="`-positioned seal shifts with it.
- */
-export function playHeroName(root: HTMLElement, reduced: boolean): gsap.core.Timeline | null {
-  const lines = wordsIn(root, 'h1 [data-brush-line]')
-  if (!lines.length) return null
-  const wordsByLine = lines.map((line) => wordsIn(line, '[data-word]'))
-  const allWords = wordsByLine.flat()
-  if (!allWords.length) return null
-
-  if (reduced) {
-    gsap.set(allWords, { '--bleed-size': BLEED_SIZE_OPEN })
-    return null
-  }
-
-  const tl = gsap.timeline()
-  wordsByLine.forEach((words, i) => {
-    tl.to(
-      words,
-      {
-        '--bleed-size': BLEED_SIZE_OPEN,
-        duration: DURATION.heroWrite,
-        ease: EASE.bleed,
-        stagger: DURATION.wordStagger,
-        onStart: () => promoteMaskSize(words),
-        onComplete: () => settleWords(words),
-      },
-      i === 0 ? 0 : DURATION.heroOverlap,
-    )
-  })
-  return tl
-}
+// 47-round3-plan.md §R6a: `playHeroName` (M1, the old per-word bleed on the
+// Home hero) is gone — "the home h1 has no separate word bleed"; the name
+// is revealed by pages/Home.tsx's one-stroke intro (motion/heroStroke.ts)
+// now. `writeWords`/`playTitleWrite` below are untouched and still run for
+// every other page's h1, which keep their own bleed.
 
 // F1 (45 §Owner feedback item 2, "missing will-change on genuinely
 // animated layers"): `--bleed-size` drives `mask-size` (styles/base.css

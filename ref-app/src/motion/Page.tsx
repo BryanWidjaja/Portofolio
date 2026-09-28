@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useGSAP } from './gsap'
 import { onPageEnter, usePageEnter, type PageEnterMode } from './pageEnter'
 import { signalReady } from './ready'
-import { playHeroName, playTitleWrite } from './brushText'
+import { playTitleWrite } from './brushText'
 import { playIntro } from './bleed'
 import { createScrollReveals } from './reveal'
 import { DURATION } from './tokens'
@@ -66,11 +66,13 @@ export function Page({ children, variant = 'title' }: PageProps) {
       if (!mode || !el) return
 
       if (variant === 'home') {
-        // M1 (45-ink-approved.md §Storyboards "First load of /"): the name
-        // writes; M17's seal stamp is gone (45 §Owner feedback item 4) —
-        // a later hero inscription beat (deferred to E2, pending owner
-        // characters) has nothing left to chain after the name write.
-        playHeroName(el, reduced)
+        // 47-round3-plan.md §R6a supersedes M1's own call here: "the home
+        // h1 has no separate word bleed" any more — pages/Home.tsx's own
+        // one-stroke intro (motion/heroStroke.ts) reveals the name and the
+        // painting together, wired off the same pageEnter broadcast this
+        // effect fires from, independently (motion/pageEnter.ts's listener
+        // set takes any number of subscribers). `playHeroName` stays for
+        // every other page's h1 in the `else` branch below.
       } else {
         playTitleWrite(el, reduced)
       }

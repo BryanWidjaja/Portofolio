@@ -11,20 +11,29 @@ type BrushRevealProps = {
   className?: string
 }
 
-// V11/M9 (41-ink-replace-map.md), 42-ink-direction.md §Brush reveal: a grey
-// <img> (CSS grayscale + multiply, styles/base.css `.brush-grey`) sits under
-// a canvas that paints the same image's colour back in wherever
-// src/ink/brush.ts's accumulated mask has coverage. 46-polish-plan.md item
-// 3b: the grey->colour blend is baked *inside* that canvas (brush.ts's
-// renderComposite) rather than via a DOM `mix-blend-mode: color` on this
-// element — one of the two blend layers 45 measured costing 633ms of
-// compositor Commit per route change, the other being the hero's own
-// multiply (S2's fix). The canvas below is a plain normal-blend,
-// pointer-events:none layer. Reduced motion never mounts the canvas at all
-// (44 §check:transitions B4) and instead relies on styles/base.css's
-// `html:not(.brush-ready) ... :hover/:focus-within` fallback, which also
-// covers no-JS/SSR since `.brush-ready` is only ever added once a figure's
-// canvas engine actually starts (mountBrush).
+// V11/M9 (41-ink-replace-map.md), 42-ink-direction.md §Brush reveal: a
+// colour <img> sits at the bottom, a grey overlay <img> (`.brush-grey`,
+// styles/base.css) sits on top of it, and a canvas sits on top of both,
+// painting the colour image's pixels back in wherever src/ink/brush.ts's
+// accumulated mask has coverage. R4-4 (41-ink-replace-map.md, 49-round4-
+// plan.md §E2): the grey overlay is now a pre-baked raster
+// (scripts/placeholders.mjs, `greySrc` below) instead of a CSS
+// `filter: grayscale(1)` + `mix-blend-mode: multiply` on the colour image
+// — two of the blend/filter layers 45 measured costing 633ms of compositor
+// Commit per route change (the other being the hero's own multiply, S2's
+// fix). The canvas is a plain normal-blend, pointer-events:none layer that
+// fully (opaquely) covers whatever it paints, so wherever the mask has no
+// coverage the grey overlay underneath shows through unchanged. Reduced
+// motion never mounts the canvas at all (44 §check:transitions B4) and
+// instead relies on styles/base.css's `html:not(.brush-ready) ...
+// :hover/:focus-within` fallback (now an opacity swap on the grey overlay,
+// not a filter toggle), which also covers no-JS/SSR since `.brush-ready`
+// is only ever added once a figure's canvas engine actually starts
+// (mountBrush).
+function greySrc(src: string): string {
+  return src.replace(/(\.\w+)$/, '-grey$1')
+}
+
 export function BrushReveal({ src, alt, width, height, eager = false, className = '' }: BrushRevealProps) {
   const figureRef = useRef<HTMLSpanElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -54,6 +63,17 @@ export function BrushReveal({ src, alt, width, height, eager = false, className 
         ref={imgRef}
         src={src}
         alt={alt}
+        width={width}
+        height={height}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding={eager ? 'sync' : 'async'}
+        fetchPriority={eager ? 'low' : undefined}
+        className="absolute inset-0 size-full object-cover"
+      />
+      <img
+        src={greySrc(src)}
+        alt=""
+        aria-hidden="true"
         width={width}
         height={height}
         loading={eager ? 'eager' : 'lazy'}

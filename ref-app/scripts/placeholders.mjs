@@ -19,8 +19,19 @@
  *
  * The portrait placeholder is untouched (47 §R3: "the portrait can stay").
  *
- * Outputs (AVIF + WebP, two widths each, unchanged from before):
+ * R4-4 (41-ink-replace-map.md, 49-round4-plan.md §E2): also rasterises a
+ * grey counterpart of each project asset -- `components/BrushReveal.tsx`'s
+ * grey overlay `<img>` now uses this baked raster instead of a CSS
+ * `filter: grayscale(1)` + `mix-blend-mode: multiply` on the colour image,
+ * so the grey/muted look ships as real pixel data with no blend/filter
+ * left on any image layer. Same source SVG, same density/quality settings,
+ * just with sharp's own `.grayscale()` in the pipeline -- the paper-toned
+ * gutters (already baked into the chart SVG as a solid PAPER fill) barely
+ * shift under a luma-only grayscale, so the paper tone reads the same.
+ *
+ * Outputs (AVIF + WebP, two widths each, colour + grey):
  *   public/placeholders/<slug>/{cover,gallery-1,gallery-2}-{960,1600}.*
+ *   public/placeholders/<slug>/{cover,gallery-1,gallery-2}-{960,1600}-grey.*
  *   public/placeholders/portrait-{640,1200}.*
  *
  * Usage: node scripts/placeholders.mjs
@@ -171,11 +182,14 @@ function parseViewBox(svgText, fallback) {
   return match ? { width: Number(match[1]), height: Number(match[2]) } : fallback
 }
 
-async function renderRaster(svgText, nativeW, targetWidth, outBase) {
+async function renderRaster(svgText, nativeW, targetWidth, outBase, { grey = false } = {}) {
   // Render at a density matched to the target width so up- and down-scaling
   // both stay crisp (sharp/librsvg rasterises before any later resize).
   const density = 72 * (targetWidth / nativeW)
-  const pipeline = sharp(Buffer.from(svgText), { density })
+  let pipeline = sharp(Buffer.from(svgText), { density })
+  // R4-4: the baked-grey variant BrushReveal's overlay <img> uses instead
+  // of a CSS filter/blend on the colour image (see file header).
+  if (grey) pipeline = pipeline.grayscale()
   await Promise.all([
     pipeline.clone().webp({ quality: 82, effort: 6 }).toFile(`${outBase}.webp`),
     pipeline.clone().avif({ quality: 50, effort: 6 }).toFile(`${outBase}.avif`),
@@ -193,6 +207,7 @@ async function processProject(slug) {
 
     for (const targetWidth of PROJECT_WIDTHS) {
       await renderRaster(svg, width, targetWidth, path.join(ROOT, slug, `${name}-${targetWidth}`))
+      await renderRaster(svg, width, targetWidth, path.join(ROOT, slug, `${name}-${targetWidth}-grey`), { grey: true })
     }
   }
 }

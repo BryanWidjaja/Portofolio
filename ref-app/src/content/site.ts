@@ -40,10 +40,11 @@ export const site = {
     { label: 'Contact', href: '#contact' },
   ],
 
-  // 45 §Owner feedback item 9: the open state keeps its "Menu" label; the
-  // close state is a drawn X (Nav.tsx), so `closeLabel` only ever reaches
-  // the accessible-name tree via `aria-label`, never rendered as text.
-  menuButton: { open: 'Menu', closeLabel: 'Close menu' },
+  // 47-round3-plan.md §R5 item 6: the "Menu" text pill is gone -- the
+  // button is icon-only (a burger that morphs into a drawn X, Nav.tsx) at
+  // every width, so both labels only ever reach the accessible-name tree
+  // via `aria-label`, never rendered as visible text.
+  menuButton: { openLabel: 'Open menu', closeLabel: 'Close menu' },
 
   socials: [
     // TODO(owner): replace with the real GitHub profile URL.

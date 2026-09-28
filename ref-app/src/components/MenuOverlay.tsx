@@ -227,8 +227,10 @@ export function MenuOverlay() {
       >
         <Container className="relative flex h-full flex-col justify-between py-24 md:py-32">
           {/* G6 (46 item 6 / decision 2): 浓 panel, so link text flips from
-              焦 to paper (`text-background`, 7.53:1) — the darkest tone in
-              the ramp reads as near-invisible on 浓 (1.4:1). */}
+              焦 to paper (`text-background`, 11.34:1 — re-measured
+              2026-09-28 against `49` §E3 item 3's darker `--color-ink-dark`,
+              #2a3035, replacing the original #434b52 here) — the darkest
+              tone in the ramp reads as near-invisible on 浓 (1.31:1). */}
           <nav aria-label="Menu">
             <ul className="flex flex-col">
               {site.menuLinks.map((link) => (
@@ -244,9 +246,11 @@ export function MenuOverlay() {
               ))}
             </ul>
           </nav>
-          {/* G6: 清 (`text-line`, 5.41:1 on 浓) — EmailCopy/ArrowLink set no
-              colour of their own on their root elements, so this is plain
-              CSS inheritance, not a change to either component. */}
+          {/* G6: 清 (`text-line`, 8.15:1 on 浓 — re-measured 2026-09-28
+              against the new #2a3035, up from 5.41:1 on the old #434b52) —
+              EmailCopy/ArrowLink set no colour of their own on their root
+              elements, so this is plain CSS inheritance, not a change to
+              either component. */}
           <div
             data-menu-row
             className="flex flex-col gap-6 text-line md:flex-row md:items-baseline md:justify-between"
@@ -271,8 +275,9 @@ export function MenuOverlay() {
             riding along with the panel already fully inked in. `.brush-line`
             supplies mask-repeat/size/position/composite; only the two
             mask-image URLs and the colour are set here, same division as
-            BrushLine.tsx itself. G6 (46 item 6): 焦 on 浓 is 1.4:1
-            (invisible on the new dark panel), so this is 清 instead — 5.41:1,
+            BrushLine.tsx itself. G6 (46 item 6): 焦 on 浓 is 1.31:1
+            (invisible on the dark panel), so this is 清 instead — 8.15:1
+            (re-measured 2026-09-28 for the new #2a3035, up from 5.41:1),
             matching the email/social row above. */}
         <span
           ref={rodRef}

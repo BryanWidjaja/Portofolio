@@ -6,9 +6,22 @@
  * preview`, same approach as scripts/shots.mjs) and asserts E5's page-
  * transition, cursor and menu acceptance criteria (03-agent-briefs.md
  * §E5), plus E3's brush-reveal checks B1-B6 (44-ink-build-plan.md
- * §check:transitions "Added (6)") and B7 (47-round3-plan.md §R3, item 9:
- * the hover-dwell colour bloom). Prints a PASS/FAIL table and exits 1 on
- * any failure or any console error/warning/pageerror seen along the way.
+ * §check:transitions "Added (6)") and B7 (49-round4-plan.md §E2, item 4,
+ * R4-4 in 41-ink-replace-map.md: the instant entry-point ink-splash,
+ * replacing round 3's hover-dwell colour bloom -- B5/B6 also updated here
+ * since round 3's per-stroke painting and touch auto-stroke they tested are
+ * gone too), plus B8/B9 (R4-4b, the owner's round-4 fixes to R4-4: B5-B7's
+ * timing waits bumped for fix 1's longer BLOOM_MS, B8 the reverse-direction
+ * dry-back of fix 3, B9 the fully-painted -> "open" cursor handoff of fix
+ * 4, extended here with R4-4c's `data-cursor-no-trail` assertions) and B10
+ * (R4-4c, 41-ink-replace-map.md: the owner's round-4 follow-up bug report --
+ * re-entering a figure mid-splash was restarting it; B10 asserts it can't),
+ * plus four new R4-5 checks (49 §E4b, item 5: the raindrop
+ * splash hero intro replacing round 3's one-stroke version, which had no
+ * checks of its own in this suite) -- cold-load mount/unmount, reduced
+ * motion, scrolled entry and pop entry. Prints a PASS/FAIL table and exits
+ * 1 on any failure or any console error/warning/pageerror seen along the
+ * way.
  *
  * Usage:
  *   node scripts/check-transitions.mjs [--skip-build] [--shots]
@@ -70,7 +83,7 @@ function build() {
 }
 
 const SETTLE_MS = 2600 // first-load boot + signature/M2 entrance fully settled
-const NAV_SETTLE_MS = 1800 // push transition idle (cover .6 + hold .1 + recede .7 ~= 1.45s) plus margin
+const NAV_SETTLE_MS = 1800 // push transition idle (47 §R4: cover .45 + hold .1 + recede .65 ~= 1.2s) plus margin
 
 // Lenis's lerp smoothing converges asymptotically, and a synthetic wheel
 // event's settle time isn't worth hardcoding — poll until two consecutive
@@ -106,6 +119,73 @@ async function sampleCanvasAlpha(page, selector, points) {
   )
 }
 
+// 47 §R4 "add a check that ink coverage never drops to zero between the
+// first ink frame and the start of the dry-away": this is the direct
+// regression test for the diagnosed gap (the bare page at ~780ms, before
+// this round's `preserveDrawingBuffer` fix). A fixed-interval poll loop
+// (tried first) raced `swapping`/`holding`'s own length: TransitionProvider
+// only awaits real time between `covering`->`swapping` (`waitForPageReady`);
+// `holding`->`revealing` has a *conditional* await (skipped outright when
+// `holdRemaining <= 0`), so on a fast run that whole window can be under a
+// poll interval and get skipped entirely, leaving zero samples outside
+// `covering` -- an empty-array false negative, confirmed twice on this
+// machine. A `MutationObserver` on `data-transition` instead reads the
+// curtain's alpha *at the instant each phase is set*, in-page, with no
+// polling interval to race — it can still coalesce `holding`+`revealing`
+// if TransitionProvider sets both synchronously in the same tick (no
+// awaited gap between them), but `covering`->`swapping` always has a real
+// `await waitForPageReady(...)` first, so `swapping`'s own reading — the
+// phase where the historical bug actually lived (`#main` hidden, destination
+// route mounting, nothing else redrawing the canvas) — is reliably captured.
+async function testInkCoverageDuringSwap(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  await page.evaluate(() => {
+    window.__r4log = []
+    function readMeanAlpha() {
+      const canvas = document.querySelector('[data-curtain] canvas')
+      if (!canvas || canvas.width <= 1 || canvas.height <= 1) return null
+      const gl = canvas.getContext('webgl')
+      if (!gl) return null
+      const w = canvas.width
+      const h = canvas.height
+      const pts = [
+        [0.1, 0.1], [0.5, 0.1], [0.9, 0.1],
+        [0.1, 0.5], [0.5, 0.5], [0.9, 0.5],
+        [0.1, 0.9], [0.5, 0.9], [0.9, 0.9],
+      ]
+      const px = new Uint8Array(4)
+      const alphas = pts.map(([fx, fy]) => {
+        gl.readPixels(Math.round(fx * w), Math.round(fy * h), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px)
+        return px[3]
+      })
+      return alphas.reduce((a, b) => a + b, 0) / alphas.length
+    }
+    const record = () => window.__r4log.push({ phase: document.documentElement.dataset.transition, mean: readMeanAlpha() })
+    new MutationObserver(record).observe(document.documentElement, { attributes: true, attributeFilter: ['data-transition'] })
+  })
+
+  await page.click('a[href="/projects/tidewater"]')
+  await page.waitForFunction(
+    () => document.documentElement.dataset.transition === 'idle' && window.__r4log?.some((e) => e.phase === 'idle'),
+    { timeout: 5000 },
+  )
+
+  const log = await page.evaluate(() => window.__r4log)
+  const preRecede = log.filter((e) => e.phase === 'swapping' || e.phase === 'holding')
+  check(
+    'R4 ink coverage never drops toward zero between full cover and the start of recede',
+    preRecede.length > 0 && preRecede.every((e) => e.mean >= 200),
+    JSON.stringify(preRecede.map((e) => `${e.phase}:${Math.round(e.mean)}`)),
+  )
+
+  await context.close()
+}
+
 async function getBrushFrames(page, figureSelector) {
   return page.evaluate((sel) => document.querySelector(sel)?.dataset.brushFrames ?? null, figureSelector)
 }
@@ -122,8 +202,17 @@ const TIDEWATER_CARD = 'a[href="/projects/tidewater"]'
 const TIDEWATER_FIGURE = `${TIDEWATER_CARD} [data-brush]`
 const TIDEWATER_CANVAS = `${TIDEWATER_FIGURE} canvas`
 
-// B1: hover then leave a card; once the D4 hold (1.5s) + fade (1.2s) has
-// fully settled, the frame counter goes quiet and the mask reads back to 0.
+// B1: hover then leave a card; once the splash, the D4 hold (1.5s) and the
+// fade (1.2s) have all settled, the frame counter goes quiet and the mask
+// reads back to 0.
+//
+// Orchestrator fix (R4-4b, 2026-09-28): the wait below used to be
+// hold + fade + margin only, which was right while leaving mid-splash froze
+// the reveal and dropped straight into hold. The owner's fix 2 ("u shouldnt
+// be able to cancel the painting out") means the pointer leaving is no
+// longer a shortcut: the splash always runs its full BLOOM_MS first, so the
+// settle point is now bloom + hold + fade. The pointer here enters and
+// leaves in the same breath, so all three phases are still ahead of us.
 async function testBrushIdle(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
@@ -140,7 +229,7 @@ async function testBrushIdle(browser, base) {
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.7)
   await page.mouse.move(0, 0)
 
-  await page.waitForTimeout(1500 + 1200 + 300)
+  await page.waitForTimeout(1500 + 1500 + 1200 + 300) // BLOOM_MS + HOLD_MS + FADE_MS + margin
 
   const { before, after, stable } = await waitFramesStable(page, TIDEWATER_FIGURE, 1000)
   check('B1 idle: brushFrames counter is unchanged over 1s once settled', stable, `before=${before} after=${after}`)
@@ -207,7 +296,10 @@ async function testBrushFocus(browser, base) {
 }
 
 // B4: under reduced motion, BrushReveal never mounts a canvas at all, and
-// the plain CSS fallback swaps the grey filter off instantly on hover.
+// the plain CSS fallback swaps the grey overlay's opacity off instantly on
+// hover -- R4-4: the overlay is now a baked-grey `<img class="brush-grey">`
+// stacked over the colour `<img>`, not a filter on a single image, so this
+// has to target that overlay specifically rather than "the" img.
 async function testBrushReducedMotion(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
   const page = await context.newPage()
@@ -221,11 +313,11 @@ async function testBrushReducedMotion(browser, base) {
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.waitForTimeout(50)
 
-  const filter = await page.evaluate((sel) => {
-    const img = document.querySelector(`${sel} img`)
-    return img ? getComputedStyle(img).filter : null
+  const opacity = await page.evaluate((sel) => {
+    const img = document.querySelector(`${sel} img.brush-grey`)
+    return img ? getComputedStyle(img).opacity : null
   }, TIDEWATER_FIGURE)
-  check('B4 reduced motion: img computed filter is none within 50ms of hover', filter === 'none', `filter="${filter}"`)
+  check('B4 reduced motion: grey overlay opacity is 0 within 50ms of hover', opacity === '0', `opacity="${opacity}"`)
 
   const hasCanvas = await page.evaluate((sel) => Boolean(document.querySelector(`${sel} canvas`)), TIDEWATER_FIGURE)
   check('B4 reduced motion: the figure has no canvas', hasCanvas === false)
@@ -233,9 +325,13 @@ async function testBrushReducedMotion(browser, base) {
   await context.close()
 }
 
-// B5: 3 single-step ~300px mouse jumps (no native coalescing) still leave
-// a continuously-painted path — the quadratic-through-midpoints
-// interpolation in src/ink/brush.ts fills the gaps between events.
+// B5 (R4-4: replaces round 3's per-stroke painting, which this used to
+// test): entering a figure, then immediately making a few more rapid
+// pointer moves inside it (a fast real mouse, not a still one), still
+// lands full colour everywhere with no residual gaps once the splash
+// completes -- the splash is one deterministic animation from the entry
+// point, unaffected by pointer movement after entry, not a path that has
+// to be re-painted to avoid holes.
 async function testBrushFastStroke(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
@@ -261,11 +357,10 @@ async function testBrushFastStroke(browser, base) {
     await page.mouse.move(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t)
     await page.waitForTimeout(20)
   }
-  // Generous margin over a single rAF tick: under load a slow test runner
-  // can delay the frame that composites the last queued stamps, which
-  // otherwise reads as a false gap at the stroke's tip rather than an
-  // actual coverage hole.
-  await page.waitForTimeout(300)
+  // Margin past BLOOM_MS (R4-4b fix 1: ~1.5s, was ~1s): the splash
+  // triggered by the very first `mouse.move` (the entry) should have
+  // finished spreading regardless of the extra moves that followed it.
+  await page.waitForTimeout(1700)
 
   const samples = 30
   const points = Array.from({ length: samples }, (_, i) => {
@@ -274,14 +369,21 @@ async function testBrushFastStroke(browser, base) {
   })
   const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, points)
   const gaps = Array.isArray(alphas) ? alphas.filter((a) => a === 0).length : samples
-  check('B5 fast stroke: no gaps across 30 samples on a 3-jump path', gaps === 0, `zero-alpha samples=${gaps}/${samples}`)
+  check(
+    'B5 fast pointer path: no gaps across 30 samples once the entry splash completes (~1.5s)',
+    gaps === 0,
+    `zero-alpha samples=${gaps}/${samples}`,
+  )
 
   await context.close()
 }
 
-// B6: a coarse-pointer/touch context scrolling a card through the
-// viewport's middle band gets one automatic stroke, scrolling itself is
-// never blocked, and the canvas stays pointer-events:none throughout.
+// B6 (R4-4: the automatic S-stroke this used to test is gone -- D5's touch
+// trigger is now the same instant entry-splash as pointer/focus, seeded at
+// the figure's centre): a coarse-pointer/touch context scrolling a card
+// through the viewport's middle band gets one splash from the centre,
+// scrolling itself is never blocked, and the canvas stays
+// pointer-events:none throughout.
 async function testBrushTouch(browser, base) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
   const page = await context.newPage()
@@ -305,29 +407,35 @@ async function testBrushTouch(browser, base) {
     await page.mouse.wheel(0, 220)
     await page.waitForTimeout(120)
   }
-  await page.waitForTimeout(900)
+  // Past BLOOM_MS (R4-4b fix 1: ~1.5s, was ~1s) with margin from whenever
+  // mid-band was actually crossed during the scroll loop above, so the
+  // splash has had time to reach full coverage, not just started.
+  await page.waitForTimeout(1800)
 
   const scrollAfter = await page.evaluate(() => window.scrollY)
   check('B6 touch: scrollY advanced (native scroll unblocked)', scrollAfter > scrollBefore, `before=${scrollBefore} after=${scrollAfter}`)
 
   const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, GRID_9)
   check(
-    'B6 touch: the automatic S-stroke leaves paint on the media',
-    Array.isArray(alphas) && alphas.some((a) => a > 0),
+    'B6 touch: the mid-band entry splash reveals colour at all 9 grid points',
+    Array.isArray(alphas) && alphas.every((a) => a > 0),
     JSON.stringify(alphas),
   )
 
   await context.close()
 }
 
-// B7 (47-round3-plan.md §R3, item 9): after >=1s of cumulative hover the
-// bloom spreads colour outward from wherever the pointer actually painted
-// to the whole figure -- distinct from B3's keyboard-focus bloom, which
-// fires instantly with no dwell. Paints one small mark near a corner, then
-// holds the pointer still (no further movement) so any colour reaching the
-// opposite, never-painted corner can only come from the hover-dwell bloom's
-// setTimeout, not from further strokes.
-async function testBrushHoverBloom(browser, base) {
+// B7 (49-round4-plan.md §E2, item 4, R4-4 in 41-ink-replace-map.md):
+// replaces round 3's hover-dwell bloom. The moment the pointer enters the
+// figure, colour spreads from that entry point -- no dwell timer. Enters
+// near one corner, holds the pointer still (no further movement), and
+// checks: (a) colour has already started right at the entry point almost
+// immediately (proving there's no dwell), and (b) it has reached the
+// opposite far corner within ~BLOOM_MS of that same entry, with the
+// pointer never having moved again -- so any colour there can only be the
+// splash, never a stroke following the pointer (there is no such stroke
+// any more).
+async function testBrushEntrySplash(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
   attachConsoleWatcher(page)
@@ -340,25 +448,226 @@ async function testBrushHoverBloom(browser, base) {
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
   const farCorner = [0.9, 0.9]
 
-  await page.mouse.move(nearCorner.x, nearCorner.y)
-  await page.waitForTimeout(20)
-  await page.mouse.move(nearCorner.x + 4, nearCorner.y + 4) // one small jiggle: paints a mark, doesn't move again
-  await page.waitForTimeout(700) // well under HOVER_BLOOM_MS (1000ms): dwell not yet armed-out
+  await page.mouse.move(nearCorner.x, nearCorner.y) // entry point: the splash's own origin
+  await page.waitForTimeout(80) // well under BLOOM_MS (R4-4b fix 1: 1500ms); pointer never moves again
 
-  const early = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  const near = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [[0.1, 0.1]])
   check(
-    'B7 hover bloom: opposite unpainted corner is still grey before the 1s dwell',
-    Array.isArray(early) && early[0] === 0,
-    JSON.stringify(early),
+    'B7 entry splash: colour starts at the entry point within 80ms of entry (no dwell timer)',
+    Array.isArray(near) && near[0] > 0,
+    JSON.stringify(near),
   )
 
-  await page.waitForTimeout(1600) // carries past the 1s dwell trigger plus the ~1s bloom, with margin
+  await page.waitForTimeout(1700) // BLOOM_MS (R4-4b fix 1: 1500) + margin
 
-  const late = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  const far = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
   check(
-    'B7 hover bloom: opposite unpainted corner reaches colour after dwell + bloom',
-    Array.isArray(late) && late[0] > 0,
-    JSON.stringify(late),
+    'B7 entry splash: reaches the opposite far corner within ~1.5s of entry, covering the whole figure',
+    Array.isArray(far) && far[0] > 0,
+    JSON.stringify(far),
+  )
+
+  await context.close()
+}
+
+// B8 (49-round4-plan.md §Run mode change, owner fix 3: "the decay should be
+// the opposite direction of the painting"): triggers a splash, lets it
+// finish and hold, then leaves and samples partway into the fade. Under the
+// *old* uniform alpha fade, the entry point and the far corner would read
+// identically at any instant. Under the new directional dry-back
+// (brush.ts's `drawFadeFrame`, the same ray field run backward), the shape
+// covering the figure at any `s` is provably bounded within `maxRadius * s
+// * (1 + SPLASH_SPEED_JITTER)` of the entry point (paintRayBlob's fill is
+// the convex hull of points each within that radius, and distance-from-a-
+// point is maximised at a convex hull's vertices) -- so a `t_fade` chosen
+// so that bound already sits inside the 0.9,0.9 sample's fixed ~0.89x-of-
+// maxRadius distance from a 0.1,0.1 entry point (true for *any* figure
+// aspect ratio, since the farthest canvas corner from a near-(0,0) point is
+// always the far corner) guarantees the far corner has dried while the
+// entry point -- inside the blob for any s>0 -- has not, regardless of the
+// entry's fixed-seed noise. t_fade=0.6 gives s~0.30, comfortably under the
+// ~0.56 threshold that bound requires.
+async function testBrushDryBackDirection(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+
+  const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
+  const origin = [0.1, 0.1]
+  const farCorner = [0.9, 0.9]
+
+  await page.mouse.move(nearCorner.x, nearCorner.y) // entry point: the splash's own origin
+  // Leave almost immediately -- fix 2's "can't cancel" means the splash
+  // still has to run to its full BLOOM_MS regardless, so this doubles as a
+  // regression guard: if leaving early ever froze or restarted it, the
+  // entry point wouldn't read coloured below.
+  await page.mouse.move(box.x - 50, box.y - 50)
+
+  // BLOOM_MS (1500) to full colour, then HOLD_MS (1500) fully held, then
+  // 60% into FADE_MS (1200 * 0.6 = 720), plus scheduling margin.
+  await page.waitForTimeout(1500 + 1500 + 720 + 150)
+
+  const near = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
+  const far = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  check(
+    'B8 dry-back direction: the entry point is still coloured 60% into the fade',
+    Array.isArray(near) && near[0] > 0,
+    JSON.stringify(near),
+  )
+  check(
+    'B8 dry-back direction: the far corner (painted last, so the first to recede) is already grey',
+    Array.isArray(far) && far[0] === 0,
+    JSON.stringify(far),
+  )
+
+  await context.close()
+}
+
+// B9 (49-round4-plan.md §Run mode change, owner fix 4: "change cursor when
+// hover after fully painted to the open cursor"): while a figure is still
+// mid-splash the cursor stays 'brush' (unchanged, T10's own "cursor shows
+// brush state over card media" already covers the steady-state case); once
+// it's fully painted, Cursor.tsx falls through the still-hovered brush
+// figure to its enclosing link's own 'text'/"open" cursor instead; leaving
+// and letting it dry fully back to grey, then re-entering before it's
+// fully painted again, reads 'brush' once more.
+async function testBrushCursorHandoff(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  const card = page.locator(TIDEWATER_CARD).first()
+  await card.scrollIntoViewIfNeeded()
+  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+
+  await page.mouse.move(cx, cy)
+  await page.mouse.move(cx + 2, cy + 2)
+  await page.waitForTimeout(250) // well under BLOOM_MS (1500) -- still mid-splash
+  check(
+    'B9 cursor handoff: still the brush footprint mid-splash',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'brush',
+  )
+  check(
+    'B9 cursor handoff: trail not suppressed mid-splash (brush state keeps its trail)',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === undefined,
+  )
+
+  await page.waitForTimeout(1700) // past BLOOM_MS (1500) + margin: fully painted now, pointer never left
+  const stateAfterFull = await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)
+  const labelAfterFull = await page.evaluate(() => document.querySelector('[data-cursor-dot] + span span')?.textContent)
+  check('B9 cursor handoff: swaps to the "open" label once fully painted', stateAfterFull === 'text', `state="${stateAfterFull}"`)
+  check('B9 cursor handoff: label text is "open"', labelAfterFull === 'open', `label="${labelAfterFull}"`)
+  // R4-4c fix 2 ("with no trail"): the handoff also flips `data-cursor-no-
+  // trail` on straight away (no state-ease, no waiting on a second
+  // MutationObserver round-trip) -- Cursor.tsx's own `buildJobs` reads this
+  // same `suppressTrail` flag to skip painting the trail loop entirely.
+  // Asserted as a flag rather than sampling rendered trail pixels: the
+  // trail's actual on-screen reach depends on card layout/geometry this
+  // suite can't see ahead of time, but the flag is the one thing standing
+  // between "trail drawn" and "trail not drawn" in `buildJobs`, so it's the
+  // precise, geometry-independent thing to assert.
+  const noTrailAfterFull = await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)
+  check(
+    'B9 cursor handoff: trail suppressed immediately once fully painted (open state, no trail)',
+    noTrailAfterFull === '',
+    `data-cursor-no-trail="${noTrailAfterFull}"`,
+  )
+
+  await page.mouse.move(box.x - 50, box.y - 50) // leave -- D4 dry-back starts
+  await page.waitForTimeout(50) // let onPointerOut's leaveTarget()/setNoTrail(false) actually run
+  const noTrailAfterLeave = await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)
+  check(
+    'B9 cursor handoff: trail resumes as soon as the cursor leaves the figure',
+    noTrailAfterLeave === undefined,
+    `data-cursor-no-trail="${noTrailAfterLeave}"`,
+  )
+  await page.waitForTimeout(1500 + 1200 + 300) // HOLD_MS + FADE_MS + margin: fully dried back to grey
+
+  await page.mouse.move(cx, cy)
+  await page.mouse.move(cx + 2, cy + 2)
+  await page.waitForTimeout(80) // well under BLOOM_MS -- re-entry should read 'brush' again, not 'open'
+  check(
+    'B9 cursor handoff: reverts to the brush footprint on re-entry after drying back',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'brush',
+  )
+  check(
+    'B9 cursor handoff: trail not suppressed on the fresh (grey) re-entry',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === undefined,
+  )
+
+  await context.close()
+}
+
+// B10 (round-4 owner bug report, "u can only trigger once until it resets
+// again"): re-entering a figure must never start or restart a splash while
+// one is already running (bloom/hold/fade) -- fixed by gating startBloom on
+// `!state.bloomed`. The direct, geometry-independent proof: the entry
+// point -- inside the splash's blob for as long as any coverage remains,
+// by `paintRayBlob`'s own construction -- must never read back to zero
+// alpha once it's first covered, no matter how many times the pointer
+// leaves and re-enters mid-splash from a *different* point. A restart would
+// rebuild the field around that new point and, for at least one frame
+// before the tiny fresh blob grows back out, the old entry point would fall
+// outside it and read alpha=0 -- which this catches directly, without
+// needing to reason about the noise field's per-angle geometry.
+async function testBrushReentryNoRestart(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+
+  const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
+  const origin = [0.1, 0.1]
+  const farCorner = [0.9, 0.9]
+
+  await page.mouse.move(nearCorner.x, nearCorner.y) // entry point: splash starts, clock starts here
+  await page.waitForTimeout(700) // partway through BLOOM_MS (1500) -- origin should already be covered
+
+  const originMid = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
+  check(
+    'B10 re-entry: the entry point is covered partway through the first splash',
+    Array.isArray(originMid) && originMid[0] > 0,
+    JSON.stringify(originMid),
+  )
+
+  // Leave, then re-enter from a DIFFERENT point (the figure's centre) --
+  // must not restart: no fresh bloomField seeded there, no reset coverage.
+  await page.mouse.move(box.x - 50, box.y - 50)
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+  await page.waitForTimeout(100) // a couple of rAF ticks -- enough for a restart's tiny fresh blob to show
+
+  const originAfterReentry = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
+  check(
+    'B10 re-entry: coverage at the original entry point never drops back to zero after re-entering mid-splash',
+    Array.isArray(originAfterReentry) && originAfterReentry[0] > 0,
+    `before=${JSON.stringify(originMid)} after=${JSON.stringify(originAfterReentry)}`,
+  )
+
+  // The splash must still complete on its ORIGINAL ~1.5s schedule (counted
+  // from the very first entry, not the re-entry): wait only the remaining
+  // BLOOM_MS from that first entry, plus margin, then confirm full
+  // coverage via the guaranteed whole-canvas fillRect drawBloomFrame does
+  // once tRaw>=1 (44 §check:transitions, same guarantee B7 relies on).
+  await page.waitForTimeout(1500 - 700 + 250)
+
+  const farAfter = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  check(
+    "B10 re-entry: the splash still completes on its original ~1.5s schedule, not restarted by the re-entry",
+    Array.isArray(farAfter) && farAfter[0] > 0,
+    JSON.stringify(farAfter),
   )
 
   await context.close()
@@ -399,12 +708,18 @@ async function testCardClick(browser, base) {
   await page.waitForTimeout(50)
   check('T1 html[data-transition]="covering" within 50ms', (await page.evaluate(() => document.documentElement.dataset.transition)) === 'covering')
 
-  await page.waitForTimeout(350)
-  check('T1 URL unchanged at ~400ms', page.url() === startUrl)
+  // 47 §R4 retimed cover 600ms->450ms: the "still covering" checkpoint moves
+  // in from 400ms to 200ms (comfortably under 450ms, same margin ratio as
+  // before) and the "URL has changed" checkpoint from 700ms to 550ms
+  // (cover 450 + navigate/ready margin), so this still proves the same two
+  // things — unchanged mid-cover, changed after — just retuned to the new
+  // duration instead of loosened.
+  await page.waitForTimeout(150)
+  check('T1 URL unchanged at ~200ms', page.url() === startUrl)
   check('T1 window marker survives (no document reload)', (await page.evaluate(() => window.__marker)) !== undefined)
 
-  await page.waitForTimeout(300)
-  check('T1 URL is /projects/tidewater by ~700ms', page.url().endsWith('/projects/tidewater'))
+  await page.waitForTimeout(350)
+  check('T1 URL is /projects/tidewater by ~550ms', page.url().endsWith('/projects/tidewater'))
 
   const phases = await phasesPromise
   check('T1 idle by ~1600ms', phases[phases.length - 1] === 'idle', phases.join(','))
@@ -566,6 +881,379 @@ async function testMenuToAbout(browser, base) {
   await context.close()
 }
 
+// R5 (47-round3-plan.md §R5 item 6): desktop scroll collapse -- past 50px
+// the inline links travel into the burger and fade over the last ~40% of
+// their own travel, the burger inks in; scrolling back reverses it, and a
+// mid-flight reversal must settle cleanly (no stuck transform/opacity).
+// Also covers the burger <-> X morph (rotate/translate only, decomposed
+// from the computed transform matrix) and the topmost hit-test.
+async function testNavCollapseBurger(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  const button = page.locator('[data-menu-button]')
+  check('R5 burger aria-label is "Open menu" before scroll', (await button.getAttribute('aria-label')) === 'Open menu')
+
+  const readLink = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('header ul [data-nav-item]')
+      if (!el) return null
+      const style = getComputedStyle(el)
+      return { opacity: style.opacity, visibility: style.visibility, transform: style.transform }
+    })
+  const readButton = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[data-menu-button]')
+      return el ? getComputedStyle(el).opacity : null
+    })
+  // 49-round4-plan.md §E3 item 2: the burger is now 3 lines (outer two +
+  // a static middle that only dissolves). Selected by `data-menu-burger-
+  // line` rather than DOM index/position so this stays correct regardless
+  // of markup order -- "outer" is exactly the two lines this morph check
+  // cares about; the middle line is asserted separately below.
+  const readMorphCenters = () =>
+    page.evaluate(() => {
+      const paths = document.querySelectorAll('[data-menu-button] path[data-menu-burger-line="outer"]')
+      const button = document.querySelector('[data-menu-button]')
+      if (paths.length < 2 || !button) return null
+      const centerOf = (el) => {
+        const r = el.getBoundingClientRect()
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+      }
+      return { line1: centerOf(paths[0]), line2: centerOf(paths[1]), button: centerOf(button) }
+    })
+  const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y)
+
+  // R4-2 (49 §E3 item 2): reads the raw SVG `transform` *attribute* string
+  // off each outer line and the middle line's computed opacity -- the
+  // exact numeric proof the plan calls for ("read both outer lines'
+  // transformed centres and assert they coincide at (12,12) ... and that
+  // their angles are ±45°"), in the svg's own unscaled user-space units,
+  // not screen pixels (so it's independent of viewport/zoom/DPR, unlike
+  // readMorphCenters above). Each line's own-centre coordinates below,
+  // (12,6)/(12,18), match the `LINE1`/`LINE2` constants Nav.tsx defines.
+  const OUTER_OWN_CENTRES = [
+    { cx: 12, cy: 6 }, // LINE1 (top)
+    { cx: 12, cy: 18 }, // LINE2 (bottom)
+  ]
+  const readBurgerMatrixState = () =>
+    page.evaluate(() => {
+      const outer = Array.from(document.querySelectorAll('[data-menu-button] path[data-menu-burger-line="outer"]'))
+      const mid = document.querySelector('[data-menu-button] path[data-menu-burger-line="mid"]')
+      if (outer.length < 2 || !mid) return null
+      return {
+        outerTransforms: outer.map((el) => el.getAttribute('transform')),
+        midOpacity: getComputedStyle(mid).opacity,
+      }
+    })
+  function parseSvgMatrix(transformAttr) {
+    if (!transformAttr) return null
+    const m = /matrix\(([^)]+)\)/.exec(transformAttr)
+    if (!m) return null
+    const [a, b, c, d, e, f] = m[1].trim().split(/[\s,]+/).map(Number)
+    return { a, b, c, d, e, f }
+  }
+  const matrixAngleDeg = (m) => (Math.atan2(m.b, m.a) * 180) / Math.PI
+  const matrixMapPoint = (m, x, y) => ({ x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f })
+
+  await page.mouse.wheel(0, 300)
+  await page.waitForTimeout(700)
+
+  const collapsed = await readLink()
+  check('R5 collapse: inline links fade to opacity 0', collapsed?.opacity === '0', `opacity=${collapsed?.opacity}`)
+  check('R5 collapse: inline links end visibility:hidden', collapsed?.visibility === 'hidden', `visibility=${collapsed?.visibility}`)
+  check('R5 collapse: burger inks in to opacity 1', (await readButton()) === '1')
+
+  // Hit-test: the burger stays topmost at its own centre point.
+  const topmostIsButton = await page.evaluate(() => {
+    const el = document.querySelector('[data-menu-button]')
+    if (!el) return false
+    const rect = el.getBoundingClientRect()
+    const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    return top === el || el.contains(top)
+  })
+  check('R5 burger stays topmost (hit-test at its own centre)', topmostIsButton)
+
+  // Morph, open: the two lines must actually cross through the icon's own
+  // centre, not just rotate in place (orchestrator review round 2 -- a
+  // prior rotate+translate fix landed as a "^" chevron: rotated correctly,
+  // but the two centres never converged). Both line centres and the
+  // button's own centre must coincide within 0.5px.
+  const preOpenCenters = await readMorphCenters()
+  check(
+    'R5 morph: closed lines are not coincident (two distinct bars)',
+    dist(preOpenCenters.line1, preOpenCenters.line2) > 4,
+    JSON.stringify(preOpenCenters),
+  )
+  // R4-2: closed state reads unmistakably as 3 lines -- the middle line is
+  // fully opaque (not mid-dissolve) before the button has ever been opened.
+  const preOpenMatrixState = await readBurgerMatrixState()
+  check(
+    'R5 morph: middle line is fully opaque at closed (reads as 3 lines)',
+    preOpenMatrixState?.midOpacity === '1',
+    `midOpacity=${preOpenMatrixState?.midOpacity}`,
+  )
+
+  await button.click()
+  await page.waitForTimeout(400)
+  check('R5 morph: aria-expanded=true, aria-label="Close menu" on open', (await button.getAttribute('aria-expanded')) === 'true' && (await button.getAttribute('aria-label')) === 'Close menu')
+  const openCenters = await readMorphCenters()
+  check(
+    'R5 morph: open line centres coincide (within 0.5px)',
+    dist(openCenters.line1, openCenters.line2) < 0.5,
+    JSON.stringify(openCenters),
+  )
+  check(
+    'R5 morph: open line centres match the button centre (within 0.5px)',
+    dist(openCenters.line1, openCenters.button) < 0.5 && dist(openCenters.line2, openCenters.button) < 0.5,
+    JSON.stringify(openCenters),
+  )
+
+  // R4-2 (49-round4-plan.md §E3 item 2): the exact numeric proof against a
+  // chevron shipping again -- decode both outer lines' own explicit SVG
+  // `transform` matrix (not the rendered/screen-space bounding box above)
+  // and assert each one's own centre lands on (12,12) within 0.01 units
+  // and its rotation is exactly ±45°, plus that the middle line has fully
+  // dissolved (opacity 0, no ghost stroke) at the open state.
+  const openMatrixState = await readBurgerMatrixState()
+  const openMatrices = openMatrixState?.outerTransforms.map(parseSvgMatrix) ?? []
+  const openMappedCentres = openMatrices.map((m, i) => (m ? matrixMapPoint(m, OUTER_OWN_CENTRES[i].cx, OUTER_OWN_CENTRES[i].cy) : null))
+  const openAngles = openMatrices.map((m) => (m ? matrixAngleDeg(m) : null))
+  check(
+    'R5 morph matrix: both outer lines land on (12,12) within 0.01 units',
+    openMappedCentres.every((p) => p && Math.abs(p.x - 12) < 0.01 && Math.abs(p.y - 12) < 0.01),
+    JSON.stringify(openMappedCentres),
+  )
+  check(
+    'R5 morph matrix: outer line angles are exactly ±45deg (no chevron)',
+    openAngles.length === 2 && Math.abs(Math.abs(openAngles[0]) - 45) < 0.01 && Math.abs(Math.abs(openAngles[1]) - 45) < 0.01 && Math.sign(openAngles[0]) !== Math.sign(openAngles[1]),
+    JSON.stringify(openAngles),
+  )
+  check(
+    'R5 morph: middle line fully dissolved at open (opacity 0, no ghost)',
+    openMatrixState?.midOpacity === '0',
+    `midOpacity=${openMatrixState?.midOpacity}`,
+  )
+
+  await button.click()
+  await page.waitForTimeout(400)
+  const closedCenters = await readMorphCenters()
+  check(
+    'R5 morph: close separates the lines again (two distinct bars)',
+    dist(closedCenters.line1, closedCenters.line2) > 4,
+    JSON.stringify(closedCenters),
+  )
+
+  // Expand (scroll back): the reverse of collapse.
+  await page.mouse.wheel(0, -300)
+  await page.waitForTimeout(1000)
+  const expanded = await readLink()
+  check('R5 expand: inline links fade back to opacity 1', expanded?.opacity === '1', `opacity=${expanded?.opacity}`)
+  check('R5 expand: burger fades back to opacity 0', (await readButton()) === '0')
+
+  // Mid-flight reversal: scroll down, wait partway through the collapse
+  // travel (well under navCollapseTravel), then reverse before it
+  // finishes. It must still settle cleanly with no leftover mid-flight
+  // transform or opacity -- the "no jump" contract, checked at rest.
+  await page.mouse.wheel(0, 300)
+  await page.waitForTimeout(120)
+  await page.mouse.wheel(0, -300)
+  await page.waitForTimeout(1300)
+  const midFlight = await readLink()
+  check('R5 mid-flight reversal settles at opacity 1 (no stuck fade)', midFlight?.opacity === '1', `opacity=${midFlight?.opacity}`)
+  // Close to identity, not exact-string identity: a real settle has a
+  // sub-percent easing tail (power3.out's own asymptote), not a hard snap.
+  // DOMMatrix only exists in the page, so decompose it there.
+  const nearIdentity = await page.evaluate(() => {
+    const el = document.querySelector('header ul [data-nav-item]')
+    if (!el) return false
+    const t = getComputedStyle(el).transform
+    if (t === 'none') return true
+    const m = new DOMMatrix(t)
+    return Math.abs(m.a - 1) < 0.02 && Math.abs(m.e) < 1 && Math.abs(m.f) < 1
+  })
+  check('R5 mid-flight reversal settles with no leftover transform', nearIdentity, `transform=${midFlight?.transform}`)
+
+  await context.close()
+}
+
+// R6b (47-round3-plan.md §R6): the home h1 collapses into the fixed
+// Monogram once its top crosses ~18% of the viewport, and expands back on
+// the way up. Also proves a fast scroll through both directions ends in
+// the correct state, and that the landing swap (ghost -> real Monogram) is
+// pop-free within the spec's own 0.5px tolerance.
+async function testHeroCollapse(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  const monoVisibility = () =>
+    page.evaluate(() => getComputedStyle(document.querySelector('[data-monogram]')).visibility)
+  const letterVisibility = () =>
+    page.evaluate(() => getComputedStyle(document.querySelector('[data-collapse-letter]')).visibility)
+  const monoRect = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[data-mono="B"]')
+      const r = el.getBoundingClientRect()
+      return { top: r.top, left: r.left }
+    })
+  const ghostCount = () => page.evaluate(() => document.querySelectorAll('[data-hero-ghost]').length)
+
+  check('R6b monogram starts hero (hidden) on /', (await monoVisibility()) === 'hidden')
+
+  const rectBefore = await monoRect()
+
+  // Collapse: scroll the h1's top past ~18% of the viewport.
+  await page.mouse.wheel(0, 900)
+  await waitForStableScroll(page)
+  await page.waitForTimeout(900) // flight (~550ms, 49 §F2 retune, was 700ms) + margin
+
+  check('R6b monogram shown after collapse trigger', (await monoVisibility()) === 'visible')
+  check('R6b h1 B/W hidden after collapse', (await letterVisibility()) === 'hidden')
+  check('R6b ghost removed once landed (collapse)', (await ghostCount()) === 0)
+
+  const rectAfter = await monoRect()
+  const dx = Math.abs(rectAfter.left - rectBefore.left)
+  const dy = Math.abs(rectAfter.top - rectBefore.top)
+  check(
+    'R6b landing swap is pop-free (Monogram rect stable <=0.5px across the flight)',
+    dx <= 0.5 && dy <= 0.5,
+    `dx=${dx.toFixed(2)} dy=${dy.toFixed(2)}`,
+  )
+
+  // Expand: scroll back above the trigger.
+  await page.mouse.wheel(0, -900)
+  await waitForStableScroll(page)
+  await page.waitForTimeout(900)
+
+  check('R6b monogram back to hero after expand', (await monoVisibility()) === 'hidden')
+  check('R6b h1 B/W visible after expand', (await letterVisibility()) === 'visible')
+  check('R6b ghost removed once landed (expand)', (await ghostCount()) === 0)
+
+  // Fast scroll through both directions (net back to the top): must still
+  // land expanded, not stuck mid-flight or in the wrong state.
+  await page.mouse.wheel(0, 2000)
+  await page.mouse.wheel(0, -2000)
+  await waitForStableScroll(page)
+  await page.waitForTimeout(900)
+  const scrollYNow = await page.evaluate(() => window.scrollY)
+  const finalMono = await monoVisibility()
+  check(
+    'R6b fast scroll through both ways ends expanded (net scroll back to top)',
+    finalMono === 'hidden',
+    `scrollY=${scrollYNow} monoVisibility=${finalMono}`,
+  )
+  check('R6b no leftover ghost after the fast scroll', (await ghostCount()) === 0)
+
+  await context.close()
+}
+
+// R4-5 (49-round4-plan.md §E4b): the raindrop splash hero intro, replacing
+// round 3's one-stroke version (motion/heroStroke.ts, deleted -- its own
+// checks never existed in this suite, so these four are new, not edited).
+// Cold load: the cover canvas mounts under html.motion-ready almost
+// immediately, then unmounts once the ~1.9s splash resolves (R4-5b retune,
+// was ~2.3s) ("the canvas is removed from the DOM when done").
+async function testHeroSplashColdLoad(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+
+  await page.waitForTimeout(150)
+  const hasCoverEarly = await page.evaluate(() => Boolean(document.querySelector('.hero-cover canvas')))
+  check('R4-5 cold load: the splash cover canvas mounts shortly after load', hasCoverEarly)
+
+  const nameVisible = await page.evaluate(() => {
+    const h1 = document.querySelector('h1[aria-label]')
+    return h1 ? getComputedStyle(h1).visibility !== 'hidden' : false
+  })
+  check('R4-5 cold load: the h1 (name) is present underneath the cover, not hidden by anything else', nameVisible)
+
+  await page.waitForTimeout(1700) // heroSplashTotalMs (1400 after the owner's 2026-09-28 "0.5s faster"; 2300 -> 1900 -> 1400) + 300ms margin
+  const hasCoverLate = await page.evaluate(() => Boolean(document.querySelector('.hero-cover canvas')))
+  check('R4-5 cold load: the splash cover canvas is removed from the DOM once the intro resolves', hasCoverLate === false)
+
+  await context.close()
+}
+
+// Reduced motion: static end state, no canvas, no rAF (same contract every
+// other motion module in this codebase gets -- B4's own test is the
+// pattern this mirrors).
+async function testHeroSplashReducedMotion(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(600)
+
+  const hasCanvas = await page.evaluate(() => Boolean(document.querySelector('.hero-cover canvas')))
+  check('R4-5 reduced motion: no splash canvas ever mounts', hasCanvas === false)
+
+  const nameVisible = await page.evaluate(() => {
+    const h1 = document.querySelector('h1[aria-label]')
+    return h1 ? getComputedStyle(h1).visibility !== 'hidden' : false
+  })
+  check('R4-5 reduced motion: the hero name is visible with no cover to remove', nameVisible)
+
+  await context.close()
+}
+
+// Scrolled entry: Home.tsx reads `window.scrollY > 4` the moment its
+// pageEnter('first') callback fires (within DURATION.fontsCapMs of load) --
+// scrolling before that must make the splash resolve instantly, no ~2.3s
+// wait.
+async function testHeroSplashScrolledEntry(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.evaluate(() => window.scrollTo(0, 600))
+  await page.waitForTimeout(1000) // fontsCapMs (800) + margin -- pageEnter('first') fires within this window
+
+  const hasCanvas = await page.evaluate(() => Boolean(document.querySelector('.hero-cover canvas')))
+  check('R4-5 scrolled entry: the splash resolves instantly, no lingering cover canvas', hasCanvas === false)
+
+  await context.close()
+}
+
+// Pop navigation: instant, same contract as the scrolled-entry case above,
+// triggered by mode === 'pop' instead of scroll position. Same nav pattern
+// as testBack (menu -> /about -> browser back).
+async function testHeroSplashPopEntry(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  // Orchestrator fix (R4-5, 2026-09-28): this used to navigate via the
+  // burger, copying testBack's pattern -- but testBack scrolls 900px first,
+  // which is what makes the compact MenuButton appear at all (it's
+  // `md:hidden`, so at 1440 it only exists once the nav collapses past
+  // 50px). Unscrolled, the click timed out and took the whole suite down
+  // with it. Scrolling first isn't an option here: a restored scrollY > 4
+  // would make the splash resolve through the *scrolled*-entry path, which
+  // is testHeroSplashScrolledEntry's job, and would stop this test proving
+  // anything about `mode === 'pop'`. At scroll 0 the inline desktop nav is
+  // visible (M6 only fades it past 50px), so use that instead.
+  await page.click('nav ul a[href="/about"]')
+  await page.waitForTimeout(NAV_SETTLE_MS)
+
+  await page.goBack()
+  await page.waitForTimeout(NAV_SETTLE_MS + 300) // ink-cover recede (~1.2s, app/inkCover.ts) + margin, well under the splash's own ~1.9s (R4-5b, was ~2.3s)
+
+  const hasCanvas = await page.evaluate(() => Boolean(document.querySelector('.hero-cover canvas')))
+  check('R4-5 pop navigation: the splash resolves instantly, no lingering cover canvas', hasCanvas === false)
+
+  await context.close()
+}
+
 // T8: NextProject wraps halftone -> tidewater.
 async function testNextProject(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -687,12 +1375,19 @@ async function main() {
 
   try {
     await testCardClick(browser, base)
+    await testInkCoverageDuringSwap(browser, base)
     await testDoubleClick(browser, base)
     await testBack(browser, base)
     await testCtrlClick(browser, base)
     await testWorkSamePage(browser, base)
     await testWorkFromAbout(browser, base)
     await testMenuToAbout(browser, base)
+    await testNavCollapseBurger(browser, base)
+    await testHeroCollapse(browser, base)
+    await testHeroSplashColdLoad(browser, base)
+    await testHeroSplashReducedMotion(browser, base)
+    await testHeroSplashScrolledEntry(browser, base)
+    await testHeroSplashPopEntry(browser, base)
     await testNextProject(browser, base)
     await testReducedMotion(browser, base)
     await testCursorReset(browser, base)
@@ -703,7 +1398,10 @@ async function main() {
     await testBrushReducedMotion(browser, base)
     await testBrushFastStroke(browser, base)
     await testBrushTouch(browser, base)
-    await testBrushHoverBloom(browser, base)
+    await testBrushEntrySplash(browser, base)
+    await testBrushDryBackDirection(browser, base)
+    await testBrushCursorHandoff(browser, base)
+    await testBrushReentryNoRestart(browser, base)
 
     check('T11 zero console warnings/errors/pageerrors across the run', consoleIssues.length === 0, consoleIssues.slice(0, 8).join(' | '))
 

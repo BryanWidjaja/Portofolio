@@ -68,19 +68,19 @@ html.has-custom-cursor * {
   letter-spacing: 0.06em;
 }
 
-/* M9/V11 (41-ink-replace-map.md), 42 §Brush reveal: every project image's
- * grey base layer. `html.brush-ready` is added once src/ink/brush.ts
- * actually mounts a figure's canvas -- reduced motion never adds it (its
- * BrushReveal never mounts a canvas), so `:not(.brush-ready)` also covers
- * no-JS/SSR and reduced motion with the same instant CSS swap (bar §F). */
-.brush-grey {
-  filter: grayscale(1);
-  mix-blend-mode: multiply;
-}
-
+/* M9/V11 (41-ink-replace-map.md), 42 §Brush reveal, R4-4 (41 R4-4,
+ * 49-round4-plan.md §E2): every project image's grey base layer, now a
+ * pre-baked grey raster (scripts/placeholders.mjs) stacked over the colour
+ * `<img>` beneath it -- no `filter`/`mix-blend-mode` left on any image
+ * layer (45's 633ms compositor-Commit measurement). `html.brush-ready` is
+ * added once src/ink/brush.ts actually mounts a figure's canvas -- reduced
+ * motion never adds it (its BrushReveal never mounts a canvas), so
+ * `:not(.brush-ready)` also covers no-JS/SSR and reduced motion with the
+ * same instant CSS swap (bar §F): the grey overlay's opacity drops to 0,
+ * revealing the colour image underneath, instead of a filter toggling off. */
 html:not(.brush-ready) .brush-figure:hover .brush-grey,
 html:not(.brush-ready) .brush-figure:focus-within .brush-grey {
-  filter: none;
+  opacity: 0;
 }
 
 /* M3/M4 (41-ink-replace-map.md), motion/bleed.ts: a figure's blot-bleed
@@ -136,11 +136,15 @@ html.motion-ready .blot-mask {
    * outside a masked element's own box is never painted, no matter what
    * the mask image itself contains, so a word's inline-block box being
    * exactly its line-height tall (--text-hero--line-height: 0.95, well
-   * under Cormorant 700's real glyph extents -- measured off the shipped
-   * woff via opentype.js: descenders (j/y) to -0.282em, tallest lowercase
-   * ascenders (d/h/l/b) to +0.725em) flat-clips anything outside that box
-   * at every `--bleed-size`, including the reduced-motion/no-JS default
-   * of a fully "open" mask -- so this was never fixable by touching the
+   * under EB Garamond 700's real glyph extents -- 49-round4-plan.md R4-6
+   * re-measured off the shipped woff via opentype.js after the Cormorant
+   * swap: descenders (j/y) to -0.287em, tallest lowercase ascenders
+   * (d/h/l/b) to +0.705em (was -0.282em/+0.725em under Cormorant -- both
+   * numbers moved but stayed in the same ballpark, so the padding-block
+   * below still clears both with room to spare, unchanged) flat-clips
+   * anything outside that box at every `--bleed-size`, including the
+   * reduced-motion/no-JS default of a fully "open" mask -- so this was
+   * never fixable by touching the
    * typeface. padding-block gives the border-box (and therefore
    * mask-clip) real room above and below; the equal-and-opposite
    * margin-block cancels the padding back out of the inline-block's
@@ -311,37 +315,135 @@ html.motion-ready .brush-line {
   -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
 }
 
-/* F10 (45 §Owner feedback item 10): the hero's first-load entrance --
- * "brushed onto the paper". This is a *sibling* paper panel over the
- * painting, not anything on the `<img>` itself: the image's own opacity
- * never changes, at rest or mid-animation, so it stays the LCP element and
- * is never gated behind JS (the hard constraint) -- a slow/broken JS load
- * leaves the image exactly as visible as a fast one. The panel's mask is a
- * static gradient (computed once, not animated) so the only thing moving
- * is a `transform: translateX` -- composited, cheap regardless of the
- * hero's own size, which is deliberately the opposite of item 2's "large
- * mask-size/mask-position animation": animating *this* mask directly
- * would be that same mistake at full-viewport scale. `.ink-paper`
- * (styles/base.css) gives it the same paper/grain tile as the page. Under
- * reduced motion (`motion-reduce:hidden`, applied in components/Hero.tsx)
- * the panel is removed outright -- the image was always fully painted
- * underneath it, so removing the cover is instant with nothing left to
- * "show". */
-.hero-brush-in {
-  position: absolute;
-  inset: 0;
-  mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 100%);
-  animation: hero-brush-in 0.9s var(--ease-travel) forwards;
+/* 49-round4-plan.md §E1: the hero mist's idle sway, moved off the main
+ * thread. It used to be 3 infinite GSAP yoyo tweens on `xPercent` -- a
+ * `gsap.set` on every plane, every frame, forever, for a +-2% drift.
+ * Diagnosis measured ~32-38 style recalcs/s from exactly that. Now a
+ * compositor-driven animation on the independent `translate` property,
+ * which composes with (never fights) motion/heroMist.ts's own scroll-scrub
+ * `transform` (`gsap.set(el, {yPercent})`) on the same elements -- CSS
+ * Transforms Level 2 applies `translate` before `transform`.
+ * motion/heroMist.ts sets `animation-name` (sway direction) and
+ * `animation-duration` (each plane's own 43/51/59s near-coprime period,
+ * 42 §Tokens) inline per element at mount, and still owns every pause gate
+ * (`load`, IntersectionObserver, hidden tab, page transition) via
+ * `animation-play-state`, exactly the same conditions that used to call
+ * `.play()/.pause()` on the GSAP tweens. `will-change` is set alongside
+ * play-state, only while actually running, so a paused plane re-rasterises
+ * crisp (motion bar).
+ * `cubic-bezier(0.445, 0.05, 0.55, 0.95)` is the standard "easeInOutSine"
+ * approximation -- CSS has no literal sine timing function -- matching
+ * `EASE.mist` (motion/tokens.ts) "sine.inOut" feel. `animation-direction:
+ * alternate` plus a `from 0 / to <target>` keyframe reproduces the old
+ * tween's `yoyo: true` leg-for-leg: one keyframe iteration is one old
+ * tween "leg", same `duration`. */
+.hero-mist {
+  animation-duration: 43s;
+  animation-timing-function: cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-play-state: paused;
 }
 
-@keyframes hero-brush-in {
+@keyframes hero-mist-drift-pos {
   from {
-    transform: translateX(0%);
+    translate: 0 0;
   }
   to {
-    transform: translateX(108%);
+    translate: 2% 0;
   }
+}
+
+@keyframes hero-mist-drift-neg {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: -2% 0;
+  }
+}
+
+/* 49-round4-plan.md §E4b (R4-5): the hero's raindrop splash intro cover,
+ * replacing 47 §R6a's one-stroke version (motion/heroStroke.ts, deleted --
+ * its single S-curve read as "a round window wipe" at any middling frame).
+ * Rendered by pages/Home.tsx as the *last* child of the hero `section`,
+ * above both `components/Hero.tsx`'s painting and the `Container`'s name
+ * (which sits at that section's own `z-10`) -- so the splashes reveal both
+ * at once. Same "no-JS/SSR/reduced-motion never hides real content"
+ * default-open pattern as `.bleed-word`/`.blot-mask`: hidden unless
+ * `html.motion-ready`, so a broken/slow JS load (or the index.html 3s
+ * failsafe stripping that class again) simply never shows the cover at all
+ * -- motion/heroSplash.ts's own header comment has the full LCP-contract
+ * reasoning. This rule only ever toggles whether the *box* is in the
+ * layout, never anything that could itself hide content.
+ *
+ * Orchestrator review (2026-09-27) defect 1 (still the reasoning behind the
+ * canvas's own CSS background below, carried over unchanged for R4-5): the
+ * canvas used to start genuinely blank (transparent) until its first
+ * JS-drawn frame, so a slow hydration showed the real name/painting through
+ * it for a frame -- a pre-cover flash. The canvas below carries the *same*
+ * paper tile at the *same* origin as `body`'s own (`.ink-paper`'s
+ * `url('/ink/paper.webp') 0 0 / 512px`) as a plain CSS `background` -- a
+ * `<canvas>` paints its own CSS background *behind* its drawing surface, so
+ * this is opaque from the very first paint with zero JS (the hero section
+ * is the page's first section, so this box's local (0,0) is already the
+ * document's own origin -- no seam). motion/heroSplash.ts's `paintCover()`
+ * then draws the identical tile into the bitmap before any erasing runs, so
+ * the handoff from "CSS paper" to "canvas paper" is pixel-identical -- and,
+ * in that same synchronous tick, `playHeroSplash` clears this `background`
+ * property again via `canvas.style`. That matters: a CSS background paints
+ * *underneath* a canvas's own bitmap and is invisible to `destination-out`
+ * compositing, so leaving it in place after the handoff would make every
+ * splash reveal nothing but this same permanent paper layer forever,
+ * instead of the real painting/name underneath. */
+.hero-cover {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-index-hero-cover);
+  pointer-events: none;
+  display: none;
+}
+
+html.motion-ready .hero-cover {
+  display: block;
+}
+
+.hero-cover canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: url('/ink/paper.webp') 0 0 / 512px, var(--color-background);
+}
+
+/* 49-round4-plan.md §E4a item 1: the hero name back to two stacked lines
+ * ("Bryan" / "Widjaja"), restoring what 47's collapse markup was built for
+ * before round 3 folded it onto one line. pages/Home.tsx's two
+ * `[data-collapse-word]` spans stay exactly as they are -- same
+ * `aria-hidden`, same `{' '}` between them -- only their own `display`
+ * changes, so each becomes its own line box and the space between them
+ * collapses away (block boxes don't render inline whitespace). Nothing else
+ * in the h1's structure moves.
+ *
+ * motion/heroCollapse.ts needs no change for this: it already reads every
+ * letter's `getBoundingClientRect()` live, per letter, for both the
+ * collapse-flight start and the expand-flight's re-read target -- see that
+ * file's own header. `W` starting on its own line box just changes what
+ * that live rect *is*; the flight math was never line-position-specific. */
+[data-collapse-word] {
+  display: block;
+}
+
+/* 47-round3-plan.md §R6b: the home h1's "ryan"/"idjaja" remainder spans
+ * (pages/Home.tsx), brushed out/re-written by motion/heroCollapse.ts via a
+ * `clip-path` sweep -- `inline-block` so the clip's own box matches the
+ * text run instead of the whole line. Default fully open (no clip): the
+ * collapse/expand engine is what narrows it, and reduced motion/no-JS never
+ * calls that, so the name always renders in full without it. */
+[data-collapse-rest] {
+  display: inline-block;
+  clip-path: inset(0 0% 0 0);
 }
 
 /* M7 (41-ink-replace-map.md), components/MenuOverlay.tsx: the same 512x512
@@ -382,9 +484,23 @@ html.motion-ready .brush-line {
  * at 0.38, unchanged, since the new tile's own per-block std-dev already
  * lands at 2.22-2.27 at this same opacity (target 2.2-2.8, no retune
  * needed). Worst-pixel contrast re-measured against the new tile (not
- * assumed): paper 6.41:1, 清 4.60:1, both still >=4.5. */
+ * assumed): paper 6.41:1, 清 4.60:1, both still >=4.5.
+ *
+ * Re-tuned 2026-09-28 (49-round4-plan.md §E3 item 3): the panel's flat
+ * colour moves from `--color-ink-muted` (#434b52) to the owner's new,
+ * darker `--color-ink-dark` (#2a3035, theme.css) -- exactly the mechanism
+ * the 2026-09-24 note above warns about ("the same absolute alpha swing
+ * reads as a much bigger relative contrast against a darker base"), so the
+ * std-dev was re-measured rather than assumed still-good: same tile, same
+ * 0.38 opacity, against #2a3035, lands at 2.81-2.87 -- just over the 2.2-2.8
+ * target. Opacity dropped 0.38->0.32 to compensate (own script, same
+ * alpha-composite + per-block std-dev methodology as above): 2.37-2.42 at
+ * the new colour, back mid-band. Contrast re-measured against the new flat
+ * colour too: paper text 11.34:1 flat, worst single grain pixel (speckle
+ * alpha 60/255) 9.68:1 paper / 6.95:1 清 -- both comfortably >=4.5, better
+ * than the old tone's headroom since #2a3035 is darker still. */
 .ink-paper-dark {
-  background-color: var(--color-ink-muted);
+  background-color: var(--color-ink-dark);
 }
 
 .ink-paper-dark::before {
@@ -392,15 +508,16 @@ html.motion-ready .brush-line {
   position: absolute;
   inset: 0;
   background: url('/ink/paper.webp') 0 0 / 512px;
-  opacity: 0.38;
+  opacity: 0.32;
   pointer-events: none;
 }
 
 /* G-follow-up (coordinator review, 2026-09-24): `data-on-ink` marks an
  * element that must flip to paper whenever `data-menu-open` is set on
- * <html> -- currently just Nav.tsx's `BW` monogram, which sits in the
- * fixed header above the menu panel (z-nav 50 > z-menu 40) and was still
- * 焦 (2.20:1 on 浓) after G6 flipped every element actually inside the
+ * <html> -- currently just Monogram.tsx's `BW` link (47-round3-plan.md
+ * §R5 moved it out of Nav.tsx's own markup, unchanged rule), which sits in
+ * the fixed header above the menu panel (z-nav 50 > z-menu 40) and was
+ * still 焦 (2.20:1 on 浓) after G6 flipped every element actually inside the
  * panel. Colour only, no transition: the panel's translateY covers the
  * header within the first ~10% of its open tween (it slides down from
  * off-screen top, top-to-bottom) and stays covering it for the *entire*
@@ -411,11 +528,16 @@ html[data-menu-open] [data-on-ink] {
   color: var(--color-background);
 }
 
-/* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens), so inside the dark menu
- * panel the ring's paper halo -- already the load-bearing separation over
- * any mid-tone image (42 §Tokens) -- is the *only* thing carrying it here.
- * Widened from the global 2px (`:focus-visible` above) to 3px, scoped to
- * the panel so every other surface keeps the thinner halo. */
+/* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens) -- re-measured 2026-09-28
+ * (49-round4-plan.md §E3 item 3) at 2.46:1 against the darker #2a3035 that
+ * replaced the panel's flat colour, still nowhere near 4.5:1 -- so inside
+ * the dark menu panel the ring's paper halo -- already the load-bearing
+ * separation over any mid-tone image (42 §Tokens) -- is the *only* thing
+ * carrying it here (unaffected by the tone swap: the halo's own colour is
+ * `--color-background`, contrast 11.34:1 against #2a3035, so it stays
+ * clearly visible regardless of the ring's own contrast). Widened from the
+ * global 2px (`:focus-visible` above) to 3px, scoped to the panel so every
+ * other surface keeps the thinner halo. */
 [data-menu-overlay] :focus-visible {
   box-shadow: 0 0 0 3px var(--color-background);
 }
