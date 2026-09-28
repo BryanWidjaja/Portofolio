@@ -224,7 +224,10 @@ export const DURATION = {
   // by R4-5b (owner: "more and faster paint drops" — 11 drops now, each
   // growing quicker, so the total comes down toward ~2.0s per the plan
   // rather than leaving a bare tail once every drop has already resolved).
-  heroSplashTotalMs: 900,
+  // Trimmed again 2026-09-28 (owner: "the intro anim" should be faster),
+  // 1900 -> 1400 -> 900, then walked back to 1150 when 900 overshot ("be in
+  // between the prev vers and the curr vers, the 0.5s jump was too fast").
+  heroSplashTotalMs: 1150,
 
   // 47-round3-plan.md §R6b (BW collapse) — motion/heroCollapse.ts's own
   // copies, same hand-sync pattern. Retuned 49-round4-plan.md §F2 (owner:

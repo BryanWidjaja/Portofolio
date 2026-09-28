@@ -6,8 +6,8 @@ import { site } from '../content/site'
 /**
  * 47-round3-plan.md §R5 item 2 / 45 §Round 3 R3d: the nav's old inline `BW`
  * link (Nav.tsx) is gone -- this is its replacement *and* R6's collapse
- * target. Two spans, `data-mono="B"`/`"W"`, EB Garamond 700 roman (49-round4
- * -plan.md R4-6 swap off Cormorant; still the hero name's own face,
+ * target. Two spans, `data-mono="B"`/`"W"`, Cormorant 700 roman (R4-6's
+ * EB Garamond swap is reverted; still the hero name's own face,
  * `font-display font-bold`, no italic) sized to match the
  * old monogram's footprint (1.75rem / 2rem md, `leading-none`) so it lands
  * on the nav's existing baseline with no new layout math.

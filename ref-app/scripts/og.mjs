@@ -21,11 +21,6 @@
  * set at the weight that actually exists instead of requesting one that
  * would just get matched back down to it.
  *
- * 49-round4-plan.md R4-6: re-pointed again, Cormorant/Public Sans ->
- * EB Garamond/Public Sans (owner: the `j` needs a tail Cormorant's cut
- * doesn't have). Same three faces (600/700 normal, 400 italic) carried
- * over, monogram line stays at italic 400 for the same reason as above.
- *
  * Usage: node scripts/og.mjs
  */
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
@@ -59,22 +54,22 @@ async function heroCropDataUri() {
   return `data:image/png;base64,${buf.toString('base64')}`
 }
 
-function renderHtml({ garamondBold, garamondItalic, publicSans, paper, heroCrop, monogram, name, tagline }) {
+function renderHtml({ cormorantBold, cormorantItalic, publicSans, paper, heroCrop, monogram, name, tagline }) {
   return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
 <style>
   @font-face {
-    font-family: 'EB Garamond';
+    font-family: 'Cormorant';
     font-weight: 700;
-    src: url('${garamondBold}') format('woff2');
+    src: url('${cormorantBold}') format('woff2');
   }
   @font-face {
-    font-family: 'EB Garamond';
+    font-family: 'Cormorant';
     font-style: italic;
     font-weight: 400;
-    src: url('${garamondItalic}') format('woff2');
+    src: url('${cormorantItalic}') format('woff2');
   }
   @font-face {
     font-family: 'Public Sans';
@@ -118,7 +113,7 @@ function renderHtml({ garamondBold, garamondItalic, publicSans, paper, heroCrop,
     padding: 8px 64px 44px;
   }
   .mono {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Cormorant', Georgia, serif;
     font-style: italic;
     font-weight: 400;
     font-variant-caps: all-small-caps;
@@ -127,7 +122,7 @@ function renderHtml({ garamondBold, garamondItalic, publicSans, paper, heroCrop,
     margin-bottom: 10px;
   }
   .name {
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Cormorant', Georgia, serif;
     font-weight: 700;
     font-size: 84px;
     line-height: 0.98;
@@ -157,17 +152,17 @@ function renderHtml({ garamondBold, garamondItalic, publicSans, paper, heroCrop,
 }
 
 async function main() {
-  const [garamondBold, garamondItalic, publicSans, paper, heroCrop] = await Promise.all([
-    fileDataUri('public/fonts/eb-garamond-latin-700-normal.woff2', 'font/woff2'),
-    fileDataUri('public/fonts/eb-garamond-latin-400-italic.woff2', 'font/woff2'),
+  const [cormorantBold, cormorantItalic, publicSans, paper, heroCrop] = await Promise.all([
+    fileDataUri('public/fonts/cormorant-latin-700-normal.woff2', 'font/woff2'),
+    fileDataUri('public/fonts/cormorant-latin-400-italic.woff2', 'font/woff2'),
     fileDataUri('public/fonts/public-sans-latin-400-normal.woff2', 'font/woff2'),
     fileDataUri('public/ink/paper.webp', 'image/webp'),
     heroCropDataUri(),
   ])
 
   const html = renderHtml({
-    garamondBold,
-    garamondItalic,
+    cormorantBold,
+    cormorantItalic,
     publicSans,
     paper,
     heroCrop,

@@ -294,12 +294,18 @@ export function mountHeroCollapse({ h1, letters, rest, reduced }: HeroCollapseOp
     // Owner, 2026-09-28: "hv the delay between the B and W snapping back and
     // ryan idjaja animating be 0.5s less." The gap this line controls is the
     // time from expand()'s trigger (B/W starting to fly back) to the rewrite
-    // tween's own start: at FLIGHT_MS=550/REWRITE_LEAD_MS=150 that was 400ms.
-    // 400 - 500 floors at 0, so "500ms less" is "start together" -- ryan/
-    // idjaja now begins animating the instant the flight starts, no lag.
-    // (collapse() has no equivalent gap: its own erase-out already starts
-    // concurrently with the flight from the top of the function.)
-    const REWRITE_DELAY_CUT_MS = 500
+    // tween's own start: at FLIGHT_MS=550/REWRITE_LEAD_MS=150 that was 400ms,
+    // and a 500ms cut floored it at 0 -- ryan/idjaja started together with
+    // the flight, no lag at all. Owner again, same day: "ryan idjaja now
+    // moves out too fast aswell ... be in between the prev vers and the curr
+    // vers, the 0.5s jump was too fast." So the cut is halved to 200ms,
+    // putting the gap at 200ms -- midway between the original 400 and the
+    // 0 it was taken to. The rewrite still starts well before the ghost
+    // lands (200ms in, against a 550ms flight), just not from the very
+    // first frame. (collapse() has no equivalent gap: its own erase-out
+    // already starts concurrently with the flight from the top of the
+    // function.)
+    const REWRITE_DELAY_CUT_MS = 200
     const rewriteDelay = Math.max(0, FLIGHT_MS - REWRITE_LEAD_MS - REWRITE_DELAY_CUT_MS) / 1000
     gsap.set([rest.ryan, rest.idjaja], { willChange: 'clip-path' })
     gsap.to(rest.ryan, {

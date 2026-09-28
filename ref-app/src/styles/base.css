@@ -136,12 +136,11 @@ html.motion-ready .blot-mask {
    * outside a masked element's own box is never painted, no matter what
    * the mask image itself contains, so a word's inline-block box being
    * exactly its line-height tall (--text-hero--line-height: 0.95, well
-   * under EB Garamond 700's real glyph extents -- 49-round4-plan.md R4-6
-   * re-measured off the shipped woff via opentype.js after the Cormorant
-   * swap: descenders (j/y) to -0.287em, tallest lowercase ascenders
-   * (d/h/l/b) to +0.705em (was -0.282em/+0.725em under Cormorant -- both
-   * numbers moved but stayed in the same ballpark, so the padding-block
-   * below still clears both with room to spare, unchanged) flat-clips
+   * under Cormorant 700's real glyph extents -- measured off the shipped
+   * woff via opentype.js: descenders (j/y) to -0.282em, tallest lowercase
+   * ascenders (d/h/l/b) to +0.725em; the R4-6 EB Garamond numbers
+   * (-0.287em/+0.705em) are reverted with the family, and the
+   * padding-block below clears either set with room to spare) flat-clips
    * anything outside that box at every `--bleed-size`, including the
    * reduced-motion/no-JS default of a fully "open" mask -- so this was
    * never fixable by touching the
@@ -440,9 +439,32 @@ html.motion-ready .hero-cover {
  * `clip-path` sweep -- `inline-block` so the clip's own box matches the
  * text run instead of the whole line. Default fully open (no clip): the
  * collapse/expand engine is what narrows it, and reduced motion/no-JS never
- * calls that, so the name always renders in full without it. */
+ * calls that, so the name always renders in full without it.
+ *
+ * 2026-09-28 (owner: "i think its the j thats cropped") -- the same defect
+ * S5 fixed on `.bleed-word` above, in the one other place a clip box wraps
+ * hero-size type. `clip-path: inset(0 X% 0 0)`'s reference box is the
+ * border box, and this inline-block's box is exactly its line-height
+ * (--text-hero--line-height: 0.95, so 152px at the 160px hero size) while
+ * Cormorant 700's own content area is 194px: measured in-page at 1440,
+ * the baseline sits 811px down and the `j`/`y` descenders reach -0.282em
+ * (45px) past it, i.e. 20px below the 836px box bottom -- so the *top*
+ * inset of 0 was never the problem, the box simply ended mid-descender and
+ * guillotined both `j`s in "Widjaja" and the `y` in "Bryan" flat, at every
+ * sweep position including the fully-open default. That flat-bottomed stub
+ * is what read as "the font's j has no tail" (and prompted R4-6's EB
+ * Garamond swap, now reverted -- Cormorant's `j` has a perfectly good
+ * hook, it was just being cut off). Same remedy as `.bleed-word`:
+ * padding-block gives the border box (and therefore the clip box) real
+ * room past both extents, and the equal-and-opposite margin-block cancels
+ * it back out of the inline-block's margin box -- which is what the line
+ * box measures -- so the name's own line spacing is untouched and the
+ * horizontal sweep is unaffected (the inset's left/right are what
+ * heroCollapse.ts animates; top/bottom stay 0). */
 [data-collapse-rest] {
   display: inline-block;
+  padding-block: 0.3em 0.35em;
+  margin-block: -0.3em -0.35em;
   clip-path: inset(0 0% 0 0);
 }
 
