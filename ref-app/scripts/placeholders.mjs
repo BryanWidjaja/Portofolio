@@ -8,10 +8,9 @@
  * pass (2026-09-28, owner: "for undocumented / no photos on the repo, use
  * a square with a text inside telling me what to replace with") replaced
  * the round-3 colour-chart grids, which said nothing about what goes there.
- * None of the three projects' repos carries a product screenshot to use
- * instead (MalwareDetection and BtardewWalley-Refactored ship no images at
- * all; InstaTags/FrontEnd's static/ holds only decorative stock art for its
- * own landing page), so every project slot gets a box.
+ * Every current project now has real images (scripts/project-images.mjs),
+ * so only the portrait still uses a box; PROJECTS below is where a future
+ * project without images goes until it has some.
  *
  * The square is sized to survive every crop the site applies with
  * `object-fit: cover`: a cover is 16:10 but shows as 4:5 on phones (the
@@ -69,55 +68,17 @@ const SIZES = {
   portrait: { width: 800, height: 1000, square: 600 },
 }
 
-// What each slot should become, in the owner's words-to-act-on. `body` is
-// the instruction; `footer` names the slot and its shape.
-const PROJECTS = {
-  'malware-detection': {
-    hue: 230,
-    cover: {
-      body: 'A cover image for the malware detector, e.g. the Hilbert-curve byte-image of one PE file, or the pipeline figure from the paper.',
-      footer: 'Cover · 16:10 · keep the subject centred',
-    },
-    'gallery-1': {
-      body: 'The ROC and precision-recall curves from a main.py run (the PNGs it writes to runs/<run>/).',
-      footer: 'Gallery 1 · 4:3 landscape',
-    },
-    'gallery-2': {
-      body: 'One PE file rendered as its 64×64 byte-image: byte, entropy and section channels side by side or stacked.',
-      footer: 'Gallery 2 · 3:4 portrait',
-    },
-  },
-  'btardew-walley': {
-    hue: 135,
-    cover: {
-      body: 'A terminal screenshot of the game, e.g. the Home map with the player, the shops and the HUD.',
-      footer: 'Cover · 16:10 · keep the subject centred',
-    },
-    'gallery-1': {
-      body: 'A terminal screenshot of the Plant Farm map with crops mid-growth.',
-      footer: 'Gallery 1 · 4:3 landscape',
-    },
-    'gallery-2': {
-      body: 'A terminal screenshot of a store or the inventory menu.',
-      footer: 'Gallery 2 · 3:4 portrait',
-    },
-  },
-  instatags: {
-    hue: 320,
-    cover: {
-      body: 'A screenshot of the InstaTags landing page (the hero section).',
-      footer: 'Cover · 16:10 · keep the subject centred',
-    },
-    'gallery-1': {
-      body: 'The upload page after generating hashtags for a photo, tags visible and ready to copy.',
-      footer: 'Gallery 1 · 4:3 landscape',
-    },
-    'gallery-2': {
-      body: 'The Chrome extension popup open over an Instagram post, showing its generated tags.',
-      footer: 'Gallery 2 · 3:4 portrait',
-    },
-  },
-}
+// What each project slot should become, in words the owner can act on:
+// `body` is the instruction, `footer` names the slot and its shape. Empty
+// while every project has real images (scripts/project-images.mjs); a new
+// project without any gets an entry here until it does, e.g.
+//   'my-project': {
+//     hue: 230,
+//     cover: { body: 'A screenshot of …', footer: 'Cover · 16:10 · keep the subject centred' },
+//     'gallery-1': { body: '…', footer: 'Gallery 1 · 4:3 landscape' },
+//     'gallery-2': { body: '…', footer: 'Gallery 2 · 3:4 portrait' },
+//   },
+const PROJECTS = {}
 
 const PORTRAIT = {
   hue: null,

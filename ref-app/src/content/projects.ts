@@ -4,10 +4,10 @@
 // repo READMEs and code, never beyond what either one states.
 // Content model: spec §3 (notes/prompts/portfolio-build/01-spec.md).
 //
-// Every image below is still a stand-in: none of the three repos carries a
-// product screenshot, so each slot is a "replace with" box saying what
-// belongs there (scripts/placeholders.mjs). `TODO(owner)` marks each one,
-// plus the few strings the CV didn't settle outright.
+// Every image is real output from the project itself -- screenshots of the
+// running app or game, or figures built from the repo's own code and the
+// paper's published numbers (scripts/project-images.mjs lists the source
+// of each). `TODO(owner)` marks the few strings the CV didn't settle.
 
 export type Img = {
   src: string
@@ -56,27 +56,27 @@ export const projects: Project[] = [
     links: {
       repos: [{ label: 'View source', href: 'https://github.com/BryanWidjaja/MalwareDetection' }],
     },
-    // TODO(owner): replace the three "replace with" boxes below with real images.
     cover: {
-      src: '/placeholders/malware-detection/cover-1600.webp',
-      alt: 'Placeholder: replace with a cover image for the malware detector, such as a byte-image of one PE file.',
+      src: '/projects/malware-detection/cover-1600.webp',
+      alt: "The byte channel of a benign Windows executable (w64.exe) as the detector sees it: a 64 by 64 grid of bytes laid along a Hilbert curve, shaded light to dark blue by value.",
       width: 1600,
       height: 1000,
     },
     gallery: [
       {
-        src: '/placeholders/malware-detection/gallery-1-1600.webp',
-        alt: 'Placeholder: replace with the ROC and precision-recall curves from a training run.',
+        src: '/projects/malware-detection/gallery-1-1600.webp',
+        // The alt carries every value: it doubles as the chart's table view.
+        alt: 'Bar charts comparing the proposed CNN with SqueezeNet and MobileNetV2 on the family-disjoint split. Accuracy 85.7% against 79.3% and 78.5%. Malware recall 81.1% against 71.2% and 72.0%. ROC-AUC 0.988 against 0.959 and 0.968. False-positive rate 1.14% against 0.43% and 2.00%. Parameters 114K against 392K and 251K. CPU latency 4.68 ms against 8.33 and 10.42 ms. No difference is statistically significant at five folds.',
         width: 1200,
         height: 900,
-        caption: 'ROC and precision-recall curves, family-disjoint split',
+        caption: 'Paper results against two standard backbones',
       },
       {
-        src: '/placeholders/malware-detection/gallery-2-1600.webp',
-        alt: 'Placeholder: replace with one PE file rendered as its 64 by 64 byte-image.',
+        src: '/projects/malware-detection/gallery-2-1600.webp',
+        alt: "The same executable's three input channels, as computed by the repo's own preprocessing: byte value, block entropy, and PE section type (code, initialized data, headers).",
         width: 900,
         height: 1200,
-        caption: 'One executable as a 64×64 byte-image',
+        caption: 'One executable, three input channels',
       },
     ],
     sections: [
@@ -107,27 +107,26 @@ export const projects: Project[] = [
     links: {
       repos: [{ label: 'View source', href: 'https://github.com/BryanWidjaja/BtardewWalley-Refactored' }],
     },
-    // TODO(owner): replace the three "replace with" boxes below with terminal screenshots.
     cover: {
-      src: '/placeholders/btardew-walley/cover-1600.webp',
-      alt: 'Placeholder: replace with a terminal screenshot of the game.',
+      src: '/projects/btardew-walley/cover-1600.webp',
+      alt: "Terminal screenshot of Btardew Walley's Home map: ASCII-art houses, the player marked P, and a side panel showing day 1, $1,000 and the key bindings.",
       width: 1600,
       height: 1000,
     },
     gallery: [
       {
-        src: '/placeholders/btardew-walley/gallery-1-1600.webp',
-        alt: 'Placeholder: replace with a terminal screenshot of the plant farm map.',
+        src: '/projects/btardew-walley/gallery-1-1600.webp',
+        alt: 'Terminal screenshot of the Plant Farm on day 4: ripe wheat shown as a capital W beside beetroot still growing as a lowercase b.',
         width: 1200,
         height: 900,
-        caption: 'The plant farm, crops mid-cycle',
+        caption: 'The plant farm on day 4, wheat ripe and beetroot still growing',
       },
       {
-        src: '/placeholders/btardew-walley/gallery-2-1600.webp',
-        alt: 'Placeholder: replace with a terminal screenshot of a store or the inventory.',
+        src: '/projects/btardew-walley/gallery-2-1600.webp',
+        alt: 'Terminal screenshot of the Buy Tools store: bucket $1,000, shears $1,500, hoe $3,000.',
         width: 900,
         height: 1200,
-        caption: 'Store and inventory menus',
+        caption: 'The tool store',
       },
     ],
     sections: [
@@ -160,27 +159,26 @@ export const projects: Project[] = [
         { label: 'Extension source', href: 'https://github.com/InstaTags/ChromeExtension' },
       ],
     },
-    // TODO(owner): replace the three "replace with" boxes below with screenshots.
     cover: {
-      src: '/placeholders/instatags/cover-1600.webp',
-      alt: 'Placeholder: replace with a screenshot of the InstaTags landing page.',
+      src: '/projects/instatags/cover-1600.webp',
+      alt: "The InstaTags landing page: 'Save time on tags. Spend it on content.' above Try Now and Install for Chrome buttons.",
       width: 1600,
       height: 1000,
     },
     gallery: [
       {
-        src: '/placeholders/instatags/gallery-1-1600.webp',
-        alt: 'Placeholder: replace with the upload page showing generated hashtags.',
+        src: '/projects/instatags/gallery-1-1600.webp',
+        alt: 'The InstaTags upload page, with its drag-and-drop image area and Browse Files button.',
         width: 1200,
         height: 900,
-        caption: 'Upload flow with generated hashtags',
+        caption: 'The upload page',
       },
       {
-        src: '/placeholders/instatags/gallery-2-1600.webp',
-        alt: 'Placeholder: replace with the Chrome extension popup open over an Instagram post.',
+        src: '/projects/instatags/gallery-2-1600.webp',
+        alt: 'The InstaTags Chrome extension popup: a Get Tags button above an empty Tags Generated panel with a copy button.',
         width: 900,
         height: 1200,
-        caption: 'The extension popup on Instagram',
+        caption: 'The Chrome extension popup',
       },
     ],
     sections: [
