@@ -67,7 +67,7 @@
  * target to assert against.
  */
 
-const TOTAL_MS = 900 // owner, 2026-09-28: "hero anim should be 0.5s faster aswell as a whole, the intro anim" -- a second cut, 1400 -> 900 (first cut was 1900 -> 1400). Same technique both times: every phase scaled by the same factor (900/1400 here), so the composition is untouched and only the tempo changes -- the last drop's worst-case finish is still comfortably inside the total (793 of 900ms), so the cover's opacity tail doesn't turn into a flat fade -- kept in sync by hand with motion/tokens.ts's DURATION.heroSplashTotalMs
+const TOTAL_MS = 1150 // owner, 2026-09-28: "hero anim should be 0.5s faster aswell as a whole" took this 1900 -> 1400 -> 900; then, same day, "be in between the prev vers and the curr vers, the 0.5s jump was too fast" -- so it settles midway between that 1400 and 900. Same technique as both earlier cuts: every phase below is one factor off the original 1900 composition (1150/1900 here, applied to the pristine numbers rather than re-scaling the already-rounded 900ms ones, so two rounding passes don't compound), which leaves the rhythm untouched and moves only the tempo. The last drop's worst-case finish is still well inside the total (1014 of 1150ms), so the cover's opacity tail never flattens into a plain fade -- kept in sync by hand with motion/tokens.ts's DURATION.heroSplashTotalMs
 const DROP_COUNT = 11 // 10-12 (R4-5b, up from 6/5-7) -- more drops is a *count*, not new drawing code: the same fillBlob/noise-ring path just runs 11 times instead of 6
 const NAME_DROPS = 5 // the first 5 of DROP_COUNT target the name box, and start earliest -- "the name is revealed early" (scaled up from 3-of-6 so the name is still front-loaded at the new count)
 const SEED = 20260928 // fixed seed -- deterministic placement (49 §E4b)
@@ -190,10 +190,13 @@ type Drop = {
 // early". R4-5b (owner: "more and faster paint drops"): 11 entries now,
 // not 6 -- same widening-gap shape, just denser, so drops keep arriving at
 // a quicker rhythm without becoming periodic. The gaps between consecutive
-// bases (45,50,55,70,100,110,130,140,160,170) still widen overall but by
-// irregular steps (5,5,15,30,10,20,10,20,10), never a fixed interval.
-const START_BASE_MS = [0, 21, 45, 71, 104, 152, 204, 266, 332, 408, 488]
-const START_JITTER_MS = [19, 26, 31, 38, 45, 52, 59, 66, 73, 80, 87]
+// bases widen overall but by irregular steps, never a fixed interval --
+// that shape is set at the 1900ms composition (gaps 45,50,55,70,100,110,
+// 130,140,160,170, stepping 5,5,15,30,10,20,10,20,10) and survives
+// TOTAL_MS's rescale intact; at today's 1150 the same gaps read 27,31,33,
+// 42,61,66,79,85,97,102.
+const START_BASE_MS = [0, 27, 58, 91, 133, 194, 260, 339, 424, 521, 623]
+const START_JITTER_MS = [24, 33, 39, 48, 58, 67, 76, 85, 94, 103, 112]
 const SATELLITE_BASE_ANGLES = [1.22, 3.32, 5.24] // ~70deg/190deg/300deg apart -- roughly spread, not symmetric
 
 type NameBox = { left: number; right: number; top: number; bottom: number }
@@ -236,8 +239,10 @@ function buildDrops(rand: () => number, w: number, h: number, nameBox: NameBox):
       startMs: START_BASE_MS[i] + rand() * START_JITTER_MS[i],
       // R4-5b: growth sped up from 500-760ms to 300-460ms -- "each
       // individual splash grows noticeably quicker, landing and bleeding
-      // faster" -- same easeOutCubic shape, just compressed in time.
-      riseMs: 142 + rand() * 76,
+      // faster" -- same easeOutCubic shape, just compressed in time. Those
+      // 300/460 are the 1900ms-total numbers; TOTAL_MS's own factor scales
+      // them with every other phase (300-460 -> 182-279 at 1150).
+      riseMs: 182 + rand() * 97,
       ringOffset: rand(),
       satellites,
     })
