@@ -100,20 +100,43 @@ async function waitForStableScroll(page, maxWaitMs = 4000, intervalMs = 150) {
   return last
 }
 
-// B1-B6 (44-ink-build-plan.md §check:transitions): reads the display
-// canvas's alpha channel at fractional [0..1] points, so callers describe a
-// path/grid without needing the canvas's actual backing-store size.
+// B1-B10 (44-ink-build-plan.md §check:transitions): colour coverage at
+// fractional [0..1] points of a figure, as 255 (colour showing) or 0 (grey).
+// The brush engine (src/ink/brush.ts, 2026-09-28 rewrite) reveals the colour
+// layer by animating its `clip-path: polygon()`, so this reads that layer's
+// *computed* clip-path -- which reflects a running animation's current
+// value -- and runs a point-in-polygon test (even-odd), instead of reading
+// canvas pixels as it did when the engine composited on a canvas. `none`
+// means fully painted. Same return shape as before, so every caller's
+// thresholds (`> 0`, `=== 0`, `>= 200`) read unchanged.
 async function sampleCanvasAlpha(page, selector, points) {
   return page.evaluate(
     ({ selector, points }) => {
-      const canvas = document.querySelector(selector)
-      if (!canvas) return null
-      const ctx = canvas.getContext('2d')
-      return points.map(([fx, fy]) => {
-        const x = Math.min(canvas.width - 1, Math.max(0, Math.round(fx * canvas.width)))
-        const y = Math.min(canvas.height - 1, Math.max(0, Math.round(fy * canvas.height)))
-        return ctx.getImageData(x, y, 1, 1).data[3]
-      })
+      const colour = document.querySelector(selector)
+      if (!colour) return null
+      const clip = getComputedStyle(colour).clipPath
+      if (!clip || clip === 'none') return points.map(() => 255)
+      const body = clip.match(/polygon\((.*)\)/)
+      if (!body) return points.map(() => 0)
+      const rect = colour.getBoundingClientRect()
+      const toPx = (v, size) => (v.endsWith('%') ? (parseFloat(v) / 100) * size : parseFloat(v))
+      const poly = body[1]
+        .replace(/^(nonzero|evenodd),\s*/, '')
+        .split(',')
+        .map((pair) => {
+          const [x, y] = pair.trim().split(/\s+/)
+          return [toPx(x, rect.width), toPx(y, rect.height)]
+        })
+      const inside = (px, py) => {
+        let hit = false
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const [xi, yi] = poly[i]
+          const [xj, yj] = poly[j]
+          if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) hit = !hit
+        }
+        return hit
+      }
+      return points.map(([fx, fy]) => (inside(fx * rect.width, fy * rect.height) ? 255 : 0))
     },
     { selector, points },
   )
@@ -200,7 +223,7 @@ async function waitFramesStable(page, figureSelector, waitMs) {
 const GRID_9 = [0.1, 0.5, 0.9].flatMap((fx) => [0.1, 0.5, 0.9].map((fy) => [fx, fy]))
 const FIRST_PROJECT_CARD = 'a[href="/projects/malware-detection"]'
 const FIRST_PROJECT_FIGURE = `${FIRST_PROJECT_CARD} [data-brush]`
-const FIRST_PROJECT_CANVAS = `${FIRST_PROJECT_FIGURE} canvas`
+const FIRST_PROJECT_CANVAS = `${FIRST_PROJECT_FIGURE} .brush-colour` // the clipped colour layer (was the display canvas)
 
 // B1: hover then leave a card; once the splash, the D4 hold (1.5s) and the
 // fade (1.2s) have all settled, the frame counter goes quiet and the mask
@@ -313,14 +336,20 @@ async function testBrushReducedMotion(browser, base) {
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.waitForTimeout(50)
 
+  // 2026-09-28 engine rewrite: the colour `<img class="brush-colour">` now
+  // sits *above* the grey one, so the CSS fallback shows it on hover
+  // (opacity 0 -> 1) instead of hiding the grey overlay.
   const opacity = await page.evaluate((sel) => {
-    const img = document.querySelector(`${sel} img.brush-grey`)
+    const img = document.querySelector(`${sel} img.brush-colour`)
     return img ? getComputedStyle(img).opacity : null
   }, FIRST_PROJECT_FIGURE)
-  check('B4 reduced motion: grey overlay opacity is 0 within 50ms of hover', opacity === '0', `opacity="${opacity}"`)
+  check('B4 reduced motion: colour layer opacity is 1 within 50ms of hover', opacity === '1', `opacity="${opacity}"`)
 
-  const hasCanvas = await page.evaluate((sel) => Boolean(document.querySelector(`${sel} canvas`)), FIRST_PROJECT_FIGURE)
-  check('B4 reduced motion: the figure has no canvas', hasCanvas === false)
+  const engineMounted = await page.evaluate((sel) => {
+    const img = document.querySelector(`${sel} img.brush-colour`)
+    return Boolean(img?.style.clipPath) || document.documentElement.classList.contains('brush-ready')
+  }, FIRST_PROJECT_FIGURE)
+  check('B4 reduced motion: the brush engine never mounts (no clip on the colour layer)', engineMounted === false)
 
   await context.close()
 }
@@ -395,7 +424,7 @@ async function testBrushTouch(browser, base) {
     const canvas = document.querySelector(sel)
     return canvas ? getComputedStyle(canvas).pointerEvents : null
   }, FIRST_PROJECT_CANVAS)
-  check('B6 touch: canvas keeps pointer-events:none', pointerEvents === 'none', `pointerEvents="${pointerEvents}"`)
+  check('B6 touch: the colour layer keeps pointer-events:none', pointerEvents === 'none', `pointerEvents="${pointerEvents}"`)
 
   const scrollBefore = await page.evaluate(() => window.scrollY)
   // Scroll just enough to carry the card through the viewport's middle
