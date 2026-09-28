@@ -94,50 +94,33 @@ html.brush-ready .brush-colour {
 
 /* Owner, 2026-09-28: every home project card sits on an old paper
  * handscroll (components/ProjectCard.tsx) -- "horizontal, and more ragged
- * ... ancient, old, calligraphy", with gold accents that get revealed.
+ * ... ancient, old". Then: "change color to be closer to bg ... remove the
+ * calligraphy effects ... just do the paper" -- so the brushed ink rules,
+ * the gilt hairlines tracing the painting and the gold flecks are gone, and
+ * the paper sits only a few steps darker than the page (--color-background).
  * Horizontal at every width (phone cards are landscape for it):
- *   .scroll-body   the sheet: aged xuan paper (the page grain, a stretched
- *                  stain/foxing/browning overlay, /ink/scroll-aged.webp)
- *                  and gold-leaf flecks (洒金, ::before)
+ *   .scroll-sheet  the paper: the page grain over a pale tone, with a faint
+ *                  stain/foxing/browning overlay (::before, /ink/scroll-aged.webp)
  *   .scroll-tear   torn top and bottom edges: static strips in the page's
  *                  own paper tone, masked so they eat into the sheet's
  *                  edge where the paper is torn away
- *   .scroll-ink    brushed ink rules above and below the painting: a
- *                  calligraphic stroke mask (/ink/scroll-rule.svg) -- heavy
- *                  press-in, undulating belly, tapered lift, dry-brush 飞白
- *   .scroll-frame  the painting, ringed by four aged-gilt hairlines
  *   .scroll-roll   the paper rolled up at each end, worn at the edges, with
- *                  antique gilt trim and the rolled layers showing at the
- *                  ends
+ *                  the rolled layers showing at the ends
  *
- * Reveal (motion/reveal.ts sets `data-unrolled`; every step is a one-off
- * CSS transition, no per-frame JS):
- *   1. unroll, 0-1.1s: a counter-translation reveal -- the `.scroll-body`
- *      window (overflow hidden) slides in from the left while the
- *      `.scroll-sheet` inside it slides the other way by the same amount,
- *      so the paper holds still and the visible part grows; the end roll
- *      rides the window's edge. All three are `translate` transitions with
- *      one duration and curve, so the compositor runs them in lockstep and
- *      the sheet -- mask, stains and all -- is rasterized once, never
- *      repainted while it unrolls. (A clip-path on the sheet repainted the
- *      whole masked paper every frame: ~35 janky frames per scroll-in at
- *      4x CPU against ~10 for the old silk mount.)
- *   2. the ink rules write themselves left to right (a clip on their own
- *      small layer), 1.0s on.
- *   3. the gilt traces clockwise around the painting, one side after the
- *      next (`scale` on each hairline -- compositor only), 1.4s on.
- *   4. the gold flecks surface in the paper (`opacity`), 1.9s on.
- * An earlier version animated inherited custom properties for the gold
- * (a trace length and a glint in a gradient); that restyled the whole card
- * and repainted the rolls every frame, and cost ~7fps while cards entered.
- * Reduced motion/no-JS never set `motion-ready`, so they render it finished.
+ * Reveal (motion/reveal.ts sets `data-unrolled`): a one-off counter-
+ * translation unroll -- the `.scroll-body` window (overflow hidden) slides in
+ * from the left while the `.scroll-sheet` inside it slides the other way by
+ * the same amount, so the paper holds still and the visible part grows; the
+ * end roll rides the window's edge. All three are `translate` transitions
+ * with one duration and curve, so the compositor runs them in lockstep and
+ * the sheet is rasterized once, never repainted while it unrolls. (A
+ * clip-path on the sheet repainted the whole paper every frame: ~35 janky
+ * frames per scroll-in at 4x CPU against ~10 for the old silk mount.)
+ * Reduced motion/no-JS never set `motion-ready`, so they render it unrolled.
  * `cqw`/`cqh` are the stage's size (it's a size container). */
 
 .scroll {
-  --paper: #e3d2ab;
-  --ink-rule: #231c14;
-  --gilt: linear-gradient(90deg, #7d5f22, #b8963f 30%, #d9bd72 50%, #a8843a 75%, #7d5f22);
-  --gilt-v: linear-gradient(180deg, #7d5f22, #b8963f 30%, #d9bd72 50%, #a8843a 75%, #7d5f22);
+  --paper: #e9dfc8;
   --roll: 22px;
   --edge: 12px; /* torn-edge band height */
   --unroll-t: 1100ms var(--ease-unroll);
@@ -167,11 +150,21 @@ html.brush-ready .brush-colour {
   will-change: transform;
   display: flex;
   flex-direction: column;
-  padding: 11cqh 5cqw;
+  padding: 8cqh 5cqw;
   background:
-    url('/ink/scroll-aged.webp') 0 0 / 100% 100% no-repeat,
     url('/ink/paper.webp') 0 0 / 512px,
     var(--paper);
+}
+
+/* Age: stains, foxing and browned margins, kept faint so the sheet stays
+ * close to the page. Static, inside the sheet's layer -- painted once. */
+.scroll-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: url('/ink/scroll-aged.webp') 0 0 / 100% 100% no-repeat;
+  opacity: 0.45;
 }
 
 /* Torn edges. Deliberately NOT a mask on the sheet: a masked composited
@@ -203,56 +196,12 @@ html.brush-ready .brush-colour {
   -webkit-mask: url('/ink/scroll-tear-bottom.webp') 0 0 / 512px 100% repeat-x;
 }
 
-/* 洒金: gold-leaf flecks, surfacing after the unroll. */
-.scroll-sheet::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: url('/ink/gold-flecks.webp') 37px 23px / 512px;
-  opacity: 0.9;
-  transition: opacity 900ms var(--ease-dry) 1900ms;
-  /* own layer: the fade runs on the compositor instead of repainting the
-   * whole masked sheet every frame (~9 janky frames per hover otherwise) */
-  will-change: opacity;
-}
-
-/* Brushed ink rules, written left to right after the unroll. */
-.scroll-ink {
-  position: absolute;
-  left: 3cqw;
-  right: 3cqw;
-  height: 14px;
-  background: var(--ink-rule);
-  opacity: 0.85;
-  mask: url('/ink/scroll-rule.svg') 0 0 / 100% 100% no-repeat;
-  -webkit-mask: url('/ink/scroll-rule.svg') 0 0 / 100% 100% no-repeat;
-  clip-path: inset(0 0 0 0);
-  /* a one-off write-on repaint of this small strip; no own layer, so once
-   * written it costs nothing (a masked composited layer would) */
-  transition: clip-path 800ms var(--ease-travel) 1000ms;
-}
-
-.scroll-ink-top {
-  top: calc(11cqh * 0.45 - 7px); /* centred in the top margin, clear of the gilt */
-}
-
-.scroll-ink-bottom {
-  bottom: calc(11cqh * 0.45 - 7px);
-  transition-delay: 1150ms;
-}
-
-.scroll-frame {
+.scroll-art {
   position: relative;
   flex: 1;
   min-height: 0;
-}
-
-.scroll-art {
-  position: relative;
-  height: 100%;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgb(60 40 15 / 0.25);
+  box-shadow: 0 0 0 1px rgb(60 40 15 / 0.14);
 }
 
 /* Paper grain over the painting itself: the same alpha-only tile, static,
@@ -265,57 +214,9 @@ html.brush-ready .brush-colour {
   opacity: 0.55;
 }
 
-/* The gilt: four hairlines 4px outside the painting, each drawn out of its
- * own corner, clockwise, one after another. */
-.scroll-gilt {
-  position: absolute;
-  pointer-events: none;
-  transition: scale 380ms var(--ease-travel);
-}
-
-.scroll-gilt-top {
-  top: -5px;
-  left: -5px;
-  right: -5px;
-  height: 1.5px;
-  background: var(--gilt);
-  transform-origin: left center;
-  transition-delay: 1400ms;
-}
-
-.scroll-gilt-right {
-  top: -5px;
-  bottom: -5px;
-  right: -5px;
-  width: 1.5px;
-  background: var(--gilt-v);
-  transform-origin: center top;
-  transition-delay: 1760ms;
-}
-
-.scroll-gilt-bottom {
-  bottom: -5px;
-  left: -5px;
-  right: -5px;
-  height: 1.5px;
-  background: var(--gilt);
-  transform-origin: right center;
-  transition-delay: 2120ms;
-}
-
-.scroll-gilt-left {
-  top: -5px;
-  bottom: -5px;
-  left: -5px;
-  width: 1.5px;
-  background: var(--gilt-v);
-  transform-origin: center bottom;
-  transition-delay: 2480ms;
-}
-
-/* The rolled paper at each end: an aged-paper cylinder (light just off its
- * middle, browned at the edges), antique gilt trim bands near each end, and
- * the spiral of rolled layers at the end caps. */
+/* The rolled paper at each end: a paper cylinder in the sheet's own pale
+ * tone (light just off its middle, a little browned at the edges), with the
+ * spiral of rolled layers at the end caps. */
 .scroll-roll {
   position: absolute;
   top: 0;
@@ -323,11 +224,9 @@ html.brush-ready .brush-colour {
   width: var(--roll);
   border-radius: 5px;
   background:
-    linear-gradient(180deg, #7d5f22, #c7a656 50%, #7d5f22) 0 15px / 100% 3px no-repeat,
-    linear-gradient(180deg, #7d5f22, #c7a656 50%, #7d5f22) 0 calc(100% - 15px) / 100% 3px no-repeat,
     url('/ink/paper.webp') 0 0 / 256px,
-    linear-gradient(to right, #8c7248, #cdb88c 24%, #e9dab6 40%, #d4c098 62%, #a88d5f 86%, #7f6640);
-  box-shadow: 4px 0 8px -4px rgb(50 34 12 / 0.55);
+    linear-gradient(to right, #c9b994, #e2d6bb 24%, #f1eadb 40%, #e6dcc5 62%, #d2c29f 86%, #bdab85);
+  box-shadow: 3px 0 7px -4px rgb(60 44 20 / 0.35);
 }
 
 .scroll-roll::before,
@@ -338,10 +237,10 @@ html.brush-ready .brush-colour {
   right: 0;
   height: 9px;
   border-radius: 50%;
-  background: repeating-radial-gradient(ellipse at center, #b59d70 0 0.8px, #e4d4ae 0.8px 2.6px);
+  background: repeating-radial-gradient(ellipse at center, #cbbb98 0 0.8px, #efe7d5 0.8px 2.6px);
   box-shadow:
-    0 0 0 1px #8a6a2a,
-    inset 0 0 3px rgb(70 48 18 / 0.45);
+    0 0 0 1px #bba986,
+    inset 0 0 3px rgb(70 50 22 / 0.3);
 }
 
 .scroll-roll::before {
@@ -362,7 +261,7 @@ html.brush-ready .brush-colour {
   transition: translate var(--unroll-t);
 }
 
-/* Smaller cards (phones): tighter margins, lighter rules. */
+/* Smaller cards (phones): narrower rolls and margins. */
 @media (max-width: 767px) {
   .scroll {
     --roll: 18px;
@@ -370,23 +269,11 @@ html.brush-ready .brush-colour {
   }
 
   .scroll-sheet {
-    padding: 12cqh 6cqw;
-  }
-
-  .scroll-ink {
-    height: 9px;
-  }
-
-  .scroll-ink-top {
-    top: calc(12cqh * 0.45 - 4.5px);
-  }
-
-  .scroll-ink-bottom {
-    bottom: calc(12cqh * 0.45 - 4.5px);
+    padding: 9cqh 6cqw;
   }
 }
 
-/* Rolled up, ink unwritten, gold hidden, until reveal.ts unrolls it. */
+/* Rolled up until reveal.ts unrolls it. */
 html.motion-ready .scroll:not([data-unrolled]) .scroll-body {
   translate: -100% 0;
 }
@@ -399,24 +286,6 @@ html.motion-ready .scroll:not([data-unrolled]) .scroll-sheet {
  * roll exactly on the start roll and rides the window's edge from there. */
 html.motion-ready .scroll:not([data-unrolled]) .scroll-roll-end {
   translate: calc(-100cqw + var(--roll)) 0;
-}
-
-html.motion-ready .scroll:not([data-unrolled]) .scroll-sheet::before {
-  opacity: 0;
-}
-
-html.motion-ready .scroll:not([data-unrolled]) .scroll-ink {
-  clip-path: inset(0 100% 0 0);
-}
-
-html.motion-ready .scroll:not([data-unrolled]) .scroll-gilt-top,
-html.motion-ready .scroll:not([data-unrolled]) .scroll-gilt-bottom {
-  scale: 0 1;
-}
-
-html.motion-ready .scroll:not([data-unrolled]) .scroll-gilt-left,
-html.motion-ready .scroll:not([data-unrolled]) .scroll-gilt-right {
-  scale: 1 0;
 }
 
 /* M3/M4 (41-ink-replace-map.md), motion/bleed.ts: a figure's blot-bleed

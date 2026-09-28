@@ -37,33 +37,23 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
       >
         {/* Owner, 2026-09-28: each project sits on an old paper handscroll
             (styles/base.css `.scroll`) -- horizontal at every width, torn
-            and aged, with brushed ink rules and gold. It unrolls once as it
-            enters (motion/reveal.ts `scroll`), then the ink rules write
-            themselves, the gilt traces around the painting and the gold
-            flecks surface in the paper. */}
+            and aged, a few shades off the page's own paper. It unrolls once
+            as it enters (motion/reveal.ts `scroll`). */}
         <figure data-reveal="scroll" className={`scroll relative isolate aspect-[4/3] md:aspect-auto ${mediaHeight[slot]}`}>
           <div className="scroll-stage">
             <div className="scroll-body">
               <div className="scroll-sheet">
                 <span aria-hidden="true" className="scroll-tear scroll-tear-top" />
                 <span aria-hidden="true" className="scroll-tear scroll-tear-bottom" />
-                <span aria-hidden="true" className="scroll-ink scroll-ink-top" />
-                <span aria-hidden="true" className="scroll-ink scroll-ink-bottom" />
-                <div className="scroll-frame">
-                  <div className="scroll-art">
-                    <BrushReveal
-                      src={project.cover.src}
-                      alt={project.cover.alt}
-                      width={project.cover.width}
-                      height={project.cover.height}
-                      eager={eager}
-                    />
-                    <span aria-hidden="true" className="scroll-grain" />
-                  </div>
-                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-top" />
-                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-right" />
-                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-bottom" />
-                  <span aria-hidden="true" className="scroll-gilt scroll-gilt-left" />
+                <div className="scroll-art">
+                  <BrushReveal
+                    src={project.cover.src}
+                    alt={project.cover.alt}
+                    width={project.cover.width}
+                    height={project.cover.height}
+                    eager={eager}
+                  />
+                  <span aria-hidden="true" className="scroll-grain" />
                 </div>
               </div>
             </div>
