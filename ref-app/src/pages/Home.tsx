@@ -145,7 +145,7 @@ export function Home() {
         <section className="relative isolate overflow-hidden">
           <Hero />
           <Container
-            className="relative z-10 flex min-h-svh flex-col justify-end pb-16 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-24 xl:gap-x-8"
+            className="relative z-10 flex min-h-svh flex-col justify-end pb-22 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-32 xl:gap-x-8"
           >
             {/* 45 §Owner feedback item 4: the seal that used to sit at the
                 hero name's lower right (42 §Components Seal row) and at the
