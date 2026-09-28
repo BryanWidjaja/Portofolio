@@ -10,11 +10,11 @@
  * Usage:
  *   node scripts/shots.mjs [routes] [widths] [flags]
  *   npm run shots -- / 1440
- *   npm run shots -- "/,/about,/projects/tidewater" "1440,390" --reduced-motion --prefix e1
+ *   npm run shots -- "/,/about,/projects/malware-detection" "1440,390" --reduced-motion --prefix e1
  *   npm run shots -- / 1440 --mode about-accordion   # builds+serves the D3 accordion variant
  *
  * Positional args (both optional, comma-separated lists):
- *   routes   default: /,/about,/projects/tidewater,/projects/kopi-ledger,/projects/halftone
+ *   routes   default: /,/about,/projects/malware-detection,/projects/btardew-walley,/projects/instatags
  *   widths   default: 1440,390
  *
  * Flags:
@@ -44,7 +44,7 @@ import { preview } from 'vite'
 
 const VIEWPORT_HEIGHT = 900 // full-page capture grows past this; it's just the initial viewport
 
-const DEFAULT_ROUTES = ['/', '/about', '/projects/tidewater', '/projects/kopi-ledger', '/projects/halftone']
+const DEFAULT_ROUTES = ['/', '/about', '/projects/malware-detection', '/projects/btardew-walley', '/projects/instatags']
 const DEFAULT_WIDTHS = [1440, 390]
 
 function parseArgs(argv) {

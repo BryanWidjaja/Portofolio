@@ -169,7 +169,7 @@ async function testInkCoverageDuringSwap(browser, base) {
     new MutationObserver(record).observe(document.documentElement, { attributes: true, attributeFilter: ['data-transition'] })
   })
 
-  await page.click('a[href="/projects/tidewater"]')
+  await page.click('a[href="/projects/malware-detection"]')
   await page.waitForFunction(
     () => document.documentElement.dataset.transition === 'idle' && window.__r4log?.some((e) => e.phase === 'idle'),
     { timeout: 5000 },
@@ -198,9 +198,9 @@ async function waitFramesStable(page, figureSelector, waitMs) {
 }
 
 const GRID_9 = [0.1, 0.5, 0.9].flatMap((fx) => [0.1, 0.5, 0.9].map((fy) => [fx, fy]))
-const TIDEWATER_CARD = 'a[href="/projects/tidewater"]'
-const TIDEWATER_FIGURE = `${TIDEWATER_CARD} [data-brush]`
-const TIDEWATER_CANVAS = `${TIDEWATER_FIGURE} canvas`
+const FIRST_PROJECT_CARD = 'a[href="/projects/malware-detection"]'
+const FIRST_PROJECT_FIGURE = `${FIRST_PROJECT_CARD} [data-brush]`
+const FIRST_PROJECT_CANVAS = `${FIRST_PROJECT_FIGURE} canvas`
 
 // B1: hover then leave a card; once the splash, the D4 hold (1.5s) and the
 // fade (1.2s) have all settled, the frame counter goes quiet and the mask
@@ -220,7 +220,7 @@ async function testBrushIdle(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  const card = page.locator(TIDEWATER_CARD).first()
+  const card = page.locator(FIRST_PROJECT_CARD).first()
   await card.scrollIntoViewIfNeeded()
   const box = await card.boundingBox()
 
@@ -231,10 +231,10 @@ async function testBrushIdle(browser, base) {
 
   await page.waitForTimeout(1500 + 1500 + 1200 + 300) // BLOOM_MS + HOLD_MS + FADE_MS + margin
 
-  const { before, after, stable } = await waitFramesStable(page, TIDEWATER_FIGURE, 1000)
+  const { before, after, stable } = await waitFramesStable(page, FIRST_PROJECT_FIGURE, 1000)
   check('B1 idle: brushFrames counter is unchanged over 1s once settled', stable, `before=${before} after=${after}`)
 
-  const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, GRID_9)
+  const alphas = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, GRID_9)
   check(
     'B1 idle: mask alpha is 0 at all 9 grid points after the fade',
     Array.isArray(alphas) && alphas.every((a) => a === 0),
@@ -253,7 +253,7 @@ async function testBrushOffscreen(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  const card = page.locator(TIDEWATER_CARD).first()
+  const card = page.locator(FIRST_PROJECT_CARD).first()
   await card.scrollIntoViewIfNeeded()
   const box = await card.boundingBox()
 
@@ -267,7 +267,7 @@ async function testBrushOffscreen(browser, base) {
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(200)
 
-  const { before, after, stable } = await waitFramesStable(page, TIDEWATER_FIGURE, 1000)
+  const { before, after, stable } = await waitFramesStable(page, FIRST_PROJECT_FIGURE, 1000)
   check('B2 off-screen: brushFrames counter is unchanged over 1s once scrolled away mid-fade', stable, `before=${before} after=${after}`)
 
   await context.close()
@@ -282,10 +282,10 @@ async function testBrushFocus(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(TIDEWATER_CARD).first().focus()
+  await page.locator(FIRST_PROJECT_CARD).first().focus()
   await page.waitForTimeout(1200)
 
-  const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, GRID_9)
+  const alphas = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, GRID_9)
   check(
     'B3 focus: bleed bloom reveals colour at all 9 grid points within 1.2s',
     Array.isArray(alphas) && alphas.every((a) => a > 0),
@@ -307,7 +307,7 @@ async function testBrushReducedMotion(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(1200)
 
-  const card = page.locator(TIDEWATER_CARD).first()
+  const card = page.locator(FIRST_PROJECT_CARD).first()
   await card.scrollIntoViewIfNeeded()
   const box = await card.boundingBox()
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -316,10 +316,10 @@ async function testBrushReducedMotion(browser, base) {
   const opacity = await page.evaluate((sel) => {
     const img = document.querySelector(`${sel} img.brush-grey`)
     return img ? getComputedStyle(img).opacity : null
-  }, TIDEWATER_FIGURE)
+  }, FIRST_PROJECT_FIGURE)
   check('B4 reduced motion: grey overlay opacity is 0 within 50ms of hover', opacity === '0', `opacity="${opacity}"`)
 
-  const hasCanvas = await page.evaluate((sel) => Boolean(document.querySelector(`${sel} canvas`)), TIDEWATER_FIGURE)
+  const hasCanvas = await page.evaluate((sel) => Boolean(document.querySelector(`${sel} canvas`)), FIRST_PROJECT_FIGURE)
   check('B4 reduced motion: the figure has no canvas', hasCanvas === false)
 
   await context.close()
@@ -340,13 +340,13 @@ async function testBrushFastStroke(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   // The mouse targets and the alpha samples both have to be fractions of
-  // the *figure*'s own box: the card link (TIDEWATER_CARD) also wraps the
+  // the *figure*'s own box: the card link (FIRST_PROJECT_CARD) also wraps the
   // title row below the image, so its box is taller than, and offset from,
   // the figure/canvas the fractions land on -- sampling against the
   // link's box put "top" test points tens of pixels above where the mouse
   // actually was on the canvas.
-  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const start = { x: box.x + box.width * 0.08, y: box.y + box.height * 0.12 }
   const end = { x: box.x + box.width * 0.92, y: box.y + box.height * 0.88 }
@@ -367,7 +367,7 @@ async function testBrushFastStroke(browser, base) {
     const t = i / (samples - 1)
     return [0.08 + (0.92 - 0.08) * t, 0.12 + (0.88 - 0.12) * t]
   })
-  const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, points)
+  const alphas = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, points)
   const gaps = Array.isArray(alphas) ? alphas.filter((a) => a === 0).length : samples
   check(
     'B5 fast pointer path: no gaps across 30 samples once the entry splash completes (~1.5s)',
@@ -394,7 +394,7 @@ async function testBrushTouch(browser, base) {
   const pointerEvents = await page.evaluate((sel) => {
     const canvas = document.querySelector(sel)
     return canvas ? getComputedStyle(canvas).pointerEvents : null
-  }, TIDEWATER_CANVAS)
+  }, FIRST_PROJECT_CANVAS)
   check('B6 touch: canvas keeps pointer-events:none', pointerEvents === 'none', `pointerEvents="${pointerEvents}"`)
 
   const scrollBefore = await page.evaluate(() => window.scrollY)
@@ -415,7 +415,7 @@ async function testBrushTouch(browser, base) {
   const scrollAfter = await page.evaluate(() => window.scrollY)
   check('B6 touch: scrollY advanced (native scroll unblocked)', scrollAfter > scrollBefore, `before=${scrollBefore} after=${scrollAfter}`)
 
-  const alphas = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, GRID_9)
+  const alphas = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, GRID_9)
   check(
     'B6 touch: the mid-band entry splash reveals colour at all 9 grid points',
     Array.isArray(alphas) && alphas.every((a) => a > 0),
@@ -442,8 +442,8 @@ async function testBrushEntrySplash(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
   const farCorner = [0.9, 0.9]
@@ -451,7 +451,7 @@ async function testBrushEntrySplash(browser, base) {
   await page.mouse.move(nearCorner.x, nearCorner.y) // entry point: the splash's own origin
   await page.waitForTimeout(80) // well under BLOOM_MS (R4-4b fix 1: 1500ms); pointer never moves again
 
-  const near = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [[0.1, 0.1]])
+  const near = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [[0.1, 0.1]])
   check(
     'B7 entry splash: colour starts at the entry point within 80ms of entry (no dwell timer)',
     Array.isArray(near) && near[0] > 0,
@@ -460,7 +460,7 @@ async function testBrushEntrySplash(browser, base) {
 
   await page.waitForTimeout(1700) // BLOOM_MS (R4-4b fix 1: 1500) + margin
 
-  const far = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  const far = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [farCorner])
   check(
     'B7 entry splash: reaches the opposite far corner within ~1.5s of entry, covering the whole figure',
     Array.isArray(far) && far[0] > 0,
@@ -494,8 +494,8 @@ async function testBrushDryBackDirection(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
   const origin = [0.1, 0.1]
@@ -512,8 +512,8 @@ async function testBrushDryBackDirection(browser, base) {
   // 60% into FADE_MS (1200 * 0.6 = 720), plus scheduling margin.
   await page.waitForTimeout(1500 + 1500 + 720 + 150)
 
-  const near = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
-  const far = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  const near = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [origin])
+  const far = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [farCorner])
   check(
     'B8 dry-back direction: the entry point is still coloured 60% into the fade',
     Array.isArray(near) && near[0] > 0,
@@ -543,9 +543,9 @@ async function testBrushCursorHandoff(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  const card = page.locator(TIDEWATER_CARD).first()
+  const card = page.locator(FIRST_PROJECT_CARD).first()
   await card.scrollIntoViewIfNeeded()
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
   const cx = box.x + box.width / 2
   const cy = box.y + box.height / 2
 
@@ -626,8 +626,8 @@ async function testBrushReentryNoRestart(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  await page.locator(TIDEWATER_CARD).first().scrollIntoViewIfNeeded()
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  await page.locator(FIRST_PROJECT_CARD).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
 
   const nearCorner = { x: box.x + box.width * 0.1, y: box.y + box.height * 0.1 }
   const origin = [0.1, 0.1]
@@ -636,7 +636,7 @@ async function testBrushReentryNoRestart(browser, base) {
   await page.mouse.move(nearCorner.x, nearCorner.y) // entry point: splash starts, clock starts here
   await page.waitForTimeout(700) // partway through BLOOM_MS (1500) -- origin should already be covered
 
-  const originMid = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
+  const originMid = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [origin])
   check(
     'B10 re-entry: the entry point is covered partway through the first splash',
     Array.isArray(originMid) && originMid[0] > 0,
@@ -649,7 +649,7 @@ async function testBrushReentryNoRestart(browser, base) {
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
   await page.waitForTimeout(100) // a couple of rAF ticks -- enough for a restart's tiny fresh blob to show
 
-  const originAfterReentry = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [origin])
+  const originAfterReentry = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [origin])
   check(
     'B10 re-entry: coverage at the original entry point never drops back to zero after re-entering mid-splash',
     Array.isArray(originAfterReentry) && originAfterReentry[0] > 0,
@@ -663,7 +663,7 @@ async function testBrushReentryNoRestart(browser, base) {
   // once tRaw>=1 (44 §check:transitions, same guarantee B7 relies on).
   await page.waitForTimeout(1500 - 700 + 250)
 
-  const farAfter = await sampleCanvasAlpha(page, TIDEWATER_CANVAS, [farCorner])
+  const farAfter = await sampleCanvasAlpha(page, FIRST_PROJECT_CANVAS, [farCorner])
   check(
     "B10 re-entry: the splash still completes on its original ~1.5s schedule, not restarted by the re-entry",
     Array.isArray(farAfter) && farAfter[0] > 0,
@@ -703,7 +703,7 @@ async function testCardClick(browser, base) {
 
   const startUrl = page.url()
   const phasesPromise = pollPhases(page, 1650, 20)
-  await page.click('a[href="/projects/tidewater"]')
+  await page.click('a[href="/projects/malware-detection"]')
 
   await page.waitForTimeout(50)
   check('T1 html[data-transition]="covering" within 50ms', (await page.evaluate(() => document.documentElement.dataset.transition)) === 'covering')
@@ -719,7 +719,7 @@ async function testCardClick(browser, base) {
   check('T1 window marker survives (no document reload)', (await page.evaluate(() => window.__marker)) !== undefined)
 
   await page.waitForTimeout(350)
-  check('T1 URL is /projects/tidewater by ~550ms', page.url().endsWith('/projects/tidewater'))
+  check('T1 URL is /projects/malware-detection by ~550ms', page.url().endsWith('/projects/malware-detection'))
 
   const phases = await phasesPromise
   check('T1 idle by ~1600ms', phases[phases.length - 1] === 'idle', phases.join(','))
@@ -759,13 +759,13 @@ async function testDoubleClick(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const before = await page.evaluate(() => window.history.length)
-  const card = page.locator('a[href="/projects/tidewater"]').first()
+  const card = page.locator('a[href="/projects/malware-detection"]').first()
   await card.click()
   await card.click({ force: true })
   await page.waitForTimeout(NAV_SETTLE_MS)
   const after = await page.evaluate(() => window.history.length)
   check('T2 double click adds exactly one history entry', after - before === 1, `before=${before} after=${after}`)
-  check('T2 lands on /projects/tidewater once', page.url().endsWith('/projects/tidewater'))
+  check('T2 lands on /projects/malware-detection once', page.url().endsWith('/projects/malware-detection'))
 
   await context.close()
 }
@@ -814,7 +814,7 @@ async function testCtrlClick(browser, base) {
   await page.waitForTimeout(SETTLE_MS)
 
   const newPagePromise = context.waitForEvent('page', { timeout: 3000 }).catch(() => null)
-  await page.click('a[href="/projects/tidewater"]', { modifiers: ['Control'] })
+  await page.click('a[href="/projects/malware-detection"]', { modifiers: ['Control'] })
   const newPage = await newPagePromise
   check('T4 ctrl+click opens a new page', Boolean(newPage))
   check('T4 ctrl+click does not start a transition', (await page.evaluate(() => document.documentElement.dataset.transition)) !== 'covering')
@@ -1254,17 +1254,18 @@ async function testHeroSplashPopEntry(browser, base) {
   await context.close()
 }
 
-// T8: NextProject wraps halftone -> tidewater.
+// T8: NextProject wraps the last project back to the first (instatags ->
+// malware-detection).
 async function testNextProject(browser, base) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
   attachConsoleWatcher(page)
-  await page.goto(new URL('/projects/halftone', base).toString(), { waitUntil: 'load' })
+  await page.goto(new URL('/projects/instatags', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
   await page.locator('a[data-cursor-text="next"]').click()
   await page.waitForTimeout(NAV_SETTLE_MS)
-  check('T8 halftone -> tidewater via NextProject', page.url().endsWith('/projects/tidewater'), page.url())
+  check('T8 instatags -> malware-detection via NextProject', page.url().endsWith('/projects/malware-detection'), page.url())
 
   await context.close()
 }
@@ -1278,7 +1279,7 @@ async function testReducedMotion(browser, base) {
   await page.waitForTimeout(1200)
 
   const phasesPromise = pollPhases(page, 1200, 15)
-  await page.click('a[href="/projects/tidewater"]')
+  await page.click('a[href="/projects/malware-detection"]')
   const phases = await phasesPromise
   check('T9 reduced motion never shows covering', !phases.includes('covering'), phases.join(','))
   check('T9 h1 focused under reduced motion', (await page.evaluate(() => document.activeElement?.tagName)) === 'H1')
@@ -1294,14 +1295,14 @@ async function testCursorReset(browser, base) {
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
 
-  const card = page.locator('a[href="/projects/tidewater"]').first()
+  const card = page.locator('a[href="/projects/malware-detection"]').first()
   await card.scrollIntoViewIfNeeded()
   await page.waitForTimeout(100)
   // 44 §check:transitions "changed (2)": hovering the card's *media*
   // specifically now resolves to the 'brush' state (src/components/
   // Cursor.tsx's [data-brush] target), not 'text' — the outer link still
   // shows 'text'/"open" over the title row below it.
-  const box = await page.locator(TIDEWATER_FIGURE).first().boundingBox()
+  const box = await page.locator(FIRST_PROJECT_FIGURE).first().boundingBox()
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2 + 2)
   await page.waitForTimeout(250)
@@ -1341,7 +1342,7 @@ async function captureCoverShots(browser, base, outDir) {
   const page = await context.newPage()
   await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
   await page.waitForTimeout(SETTLE_MS)
-  await page.click('a[href="/projects/tidewater"]')
+  await page.click('a[href="/projects/malware-detection"]')
 
   let elapsed = 0
   for (const mark of [250, 550, 900]) {

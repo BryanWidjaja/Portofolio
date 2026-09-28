@@ -80,7 +80,7 @@ function build() {
 
 const SCRIPTS = {
   'hover-card': async (page) => {
-    const card = page.locator('a[href="/projects/tidewater"]').first()
+    const card = page.locator('a[href="/projects/malware-detection"]').first()
     await card.scrollIntoViewIfNeeded()
     const box = await card.boundingBox()
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -95,7 +95,7 @@ const SCRIPTS = {
     }
   },
   transition: async (page) => {
-    await page.click('a[href="/projects/tidewater"]')
+    await page.click('a[href="/projects/malware-detection"]')
   },
 }
 

@@ -1,9 +1,11 @@
-// Copy deck: notes/plan/10-direction.md Â§Copy deck.
-// D3 variant mechanism (notes/plan/14-approved.md Â§Variant mechanism): the
+// Content: the owner's CV (2026-09-28), replacing the copy deck's invented
+// bio, employers and tools. Wording follows the CV; `TODO(owner)` marks what
+// it didn't settle (the portrait, and prose the CV only lists as bullets).
+// D3 variant mechanism (notes/plan/14-approved.md §Variant mechanism): the
 // variant is selected at build time by the Vite mode, read here in one
 // place. `npm run dev`/`build` -> "bio" (default). `npm run dev:accordion`/
 // `build:accordion` (mode "about-accordion", via .env.about-accordion) ->
-// "accordion". Both variants share the h1, location, experience and tools;
+// "accordion". Both variants share the h1, location, timelines and tools;
 // "accordion" additionally renders `whatIDo` as a "What I do" accordion (M16).
 
 import type { Img } from './projects'
@@ -13,22 +15,22 @@ export type AboutVariant = 'bio' | 'accordion'
 export const aboutVariant: AboutVariant =
   import.meta.env.VITE_ABOUT_VARIANT === 'accordion' ? 'accordion' : 'bio'
 
-// Placeholder art direction (10-direction.md): 4:5 block, `BW` in italic
-// ink at 40% of block width, rasterised (scripts/placeholders.mjs) and
-// shown as a grey leaf (V12, 41-ink-replace-map.md: grayscale + multiply,
-// no brush). TODO(owner): replace with a photo.
+// A "replace with" box (scripts/placeholders.mjs), shown as a grey leaf
+// (V12, 41-ink-replace-map.md: grayscale + multiply, no brush).
+// TODO(owner): replace with a portrait photo.
 export const portrait: Img = {
   src: '/placeholders/portrait-1200.webp',
-  alt: "Placeholder portrait: Bryan's initials",
+  alt: 'Placeholder: replace with a portrait photo of Bryan.',
   width: 800,
   height: 1000,
 }
 
 export const aboutCommon = {
   h1: 'About me',
-  // TODO(owner): confirm location line.
-  location: 'Jakarta, Indonesia',
+  location: 'Banten, Indonesia',
   experienceHeading: 'Experience',
+  educationHeading: 'Education',
+  awardsHeading: 'Awards',
   toolsHeading: 'Tools I use',
   resume: {
     prompt: 'Want the one-page version?',
@@ -38,53 +40,57 @@ export const aboutCommon = {
   },
 }
 
-export const experience = [
-  // TODO(owner): confirm role, employer and dates.
-  { role: 'Software engineer', org: 'Arus Logistik', period: 'Since 2023' },
-  // TODO(owner): confirm role, employer and dates.
-  { role: 'Frontend developer', org: 'Studio Rintik', period: '2020-2023' },
-  // TODO(owner): confirm role, employer and dates.
-  { role: 'Developer intern', org: 'Kas Kecil', period: '2019-2020' },
+// One row shape for every timeline on the page (Experience, Education,
+// Awards): a title, where, and when.
+export type TimelineRow = { role: string; org: string; period: string }
+
+export const experience: TimelineRow[] = [
+  { role: 'Part-time laboratory assistant', org: 'BINUS University Alam Sutera', period: 'Since 2025' },
+]
+
+export const education: TimelineRow[] = [
+  { role: 'Undergraduate, Computer Science', org: 'BINUS University Alam Sutera · GPA 3.97', period: 'Since 2024' },
+]
+
+export const awards: TimelineRow[] = [
+  { role: 'Mentoring Scholarship', org: 'BINUS University', period: '2026' },
 ]
 
 export const tools = [
-  { group: 'Languages', items: ['TypeScript', 'Rust', 'SQL', 'Python'] },
-  { group: 'Frontend', items: ['React', 'React Native', 'Tailwind CSS', 'GSAP'] },
-  { group: 'Backend', items: ['Node.js', 'PostgreSQL', 'Supabase'] },
-  { group: 'Workflow', items: ['Figma', 'Git', 'Docker'] },
+  { group: 'Languages', items: ['Python', 'Java', 'TypeScript'] },
+  { group: 'Frontend', items: ['React', 'Svelte'] },
+  { group: 'Backend', items: ['MySQL', 'PostgreSQL', 'Spring Boot'] },
+  { group: 'Machine learning', items: ['PyTorch', 'scikit-learn', 'OpenCV', 'pandas', 'NumPy', 'Matplotlib'] },
+  { group: 'Developer tools', items: ['Git', 'Docker'] },
 ]
 
 // `bio` variant (D3 default/rec).
 export const bio = {
-  // Accent phrase: "small teams".
-  // TODO(owner): confirm bio lead.
-  lead: "I've spent six years building web and mobile software, mostly for small teams that need one person to own the whole stack.",
+  // TODO(owner): confirm bio lead -- the CV has no summary line, so this is
+  // assembled from its Education and Projects sections.
+  lead: "I'm a computer science student at BINUS University, building across machine learning, backend and frontend.",
   paragraphs: [
-    // TODO(owner): confirm bio paragraph.
-    "I start with the people using it: a dispatcher at 6 a.m., a barista with a queue at the door. Then I pick the simplest stack that will still be easy to change a year later.",
-    // TODO(owner): confirm bio paragraph.
-    'Outside client work I maintain Halftone, print the odd zine and hunt for good kopi susu.',
+    'As a part-time lab assistant I teach 100 to 120 students a semester across four to five lab sections: Python, C and C++, data structures, Java and its design patterns, computer vision, enterprise data warehousing and web development. I also proctor exams, design the practical cases and grade the work.',
+    "My research on static malware detection was accepted for presentation at ICoAILO 2026, and tutoring undergraduate calculus through BINUS University's SASC program earned me a one-semester mentoring scholarship.",
   ],
 }
 
 // `accordion` variant only (D3 option 2, M16). Rendered as a "What I do" accordion.
+// TODO(owner): confirm row copy -- grouped from the CV's projects and experience.
 export const whatIDo = [
   {
-    id: 'product-engineering',
-    // TODO(owner): confirm row copy.
-    title: 'Product engineering',
-    body: 'I take a feature from rough idea to shipped code: the data model, the API, the interface and the tests that keep it working.',
+    id: 'machine-learning',
+    title: 'Machine learning',
+    body: 'I build and evaluate models end to end, from the data pipeline to a calibrated operating point. My byte-image malware detector reached 0.988 ROC-AUC with a 0.48 MB model.',
   },
   {
-    id: 'offline-first-mobile-apps',
-    // TODO(owner): confirm row copy.
-    title: 'Offline-first mobile apps',
-    body: 'I build React Native apps that keep working without signal and sync once the connection comes back.',
+    id: 'teaching',
+    title: 'Teaching',
+    body: 'I run programming labs for 100 to 120 students a semester, write the practical exam cases and grade them.',
   },
   {
-    id: 'maintenance-and-rescue',
-    // TODO(owner): confirm row copy.
-    title: 'Maintenance and rescue',
-    body: "I pick up existing codebases and fix what's breaking first. Then I make them easier for the next person to change.",
+    id: 'frontend-and-extensions',
+    title: 'Frontend and extensions',
+    body: 'I build interfaces in Svelte and React with TypeScript and Tailwind CSS, including Manifest V3 Chrome extensions.',
   },
 ]

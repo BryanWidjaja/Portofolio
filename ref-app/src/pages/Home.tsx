@@ -32,7 +32,7 @@ function splitLetter(word: string) {
 }
 
 export function Home() {
-  const aboutLead = splitAccent(site.home.aboutCta.lead, 'after launch')
+  const aboutLead = splitAccent(site.home.aboutCta.lead, 'over a hundred students')
   const hasInscription = Boolean(site.home.heroInscription)
   const reduced = useReducedMotion()
 

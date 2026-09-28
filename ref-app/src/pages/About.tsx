@@ -6,7 +6,34 @@ import { DividerRow } from '../components/DividerRow'
 import { Accordion } from '../components/Accordion'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
-import { aboutCommon, aboutVariant, bio, experience, portrait, tools, whatIDo } from '../content/about'
+import { aboutCommon, aboutVariant, awards, bio, education, experience, portrait, tools, whatIDo } from '../content/about'
+import type { TimelineRow } from '../content/about'
+
+// One titled list of role/org/period rows -- Experience, Education and
+// Awards all share it, so the three sections can never drift apart.
+function Timeline({ heading, rows }: { heading: string; rows: TimelineRow[] }) {
+  return (
+    <Container as="section" className="pt-leaf">
+      <BrushWords as="h2" text={heading} data-reveal="heading" className="text-heading font-display font-medium" />
+      <ul className="mt-breath">
+        {rows.map((row, index) => (
+          <DividerRow
+            key={`${row.role}-${row.org}`}
+            as="li"
+            lineVariant={index}
+            className="grid grid-cols-[1fr_auto] gap-x-4 py-6 md:grid-cols-12 md:py-8"
+          >
+            <p className="col-span-2 text-title font-display font-medium md:col-span-5">{row.role}</p>
+            <p className="mt-1 text-body text-ink-muted md:col-span-4 md:mt-0">{row.org}</p>
+            <p className="mt-1 text-right text-body tabular-nums md:col-span-3 md:col-start-10 md:mt-0">
+              {row.period}
+            </p>
+          </DividerRow>
+        ))}
+      </ul>
+    </Container>
+  )
+}
 
 // 11-layout.md §About (D3: both variants build; the accordion delta adds a
 // "What I do" section between Intro and Experience, M16). Everything else
@@ -73,30 +100,9 @@ export function About() {
           </Container>
         ) : null}
 
-        <Container as="section" className="pt-leaf">
-          <BrushWords
-            as="h2"
-            text={aboutCommon.experienceHeading}
-            data-reveal="heading"
-            className="text-heading font-display font-medium"
-          />
-          <ul className="mt-breath">
-            {experience.map((role, index) => (
-              <DividerRow
-                key={`${role.role}-${role.org}`}
-                as="li"
-                lineVariant={index}
-                className="grid grid-cols-[1fr_auto] gap-x-4 py-6 md:grid-cols-12 md:py-8"
-              >
-                <p className="col-span-2 text-title font-display font-medium md:col-span-5">{role.role}</p>
-                <p className="mt-1 text-body text-ink-muted md:col-span-4 md:mt-0">{role.org}</p>
-                <p className="mt-1 text-right text-body tabular-nums md:col-span-3 md:col-start-10 md:mt-0">
-                  {role.period}
-                </p>
-              </DividerRow>
-            ))}
-          </ul>
-        </Container>
+        <Timeline heading={aboutCommon.experienceHeading} rows={experience} />
+        <Timeline heading={aboutCommon.educationHeading} rows={education} />
+        <Timeline heading={aboutCommon.awardsHeading} rows={awards} />
 
         <Container as="section" className="grid gap-x-6 pt-leaf md:grid-cols-12 xl:gap-x-8">
           <BrushWords

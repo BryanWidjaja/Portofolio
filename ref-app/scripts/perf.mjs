@@ -285,7 +285,7 @@ async function runTransition(browser, base) {
   await resetCounters(page)
   const before = (await client.send('Performance.getMetrics')).metrics
   const start = Date.now()
-  await page.click('a[href="/projects/tidewater"]')
+  await page.click('a[href="/projects/malware-detection"]')
   await page.waitForFunction(() => document.documentElement.dataset.transition === 'idle', { timeout: 5000 })
   const durationMs = Date.now() - start
   const after = (await client.send('Performance.getMetrics')).metrics

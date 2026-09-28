@@ -16,15 +16,13 @@ export const site = {
 
   // TODO(owner): confirm production domain before launch (used for canonical/OG URLs and the sitemap).
   url: 'https://bryanwidjaja.com',
-  // TODO(owner): confirm contact email.
-  email: 'hello@bryanwidjaja.com',
+  email: 'bryan.widjaja1708@gmail.com',
   // TODO(owner): add the real file at public/resume.pdf, then flip
   // `resumeAvailable` to true. Until then the About page renders the pill
   // disabled instead of linking to a 404 (src/pages/About.tsx).
   resumeUrl: '/resume.pdf',
   resumeAvailable: false,
-  // TODO(owner): confirm location line.
-  location: 'Jakarta, Indonesia',
+  location: 'Banten, Indonesia',
   ogImage: '/og/default.png',
 
   nav: [
@@ -46,13 +44,11 @@ export const site = {
   // via `aria-label`, never rendered as visible text.
   menuButton: { openLabel: 'Open menu', closeLabel: 'Close menu' },
 
+  // The CV's own two links. The deck's Bluesky placeholder is gone -- the
+  // CV lists no Bluesky account.
   socials: [
-    // TODO(owner): replace with the real GitHub profile URL.
-    { label: 'GitHub', href: 'https://github.com/TODO-owner' },
-    // TODO(owner): replace with the real LinkedIn profile URL.
-    { label: 'LinkedIn', href: 'https://linkedin.com/in/TODO-owner' },
-    // TODO(owner): replace with the real Bluesky profile URL.
-    { label: 'Bluesky', href: 'https://bsky.app/profile/TODO-owner' },
+    { label: 'GitHub', href: 'https://github.com/BryanWidjaja' },
+    { label: 'LinkedIn', href: 'https://www.linkedin.com/in/bryan-widjaja-193949251/' },
   ],
 
   cursor: { open: 'open', next: 'next', copy: 'copy', copied: 'copied' },
@@ -66,11 +62,12 @@ export const site = {
       // G9 (46 item 9): no longer echoes home.heroDescription (deleted below)
       // -- kept as its own sentence so this meta copy doesn't depend on a
       // string the hero page no longer renders.
-      description: 'Developer building software for small businesses. Recent projects, background and contact.',
+      description:
+        'Computer science student at BINUS University building across machine learning, backend and frontend. Projects, experience and contact.',
     },
     about: {
       title: `About · Bryan Widjaja`,
-      description: 'Background, experience and the tools Bryan Widjaja uses to build web and mobile software.',
+      description: 'Education, experience and the tools Bryan Widjaja uses, from PyTorch research to Svelte frontends.',
     },
     notFound: {
       title: `Page not found · Bryan Widjaja`,
@@ -96,8 +93,10 @@ export const site = {
     workEyebrow: 'Recent work',
     workHeading: "What I've been building",
     aboutCta: {
-      // Accent phrase: "after launch".
-      lead: "I'm most useful after launch, when real people start using what we built.",
+      // Accent phrase: "over a hundred students".
+      // TODO(owner): confirm -- the CV has no summary line; this is its
+      // Experience section in one sentence.
+      lead: 'I study computer science at BINUS University and teach programming labs to over a hundred students a semester.',
       pill: 'About me',
     },
   },
@@ -111,8 +110,10 @@ export const site = {
     copiedLabel: 'Copied',
     copiedAnnouncement: 'Email address copied',
     copyFailureAnnouncement: "Couldn't copy, opening your mail app",
-    // TODO(owner): confirm current availability line.
-    availability: 'Currently open to full-time roles.',
+    // TODO(owner): confirm -- the CV doesn't say. The deck's "open to
+    // full-time roles" read wrong for a current undergraduate, so this is a
+    // guess to correct.
+    availability: 'Currently open to internships.',
     pagesLabel: 'Pages',
     socialLabel: 'Social',
     pageLinks: [
