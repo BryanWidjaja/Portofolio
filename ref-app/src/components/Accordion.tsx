@@ -12,9 +12,11 @@ type AccordionProps = {
 // M16/V28 (41-ink-replace-map.md), rendered only in the `accordion` About
 // variant (D3). Rows are split by brush lines (42 §Components) instead of
 // a flat border, and a pale wash bleeds in from the left on hover/focus
-// (`.ink-wash`'s own transform-origin default doesn't fit a "from the
-// left" sweep, so this row keeps a plain scaleX span, same technique the
-// old sweep used, just retimed and recoloured). The panel unrolls .45s
+// (`.ink-wash` grows a disc from the pointer's entry point, which doesn't
+// read as a "from the left" sweep, so this row keeps its own plain scaleX
+// span instead -- already flat and unmasked exactly as R6a made `.ink-wash`
+// itself, just a different growth shape for a different reason). The panel
+// unrolls .45s
 // (42 §Storyboards "panel unrolls .45", the same duration open or closed);
 // `motion-reduce:transition-none` makes it instant, per the reduced-motion
 // gate (bar §F) the unguarded transition used to miss. Plus/Minus crossfade

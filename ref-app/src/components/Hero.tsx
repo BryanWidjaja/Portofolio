@@ -76,6 +76,11 @@ export function Hero() {
           width={3840}
           height={2160}
           decoding="async"
+          // 51-round5-plan.md §E4, 45 §Round5 R5a: the monogram sits in
+          // `hero` state directly over this painting on `/` (diagnosis
+          // §Item 1) -- the tone registry's one hand-placed tag, since
+          // this image has no `content/projects.ts` `tone` field to read.
+          data-tone="dark"
           className="hero-painting size-full origin-center object-cover"
           style={{ objectPosition: '66% 0' }}
         />

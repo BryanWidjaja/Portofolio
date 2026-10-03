@@ -13,18 +13,70 @@
  *
  *   malware-detection  cover, gallery-2: the repo's own StaticProcessor
  *                      run on a benign Windows PE (distlib's w64.exe
- *                      launcher), cells coloured on validated ramps;
+ *                      launcher), cells coloured on validated ramps --
+ *                      the cover (51 §E5, R5e) mounts the byte, entropy
+ *                      and section channels as three leaves on paper;
  *                      gallery-1: the README's architecture-comparison
  *                      table (camera-ready paper numbers) as a chart
- *   btardew-walley     all three: the game's real terminal output (Home
- *                      map, Plant Farm on day 4, Buy Tools store),
- *                      captured by driving the compiled game over stdin
- *   instatags          cover, gallery-1: the SvelteKit frontend's landing
- *                      hero and upload page, served locally; gallery-2:
- *                      the Chrome extension's own popup HTML at its
- *                      20rem x 25rem size. The landing page's placeholder
- *                      testimonials (quotes attributed to real people) and
- *                      the footer are kept out of frame.
+ *   btardew-walley     cover: kept from round 5 (51 §E5, R5f) -- the day-4
+ *                      Plant Farm frame's own ANSI text re-typeset as ink
+ *                      on paper, pale washes on the ripe wheat (W) and
+ *                      growing beetroot (b) cells. gallery-1..4: round 6's
+ *                      4B ink print family (58 §F2, R6d) -- the game
+ *                      driven live over stdin again, every feature its
+ *                      views expose visited fresh, re-typeset the same
+ *                      way: monospace #141a1e on #F2ECDE, one 1600x1000
+ *                      canvas, one font size, tight centred crop, pale
+ *                      washes only on what matters (animals, money). In
+ *                      importance order: the Home map + HUD, the Animal
+ *                      Farm map (nine sample animals), the Inventory
+ *                      Menu, and the Buy Tools store.
+ *                      gallery-5..12: round 6 agent F2b's "cover every
+ *                      feature" correction -- one more fresh playthrough
+ *                      (same JDK 21 build, dev-mode teleport + BFS-routed
+ *                      walks over the grids decoded from GameMaps.java)
+ *                      visiting the rest of the game's views: planting,
+ *                      the grown/ripe crop, the animal harvest prompt,
+ *                      the farm/seed store, the animal store, the sleep
+ *                      confirmation, the login/register menu and the
+ *                      tutorial's first page. Same re-typeset method, 34px
+ *                      line pitch (vs the four above's 40px) so the
+ *                      tutorial's 27 real lines fit the fixed canvas at
+ *                      the one Consolas 30px size, no shrinking, no crop
+ *                      of real content.
+ *   instatags          round 6 (58 §F2, R6c/R6d): cover -- the *renewed*
+ *                      Chrome extension's (instatags-ChromeExtension-
+ *                      Renewed) real popup HTML, idle state, untransformed,
+ *                      mounted at its own 22rem x 26rem proportions on the
+ *                      same wide paper field the previous cover used.
+ *                      gallery-1/2/4: the SvelteKit frontend served from
+ *                      its own `npm run dev` (owner-approved) -- the
+ *                      landing page, the upload page (its drop zone, not
+ *                      the result screen), and the How To Use carousel.
+ *                      gallery-3: the renewed extension's own loading
+ *                      state (spinner + "Getting tags..."). The result
+ *                      screen is skipped throughout (no backend) -- never
+ *                      `output.json`, never invented tags.
+ *                      Round 6 agent F2b fixed two flaws and added three
+ *                      images: gallery-3 (loading) and the new gallery-5
+ *                      (the extension's real "Image not found on this
+ *                      page." toast, reached by stubbing only the minimal
+ *                      chrome.tabs/chrome.scripting host APIs so the
+ *                      popup's own click handler runs its own real
+ *                      no-image branch) are now mounted the same thin-
+ *                      bordered paper field as `cover`, no caption baked
+ *                      in. gallery-4 (how-to-use) was recaptured after
+ *                      one real click of the carousel's own "next"
+ *                      control -- the vendored Carousel component clones
+ *                      extra slides into the DOM *after* Siema computes
+ *                      its initial transform, so the fresh-load state is
+ *                      permanently off by one cloneCount (Step 6 before
+ *                      Step 1, cards sliced at both edges); one click
+ *                      lands it back on the correct Step-1-first reading
+ *                      with zero cards cut, at a narrower 1043x900 frame
+ *                      (the widest crop with no mid-card cut at this
+ *                      viewport). gallery-6/7 are the About Us and
+ *                      Thank You pages from the same dev server.
  *
  * To replace one: drop a new master in and re-run this.
  *

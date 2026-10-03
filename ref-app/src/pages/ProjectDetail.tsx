@@ -5,16 +5,29 @@ import { Container } from '../components/Container'
 import { BrushWords } from '../components/BrushWords'
 import { Eyebrow } from '../components/Eyebrow'
 import { PillButton } from '../components/PillButton'
-import { DividerRow } from '../components/DividerRow'
-import { Gallery } from '../components/Gallery'
+import { ProjectCollage } from '../components/ProjectCollage'
 import { NextProject } from '../components/NextProject'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
 import { projects } from '../content/projects'
 
-// 11-layout.md §Project detail (D2, short case study): header, cover, three
-// story rows, a gallery pair, then a next-project wrap that loops back to
-// the first project after the last.
+// 11-layout.md §Project detail (D2, short case study): header, then the
+// collage (55-projectpage-plan.md §E7 A, superseding 51 §E3/E6's two-grid
+// layout -- one 4-col/2-row grid, replacing the old single cover + the
+// two-square gallery that used to follow the story rows), the colophon
+// (the three `project.sections` beats), then a next-project wrap that
+// loops back to the first project after the last.
+//
+// R6b (45 §Round 6, 58 §F1 "colophon triptych"): the three beats used to
+// be `DividerRow`-separated single-column rows (55 §E7 B's "one reading
+// column" pass -- itself a fix for an even older label-left/paragraph-
+// middle/dead-right-third layout). Now they sit side by side as numbered
+// `01`-`03` leaves on one aged-paper sheet (`.colophon`, styles/base.css),
+// hairline seams standing in for the old `DividerRow` brush lines --
+// vertical between the `md:grid-cols-3` columns, horizontal once they
+// stack on phones. The Cormorant display face is deliberately reserved for
+// just these three labels (`56`'s diagnosis: separating them from the meta
+// row's small sans is the whole point).
 export function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>()
   const index = projects.findIndex((p) => p.slug === slug)
@@ -114,47 +127,66 @@ export function ProjectDetail() {
           </dl>
         </Container>
 
-        <Container className="mt-breath">
-          <figure
-            data-intro="cover"
-            className="blot-mask isolate aspect-[4/5] overflow-hidden rounded-none md:aspect-[16/10]"
-          >
-            {/* Owner, 2026-09-28: a project's own page shows its images in
-                plain colour -- the brush paint-out lives on the home page's
-                cards only. As the page's likely LCP element, the cover loads
-                eagerly at high priority. */}
-            <img
-              src={project.cover.src}
-              alt={project.cover.alt}
-              width={project.cover.width}
-              height={project.cover.height}
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-              className="size-full object-cover"
-            />
-          </figure>
+        <Container className="mt-10 md:mt-12">
+          {/* 51-round5-plan.md §E3, 45 R5c: the collage replaces the old
+              single cover + the two gallery squares that used to sit after
+              the description. The hero tile is the project's own cover
+              image, plain colour (owner, 2026-09-28: the brush paint-out
+              lives on the home page's cards only) -- except on this page's
+              malware-detection route, where it's E2's <ProjectVideo>.
+              55 §E7 B: sits one step closer to the meta row above it
+              (was `mt-breath`; no smaller spacing token exists, so a
+              literal value, same fallback the story rows below take). */}
+          <ProjectCollage
+            hero={
+              project.slug === 'malware-detection'
+                ? {
+                    kind: 'video',
+                    base: '/projects/malware-detection',
+                    alt: 'A trailer for the malware detector: the byte-image pipeline, the CNN architecture, and the paper\'s own results.',
+                  }
+                : { kind: 'image', img: project.cover }
+            }
+            tiles={project.collage}
+          />
         </Container>
 
-        <Container as="section" className="py-leaf">
-          {project.sections.map((section, index) => (
-            <DividerRow
-              key={section.label}
-              lineVariant={index}
-              className="grid gap-4 py-breath md:grid-cols-12 md:gap-x-6 xl:gap-x-8"
-            >
-              <h2 data-reveal="text" className="text-title font-display font-medium md:col-span-4">
-                {section.label}
-              </h2>
-              <p data-reveal="text" className="text-body max-w-[62ch] md:col-span-6 md:col-start-6 xl:col-span-5">
-                {section.body}
-              </p>
-            </DividerRow>
-          ))}
-        </Container>
-
-        <Container as="section">
-          <Gallery items={project.gallery} />
+        {/* 55 §E7 B: `pt-leaf` only (was `py-leaf`) -- the bottom half used
+            to stack with NextProject's `mt-leaf` below into two gaps where
+            the owner wants one. */}
+        <Container as="section" className="pt-leaf">
+          {/* R6b (58 §F1 "colophon triptych"): one aged-paper sheet
+              (`.colophon`, styles/base.css) holding the three
+              `project.sections` beats side by side at md+, stacked on
+              phones -- replacing the old `DividerRow`-separated single
+              reading column. `.colophon-leaf` supplies the seam (vertical
+              between columns, horizontal once stacked); `:first-child`
+              carries neither so only the sheet's own edge bounds the
+              first leaf. Plain numerals only, no CJK, no seal.
+              Orchestrator fix: at md+ every leaf gets symmetric `px-6`
+              (24px) inline padding, so each seam sits exactly in the
+              middle of a 48px gutter (leaf N's own `pr-6` + leaf N+1's
+              own `pl-6`) instead of only the non-first leaves carrying a
+              one-sided `pl-12` that left the first leaf's text flush
+              against the seam; `first:md:pl-0`/`last:md:pr-0` drop the
+              padding against the sheet's own outer edge, which the
+              sheet's `md:px-12` already provides. */}
+          <div className="colophon grid px-6 py-10 md:grid-cols-3 md:items-start md:px-12 md:py-14">
+            {project.sections.map((section, index) => (
+              <div
+                key={section.label}
+                className="colophon-leaf mt-10 pt-10 first:mt-0 first:pt-0 md:mt-0 md:pt-0 md:px-6 first:md:pl-0 last:md:pr-0"
+              >
+                <p className="label text-ink-subtle tabular-nums">{String(index + 1).padStart(2, '0')}</p>
+                <h2 data-reveal="text" className="mt-3 text-title font-display font-medium">
+                  {section.label}
+                </h2>
+                <p data-reveal="text" className="mt-3 max-w-[42ch] text-body">
+                  {section.body}
+                </p>
+              </div>
+            ))}
+          </div>
         </Container>
 
         <Container as="section" className="mt-leaf">

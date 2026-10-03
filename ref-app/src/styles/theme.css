@@ -148,6 +148,11 @@
   --color-ink-faint: #7c8992;
   --color-line: #c4cbd1;
   --color-cinnabar: #c0392b;
+  /* R6b (58 §F1 "colophon triptych"): the project-detail colophon sheet's
+   * paper tone -- the same value `styles/base.css`'s `.scroll { --paper }`
+   * already hardcodes for the home scroll cards, now also a real token
+   * since a second surface (the colophon sheet) needs it. */
+  --color-sheet: #e9dfc8;
 
   /* Type families. `--font-display` covers every display/heading/accent
    * role (42 §Tokens) on one family, distinguished purely by which

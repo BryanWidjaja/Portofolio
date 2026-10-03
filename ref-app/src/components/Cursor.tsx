@@ -439,10 +439,45 @@ export function Cursor() {
         else delete canvas.dataset.cursorNoTrail
       }
 
+      // 51-round5-plan.md item 2 fix: `hideLabel` below is a 300ms
+      // (`DURATION.state`) fade to opacity 0. Re-entering a card inside
+      // that window (the everyday gesture) used to read `currentOpacity`
+      // straight off the live, still-tweening value and early-return
+      // whenever it happened to still be >0 with the same text queued --
+      // which left the in-flight fade running uncancelled on to 0: a
+      // correct `state=text, text="open"` over an invisible label.
+      // Sampling that interpolated value at an arbitrary wall-clock delay
+      // is itself a race (confirmed by direct reproduction: which
+      // millisecond gaps read back visible vs invisible shifts between
+      // runs -- not a fixed boundary), so `hidingLabel` below replaces the
+      // opacity read as the guard: an explicit flag set the instant a hide
+      // starts and cleared only once it actually completes, immune to
+      // when-exactly-is-this-sampled jitter. Reproduction also ruled out
+      // the plan note's two named "second path" candidates -- `goAway`/
+      // `onDocMouseEnter` (document-level mouseleave/mouseenter never
+      // fired; the pointer never left the document, only the card) and a
+      // second `showLabel` call from `brushFullObserver` (brush.ts only
+      // clears `data-brush-full` once `startFade` runs, `HOLD_MS`==1500ms
+      // after the pointer leaves -- long after any of the re-entry gaps in
+      // question, so the figure never stops resolving to "open" and the
+      // observer never re-fires mid-window). The single early-return race
+      // is the whole bug; this fix removes it structurally instead of
+      // patching around a second cause that isn't there.
+      let hidingLabel = false
+
       function showLabel(text: string) {
         const currentOpacity = Number(gsap.getProperty(label, 'opacity'))
-        if (labelText.textContent === text && currentOpacity > 0) return
+        if (!hidingLabel && labelText.textContent === text && currentOpacity > 0) return
+        hidingLabel = false
         if (currentOpacity > 0) {
+          if (labelText.textContent === text) {
+            // A hide (or an already-visible label) was interrupted before
+            // finishing -- reverse back to fully shown from wherever the
+            // tween currently is; no need to drop through opacity 0 first
+            // since the text is already correct.
+            gsap.to(label, { opacity: 1, scale: 1, duration: DURATION.state, ease: EASE.dry, overwrite: 'auto' })
+            return
+          }
           gsap.to(label, {
             opacity: 0,
             duration: 0.1,
@@ -465,7 +500,17 @@ export function Cursor() {
       }
 
       function hideLabel() {
-        gsap.to(label, { opacity: 0, scale: 0.6, duration: DURATION.state, ease: EASE.dry, overwrite: 'auto' })
+        hidingLabel = true
+        gsap.to(label, {
+          opacity: 0,
+          scale: 0.6,
+          duration: DURATION.state,
+          ease: EASE.dry,
+          overwrite: 'auto',
+          onComplete: () => {
+            hidingLabel = false
+          },
+        })
       }
 
       function applyState(next: CursorState, text: string | null) {
@@ -676,7 +721,21 @@ export function Cursor() {
 
       function goAway() {
         if (locked) return
-        gsap.to(label, { opacity: 0, duration: DURATION.stateOut, ease: EASE.dry, overwrite: 'auto' })
+        // The same guard `showLabel` reads (`hidingLabel`) has to know
+        // about this fade too -- `onDocMouseEnter` re-applies the current
+        // state on return, which for `state === 'text'` calls `showLabel`
+        // again, and without this it would race exactly like `hideLabel`
+        // used to (see the note above `hidingLabel`'s declaration).
+        hidingLabel = true
+        gsap.to(label, {
+          opacity: 0,
+          duration: DURATION.stateOut,
+          ease: EASE.dry,
+          overwrite: 'auto',
+          onComplete: () => {
+            hidingLabel = false
+          },
+        })
         clearTrail()
       }
 
@@ -725,6 +784,7 @@ export function Cursor() {
         state = 'default'
         if (currentEl) leaveTarget()
         canvas.dataset.cursorState = 'default'
+        hidingLabel = false
         gsap.set(label, { opacity: 0, scale: 0.6 })
         clearTrail()
         curDiameter = TIP_DIAMETER

@@ -23,9 +23,10 @@ type PillButtonProps = {
    * honest and non-breaking instead of linking into a 404 (E6 hardening). */
   disabled?: boolean
   title?: string
-  /** `outline` (default): ink outline that fills with the blot-masked ink
-   * wash on hover. `solid`: a flat grey fill at rest that deepens on hover,
-   * no wash texture (owner, 2026-09-28: the home "About me" button). */
+  /** `outline` (default): ink outline that fills with a flat ink-disc wash
+   * on hover (R6a, 58 §F1 -- the blot texture is gone; see `.ink-wash`).
+   * `solid`: a flat grey fill at rest that deepens on hover, no wash
+   * texture (owner, 2026-09-28: the home "About me" button). */
   variant?: 'outline' | 'solid'
   /** Passed to an `href` link, e.g. `download` for the CV file. */
   download?: boolean | string

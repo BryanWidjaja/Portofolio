@@ -8,7 +8,9 @@
  * imports. react-dom/client is a *dynamic* import in this build (see
  * dist/.vite/manifest.json), but it still has to load on first paint to
  * hydrate, so it counts toward the real cost of first visit. Exits 1 if the
- * total exceeds the ~180KB gzip budget.
+ * total exceeds the ~182KB gzip budget (raised from 180 by the owner,
+ * 45-ink-approved.md §Round 5 R5h, to cover the tone registry and the
+ * project-video player).
  *
  * Usage: node scripts/check-budget.mjs [--budget <kb>]
  * Run `npm run build` first -- this reads dist/.vite/manifest.json.
@@ -17,7 +19,7 @@ import { readFile } from 'node:fs/promises'
 import { gzipSync } from 'node:zlib'
 import path from 'node:path'
 
-const DEFAULT_BUDGET_KB = 180
+const DEFAULT_BUDGET_KB = 182
 
 function parseArgs(argv) {
   let budgetKb = DEFAULT_BUDGET_KB

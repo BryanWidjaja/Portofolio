@@ -2,6 +2,24 @@
  * the paper tile underlay (V2). `tabular-nums` (years, tabular figures) is
  * Tailwind's built-in utility; nothing to add for it here. */
 
+/* 51-round5-plan.md §E6, 45-ink-approved.md R5k: the collage lightbox's own
+ * step in the z-index scale styles/theme.css:191-199 already defines
+ * (`--z-index-menu` 40, `--z-index-nav` 50, `--z-index-curtain` 90,
+ * `--z-index-cursor` 100, `--z-index-skip-link` 110) -- added in a second
+ * `@theme` block here (this agent's file, not theme.css) rather than
+ * editing that scale directly; Tailwind v4 merges every `@theme` block it
+ * finds across imported files into one theme, and (per theme.css's own
+ * note above its scale) only generates a `z-<name>` utility from the
+ * `--z-index-*` namespace specifically, so `z-lightbox` resolves exactly
+ * as if this line lived there. 80 sits above the nav (the dialog fully
+ * covers the fixed header) but below both the page-transition ink curtain
+ * (a route change mid-lightbox still gets fully covered) and the custom
+ * cursor (the brush cursor keeps drawing over the dialog's own controls,
+ * per spec). */
+@theme {
+  --z-index-lightbox: 80;
+}
+
 /* V7 (41-ink-replace-map.md): pale-line background, ink text -- 10.71 contrast (42 §Tokens). */
 ::selection {
   background-color: var(--color-line);
@@ -123,7 +141,7 @@ html.brush-ready .brush-colour {
   --paper: #e9dfc8;
   --roll: 22px;
   --edge: 12px; /* torn-edge band height */
-  --unroll-t: 1100ms var(--ease-unroll);
+  --unroll-t: 550ms var(--ease-unroll); /* 51-round5-plan.md item 6 (R5d): halved from 1100ms */
 }
 
 .scroll-stage {
@@ -474,32 +492,59 @@ html.motion-ready .brush-line {
   opacity: 0;
 }
 
-/* M10/V17/V27 (41-ink-replace-map.md): PillButton/NextProject's wash fill.
- * A blot-masked layer that scales from 0 to 1 from the pointer's entry
- * point (`--wash-x`/`--wash-y`, set on pointerenter; 50/50 default covers
- * keyboard focus) instead of animating the mask itself, so the mask never
- * renders above its own resolution (42 §Components "mask <= 1x"). */
+/* M10/V17/V27 (41-ink-replace-map.md), R6a (45 §Round 6, 58 §F1 "drop
+ * fill"): PillButton/NextProject's wash fill. Was a blot-masked layer
+ * animating `mask-size`; the owner dropped the blot texture for a flat,
+ * crisp-edged solid ink disc, so this is now a plain circle (no mask at
+ * all) positioned at the pointer's entry point (`--wash-x`/`--wash-y`, set
+ * on pointerenter; 50/50 default covers keyboard focus) via `left`/`top`,
+ * then centred and scaled 0 -> 1 in one `transform` (transform-only
+ * motion, unchanged 180/250ms `--ease-dry` timings; see the rule's own
+ * comment below for why the centring has to live *inside* `transform`
+ * rather than a sibling `translate` property). Coverage is by
+ * construction, not by eyeballing:
+ * sized `width: 300%; aspect-ratio: 1` of the control's own width (so the
+ * disc's radius is always 1.5x that width), which covers the control's
+ * full diagonal from *any* entry point -- including the opposite corner,
+ * the worst case -- whenever height/width <= sqrt(1.25) ~= 1.118
+ * (1.5w >= sqrt(w^2+h^2) <=> 2.25w^2 >= w^2+h^2 <=> h/w <= sqrt(1.25)).
+ * Every current user clears that: PillButton's pill (height 44px, always
+ * narrower than tall given its `px-6` padding + label) and NextProject's
+ * square circle (h/w = 1.0). The control keeps its own `overflow-hidden
+ * rounded-full`, so the disc is clipped to the pill/circle regardless of
+ * how far it overshoots past the control's own edge. */
 .ink-wash {
   position: absolute;
-  inset: 0;
+  left: var(--wash-x, 50%);
+  top: var(--wash-y, 50%);
   z-index: -10;
+  width: 300%;
+  aspect-ratio: 1;
+  border-radius: 50%;
   background-color: var(--color-ink);
-  transform: scale(0);
-  transform-origin: var(--wash-x, 50%) var(--wash-y, 50%);
+  /* Bug fix (orchestrator verification, round 6): a standalone `translate`
+   * longhand sharing a rule with `transform` was silently dropped by the
+   * build's CSS pipeline -- the compiled `.ink-wash` in `dist/assets/*.css`
+   * carried no `translate` at all, so the disc's *un-centred* top-left
+   * corner sat at the entry point instead of its centre, leaving only a
+   * sliver of the (correctly sized) circle grazing the control's far edge
+   * (measured: a ~20px dot at a pill's right end, failing containment).
+   * Folding the centring into the `transform` function list itself (one
+   * property, nothing to drop) fixes it: `scale()` is the rightmost
+   * function, so it applies first, about the default centre origin
+   * (collapsing every point to that centre at scale(0)); `translate()` is
+   * outermost/last and its own percentages resolve against this element's
+   * *own* border box regardless of the current scale, so the centre point
+   * always lands exactly on `left`/`top` (the entry point) at any scale
+   * value, and the fully-scaled circle ends up centred on it too. Still
+   * transform-only motion. */
+  transform: translate(-50%, -50%) scale(0);
   transition: transform 180ms var(--ease-dry);
-  mask-image: url('/ink/blot.webp');
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: 160% 160%;
-  -webkit-mask-image: url('/ink/blot.webp');
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: 160% 160%;
 }
 
 .group:hover .ink-wash,
 .group:focus-visible .ink-wash {
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1);
   transition-duration: 250ms;
 }
 
@@ -517,6 +562,40 @@ html.motion-ready .brush-line {
 .hero-painting {
   mask-image: linear-gradient(to bottom, #000 72%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+}
+
+/* R6b (45 §Round 6, 58 §F1 "colophon triptych"): after the project-detail
+ * collage, the three `project.sections` beats sit side by side on one
+ * aged-paper sheet instead of the old label-left/paragraph-middle
+ * `DividerRow`s. Same paper grain the `.scroll` cards use, over
+ * `--color-sheet` (theme.css -- the exact value `.scroll { --paper }`
+ * above already uses), square corners (a flat sheet, not a rolled
+ * handscroll), a hairline top edge. `.colophon-leaf` draws the seam
+ * between beats: a horizontal hairline stacking phones, a vertical one
+ * between the `md:grid-cols-3` columns, `:first-child` carrying neither
+ * so the sheet's own edge reads as the only boundary there. */
+.colophon {
+  background: url('/ink/paper.webp') 0 0 / 512px, var(--color-sheet);
+  box-shadow: inset 0 1px 0 0 rgb(60 40 15 / 0.14);
+}
+
+.colophon-leaf {
+  border-top: 1px solid rgb(60 40 15 / 0.2);
+}
+
+.colophon-leaf:first-child {
+  border-top: 0;
+}
+
+@media (min-width: 768px) {
+  .colophon-leaf {
+    border-top: 0;
+    border-left: 1px solid rgb(60 40 15 / 0.2);
+  }
+
+  .colophon-leaf:first-child {
+    border-left: 0;
+  }
 }
 
 /* 49-round4-plan.md §E1: the hero mist's idle sway, moved off the main
@@ -753,6 +832,44 @@ html.motion-ready .hero-cover {
  * against a not-yet-covered background. */
 html[data-menu-open] [data-on-ink] {
   color: var(--color-background);
+}
+
+/* 51-round5-plan.md §E4, 45 §Round5 R5a: the monogram tone registry.
+ * `components/Monogram.tsx`'s single IntersectionObserver sets
+ * `data-nav-on-ink` on <html> whenever a `data-tone="dark"` surface (the
+ * hero painting, a dark project cover/collage tile, E2's video mount --
+ * all driven by each surface's own existing `tone` field, never a second
+ * hand-kept list here) passes under the nav band. Same `color` flip, same
+ * `[data-on-ink]` marker as the menu-open rule above -- that rule is a
+ * separate, higher-priority case and is untouched; both rules ever only
+ * agree (paper) when they overlap, so there is no ordering conflict.
+ * Whole-letter colour swap only: no `mix-blend-mode`, no `filter`, no
+ * per-pixel clipping (round 4's compositor-Commit ban on blends/filters
+ * over large layers, and this round's explicit "not a blend mode" call).
+ * Contrast: paper (`--color-background` #F2ECDE) on the one flat dark
+ * token in play here, `--color-ink-dark` #2A3035 (the video mount's tile
+ * fill), is 11.34:1 -- see `.ink-paper-dark`'s own comment above, same
+ * arithmetic. `--color-ink` #141A1E (the darkest ink token) computes to
+ * 14.90:1. Both clear AA (4.5:1) with wide headroom; a `tone:'dark'`
+ * photograph is, by that field's own definition, at least as dark as
+ * these tokens' floor.
+ *
+ * The crossfade is a plain `color` transition -- cheap on a 72x56px text
+ * layer, never the "large layer" the blend/filter ban targets. Reduced
+ * motion drops the transition so the flip is instant, matching every
+ * other reduced-motion end-state rule on this page. */
+[data-on-ink] {
+  transition: color 200ms var(--ease-dry);
+}
+
+html[data-nav-on-ink] [data-on-ink] {
+  color: var(--color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-on-ink] {
+    transition: none;
+  }
 }
 
 /* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens) -- re-measured 2026-09-28

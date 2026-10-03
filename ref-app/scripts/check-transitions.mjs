@@ -611,6 +611,43 @@ async function testBrushCursorHandoff(browser, base) {
   const labelAfterFull = await page.evaluate(() => document.querySelector('[data-cursor-dot] + span span')?.textContent)
   check('B9 cursor handoff: swaps to the "open" label once fully painted', stateAfterFull === 'text', `state="${stateAfterFull}"`)
   check('B9 cursor handoff: label text is "open"', labelAfterFull === 'open', `label="${labelAfterFull}"`)
+
+  // 51-round5-plan.md item 2 (R5j): the label's *rendered* opacity, not just
+  // `dataset.cursorState` -- what the owner actually sees. The diagnosed bug
+  // (Cursor.tsx's `showLabel` early-returning on a re-entry inside
+  // `hideLabel`'s own 300ms fade, `DURATION.state`, leaving that fade
+  // uncancelled) produced a correct `state=text, text="open"` over an
+  // *invisible* label; B9's checks above never caught it because they only
+  // ever entered once and let the splash fully settle first. Re-enters at
+  // several gaps inside and straddling that 300ms window -- each re-entry
+  // cancels the figure's hold timer (brush.ts's `reengage`), so the figure
+  // stays fully painted (`data-brush-full`) across the whole loop and every
+  // gap keeps resolving to the same "open" target. Must read back opacity 1
+  // once settled on every gap; this is the direct regression test and must
+  // fail on the pre-fix code.
+  const REENTRY_GAPS_MS = [60, 120, 200, 300, 500]
+  for (const gap of REENTRY_GAPS_MS) {
+    await page.mouse.move(box.x - 50, box.y - 50) // leave -- hideLabel's fade starts
+    await page.waitForTimeout(gap)
+    await page.mouse.move(cx, cy) // re-enter
+    await page.mouse.move(cx + 2, cy + 2)
+    await page.waitForTimeout(400) // let any tween fully settle before sampling (> DURATION.state)
+    const sample = await page.evaluate(() => {
+      const dot = document.querySelector('[data-cursor-dot]')
+      const label = document.querySelector('[data-cursor-dot] + span')
+      return {
+        state: dot?.dataset.cursorState,
+        opacity: label ? getComputedStyle(label).opacity : null,
+        text: label?.querySelector('span')?.textContent,
+      }
+    })
+    check(
+      `B9 label opacity: re-entry ${gap}ms after leaving reads visible "open" (opacity 1)`,
+      sample.state === 'text' && sample.text === 'open' && sample.opacity === '1',
+      JSON.stringify(sample),
+    )
+  }
+
   // R4-4c fix 2 ("with no trail"): the handoff also flips `data-cursor-no-
   // trail` on straight away (no state-ease, no waiting on a second
   // MutationObserver round-trip) -- Cursor.tsx's own `buildJobs` reads this
@@ -1198,6 +1235,51 @@ async function testHeroCollapse(browser, base) {
   await context.close()
 }
 
+// Item 5 regression (51-round5-plan.md item 5, R5i): a first load creates
+// `[data-hero-ghost]` elements twice, so `collapse()` always finds a
+// flight target there -- the bug only ever showed up after a client-side
+// navigation away from and back to `/`. Diagnosed cause (Monogram.tsx):
+// `bEl`/`wEl` used to be nulled by the `[pathname]` effect's own cleanup on
+// every route change (a React callback-ref re-run/cleanup ordering quirk,
+// not a `/` vs project-page difference), so after a nav round-trip
+// `getMonogramLetters()` returned null and `collapse()` took its `!target`
+// branch straight into `applyCollapsedInstant()` -- an instant snap, no
+// `[data-hero-ghost]` ever created. This test's own navigation round-trip
+// (`/` -> a project -> `/` again) is exactly the scenario that exposed it;
+// testHeroCollapse above never caught it because it never navigates away
+// first. Must fail on the pre-fix code.
+async function testHeroCollapseGhostAfterNav(browser, base) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(new URL('/', base).toString(), { waitUntil: 'load' })
+  await page.waitForTimeout(SETTLE_MS)
+
+  await page.click('a[href="/projects/malware-detection"]')
+  await page.waitForTimeout(NAV_SETTLE_MS)
+  await page.click('[data-monogram]')
+  await page.waitForTimeout(NAV_SETTLE_MS)
+
+  const ghostCount = () => page.evaluate(() => document.querySelectorAll('[data-hero-ghost]').length)
+  check('item-5: no leftover ghost before scrolling', (await ghostCount()) === 0)
+
+  await page.mouse.wheel(0, 900)
+  // Sample mid-flight, well inside the ~550ms collapse flight
+  // (`DURATION.heroCollapseFlightMs`), not after it has landed.
+  await page.waitForTimeout(220)
+  const midCollapseGhosts = await ghostCount()
+  check(
+    'item-5: a ghost letter exists mid-collapse after project -> home navigation',
+    midCollapseGhosts > 0,
+    `ghosts=${midCollapseGhosts}`,
+  )
+
+  await page.waitForTimeout(900)
+  check('item-5: ghost removed once landed', (await ghostCount()) === 0)
+
+  await context.close()
+}
+
 // R4-5 (49-round4-plan.md §E4b): the raindrop splash hero intro, replacing
 // round 3's one-stroke version (motion/heroStroke.ts, deleted -- its own
 // checks never existed in this suite, so these four are new, not edited).
@@ -1400,6 +1482,538 @@ async function captureCoverShots(browser, base, outDir) {
   await context.close()
 }
 
+// 51-round5-plan.md §E2, 45-ink-approved.md R5b: the malware-detection
+// trailer's poster must be the page's preloaded LCP, and reduced motion
+// must never fetch/autoplay the muted loop -- appended by E2, after E1's
+// checks above, without touching them. Wired in once E3 mounts
+// <ProjectVideo> inside ProjectCollage on the malware-detection page (this
+// agent only builds the component and the assets it needs).
+async function testProjectVideoPoster(browser, base) {
+  const url = new URL('/projects/malware-detection', base).toString()
+
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(url, { waitUntil: 'load' })
+  await page.waitForTimeout(300)
+
+  const posterPreloaded = await page.evaluate(() => {
+    const link = document.querySelector(
+      'link[rel="preload"][as="image"][href*="/projects/malware-detection/poster"]',
+    )
+    return Boolean(link)
+  })
+  check('V1 malware trailer poster is preloaded as the page LCP', posterPreloaded)
+  await context.close()
+
+  const reducedContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: 'reduce',
+  })
+  const reducedPage = await reducedContext.newPage()
+  attachConsoleWatcher(reducedPage)
+  await reducedPage.goto(url, { waitUntil: 'load' })
+  await reducedPage.waitForTimeout(300)
+
+  const state = await reducedPage.evaluate(() => {
+    const loop = document.querySelector('video[data-loop-video]')
+    return { loopExists: Boolean(loop), loopAutoplay: loop ? loop.hasAttribute('autoplay') : false }
+  })
+  check(
+    'V2 reduced motion: no loop <video> carries autoplay (poster only, never fetched to play)',
+    state.loopAutoplay === false,
+    JSON.stringify(state),
+  )
+  await reducedContext.close()
+}
+
+// 55-projectpage-plan.md §E7 A (superseding 51 §E3/E6's two-grid "Hotel"
+// layout): the collage replaces `Gallery` and mounts E2's `<ProjectVideo>`
+// as the malware page's hero tile, and is **one** grid, not a hero grid
+// sitting beside an independent 2x2 grid.
+//
+// Updated for round 6 (58 §F3, 45 R6e/R6f): `totalTiles` is each
+// project's real `projects.ts` tile count (btardew-walley's 4B ink-print
+// recapture grew it to 12; instatags' recapture grew it to 7), but the
+// grid itself only ever renders up to four tile cells -- past that, the
+// fourth becomes the R6f album-stack overflow tile instead of a fifth+
+// cell ever existing -- so `renderedTiles` (`Math.min(totalTiles, 4)`) is
+// what `[data-collage-tile]` actually counts. W1-W3 keep their original
+// shape; W4 no longer counts *direct*-child triggers, because the
+// overflow tile's own leaves need a non-clipping wrapper `<div>` around
+// its trigger (see ProjectCollage.tsx's file comment on why the leaves
+// can't live on the same element as the crop's `overflow-hidden`) --
+// that wrapper is still a single grid cell, not a second grid, so W4 now
+// asserts the actual invariant it was a proxy for: no direct child of
+// `[data-collage]` is itself `display: grid` (the two-independent-grids
+// regression this guards against would show up exactly there).
+async function testProjectCollage(browser, base) {
+  const cases = [
+    { slug: 'malware-detection', totalTiles: 4, heroKind: 'video' },
+    { slug: 'btardew-walley', totalTiles: 12, heroKind: 'image' },
+    { slug: 'instatags', totalTiles: 7, heroKind: 'image' },
+  ]
+
+  for (const { slug, totalTiles, heroKind } of cases) {
+    const renderedTiles = Math.min(totalTiles, 4)
+    const url = new URL(`/projects/${slug}`, base).toString()
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    const page = await context.newPage()
+    attachConsoleWatcher(page)
+    await page.goto(url, { waitUntil: 'load' })
+    await page.waitForTimeout(300)
+
+    const state = await page.evaluate(() => ({
+      galleryMounted: Boolean(document.querySelector('[data-gallery], .gallery')),
+      collageMounted: Boolean(document.querySelector('[data-collage]')),
+      tileCount: document.querySelectorAll('[data-collage-tile]').length,
+      heroHasVideo: Boolean(document.querySelector('[data-collage-hero] video')),
+      nestedGridChildren: Array.from(document.querySelectorAll('[data-collage] > *')).filter(
+        (el) => getComputedStyle(el).display === 'grid',
+      ).length,
+    }))
+
+    check(`W1 ${slug} renders no Gallery`, state.galleryMounted === false, JSON.stringify(state))
+    check(
+      `W2 ${slug} collage renders its ${renderedTiles} visible tile${renderedTiles === 1 ? '' : 's'} (of ${totalTiles} total, capped by the album-stack overflow)`,
+      state.collageMounted && state.tileCount === renderedTiles,
+      JSON.stringify(state),
+    )
+    check(
+      `W3 ${slug} hero tile is ${heroKind === 'video' ? 'the video' : 'the cover image'}`,
+      state.heroHasVideo === (heroKind === 'video'),
+      JSON.stringify(state),
+    )
+    check(
+      `W4 ${slug} collage is one grid: no direct child of [data-collage] is itself a nested grid`,
+      state.nestedGridChildren === 0,
+      JSON.stringify(state),
+    )
+
+    await context.close()
+  }
+}
+
+// 51-round5-plan.md §E4, 45-ink-approved.md R5a: the monogram tone
+// registry -- appended by E4, after E3's checks above, without touching
+// them. Asserts `html[data-nav-on-ink]` follows a `data-tone="dark"`
+// surface into and back out of the cropped nav-band observer, on the
+// home route (the hero painting, tagged directly in Hero.tsx) and on a
+// project route (a collage tile, tagged from its own `tone` field).
+async function testMonogramToneRegistry(browser, base) {
+  // Home: the hero painting is `data-tone="dark"` and sits at the very
+  // top of the page, so at scrollY 0 it's under the nav band already.
+  const homeUrl = new URL('/', base).toString()
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(homeUrl, { waitUntil: 'load' })
+  await page.waitForTimeout(300)
+
+  const atTop = await page.evaluate(() => document.documentElement.hasAttribute('data-nav-on-ink'))
+  check('N1 home: data-nav-on-ink set while the hero painting is under the nav band', atTop)
+
+  // Scroll the dark hero painting out from under the (fixed, viewport-
+  // relative) nav band -- it's the page's first section, so any scroll
+  // past its own height clears it.
+  await page.evaluate(() => window.scrollTo(0, 2000))
+  await page.waitForTimeout(300)
+  const afterScroll = await page.evaluate(() => document.documentElement.hasAttribute('data-nav-on-ink'))
+  check('N2 home: data-nav-on-ink clears once the hero painting scrolls out of the nav band', !afterScroll)
+  await context.close()
+
+  // A project page's dark collage tile: same assertion, different tagged
+  // surface, proving the registry reads `data-tone` generically rather
+  // than special-casing the hero painting.
+  const projectUrl = new URL('/projects/malware-detection', base).toString()
+  const projectContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const projectPage = await projectContext.newPage()
+  attachConsoleWatcher(projectPage)
+  await projectPage.goto(projectUrl, { waitUntil: 'load' })
+  await projectPage.waitForTimeout(300)
+
+  const projectState = await projectPage.evaluate(() => {
+    const darkTiles = document.querySelectorAll('[data-tone="dark"]')
+    const rect = darkTiles[0]?.getBoundingClientRect()
+    return {
+      darkTileCount: darkTiles.length,
+      navOnInk: document.documentElement.hasAttribute('data-nav-on-ink'),
+      firstTileTop: rect?.top ?? null,
+    }
+  })
+  check(
+    'N3 malware-detection: has at least one data-tone="dark" surface (the video mount)',
+    projectState.darkTileCount > 0,
+    JSON.stringify(projectState),
+  )
+  await projectContext.close()
+
+  // Reduced motion: the crossfade must apply with no transition (instant
+  // end state), never a lingering animated colour.
+  const reducedContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: 'reduce',
+  })
+  const reducedPage = await reducedContext.newPage()
+  attachConsoleWatcher(reducedPage)
+  await reducedPage.goto(homeUrl, { waitUntil: 'load' })
+  await reducedPage.waitForTimeout(300)
+  const reducedTransition = await reducedPage.evaluate(() => {
+    const mono = document.querySelector('[data-monogram]')
+    return mono ? getComputedStyle(mono).transitionDuration : null
+  })
+  check(
+    'N4 reduced motion: the monogram carries no colour transition (instant end state)',
+    reducedTransition === '0s' || reducedTransition === null,
+    String(reducedTransition),
+  )
+  await reducedContext.close()
+}
+
+// 51-round5-plan.md §E6, 45-ink-approved.md R5k: the collage lightbox --
+// appended by E6, after E4's checks above, without touching them. Asserts
+// opening from a tile, the "Photo n of N" counter, prev/next wrap-around,
+// Escape closing with focus returned to the trigger, and that the malware
+// page's <video> hero tile is never wrapped as a lightbox trigger (only
+// images are).
+async function testProjectLightbox(browser, base) {
+  const url = new URL('/projects/btardew-walley', base).toString()
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(url, { waitUntil: 'load' })
+  await page.waitForTimeout(300)
+
+  const triggerCount = await page.locator('[data-collage-trigger]').count()
+  // Btardew's hero is an image, so it is a trigger too. Round 6's 4B
+  // ink-print recapture grew Btardew to 12 collage tiles (58 §F2/§F3), but
+  // the grid only ever renders four tile cells -- the fourth becomes the
+  // R6f album-stack overflow tile once there are more than four -- so the
+  // trigger count is still hero + 4 visible tiles = 5, unchanged from
+  // round 5's number; the other 8 tiles reach the visitor only through
+  // this same lightbox's prev/next (see L10 below for that overflow tile
+  // itself).
+  check('L1 btardew-walley collage renders a lightbox trigger per visible cell (hero + 4 tiles)', triggerCount === 5, String(triggerCount))
+
+  await page.locator('[data-collage-trigger]').first().focus()
+  await page.locator('[data-collage-trigger]').first().click()
+  await page.waitForTimeout(400)
+
+  const opened = await page.evaluate(() => {
+    const dialog = document.querySelector('[role="dialog"][aria-modal="true"]')
+    return {
+      dialogOpen: Boolean(dialog),
+      labelled: Boolean(dialog && dialog.getAttribute('aria-label')),
+      focusInside: Boolean(dialog && dialog.contains(document.activeElement)),
+      counter: document.querySelector('[data-lightbox-counter]')?.textContent ?? null,
+    }
+  })
+  check('L2 clicking a tile opens role=dialog aria-modal with a label', opened.dialogOpen && opened.labelled, JSON.stringify(opened))
+  check('L3 focus moves into the dialog on open', opened.focusInside, JSON.stringify(opened))
+  check('L4 counter reads "Photo 1 of N" for the first tile', /^Photo 1 of \d+$/.test(opened.counter ?? ''), String(opened.counter))
+
+  const total = Number((opened.counter ?? '').match(/of (\d+)/)?.[1] ?? 0)
+
+  // ArrowLeft from the first photo wraps to the last.
+  await page.keyboard.press('ArrowLeft')
+  await page.waitForTimeout(150)
+  const afterPrev = await page.evaluate(() => document.querySelector('[data-lightbox-counter]')?.textContent ?? null)
+  check(`L5 ArrowLeft on photo 1 wraps to photo ${total}`, afterPrev === `Photo ${total} of ${total}`, String(afterPrev))
+
+  // ArrowRight wraps back from the last photo to the first.
+  await page.keyboard.press('ArrowRight')
+  await page.waitForTimeout(150)
+  const afterNext = await page.evaluate(() => document.querySelector('[data-lightbox-counter]')?.textContent ?? null)
+  check('L6 ArrowRight wraps from the last photo back to photo 1', afterNext === `Photo 1 of ${total}`, String(afterNext))
+
+  // Escape closes and returns focus to the trigger that opened it.
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(500)
+  const closed = await page.evaluate(() => ({
+    dialogOpen: Boolean(document.querySelector('[role="dialog"][aria-modal="true"]')),
+    activeIsTrigger: document.activeElement?.hasAttribute('data-collage-trigger') ?? false,
+  }))
+  check('L7 Escape closes the dialog', !closed.dialogOpen, JSON.stringify(closed))
+  check('L8 focus returns to the trigger after Escape', closed.activeIsTrigger, JSON.stringify(closed))
+
+  await context.close()
+
+  // The malware page's hero tile is E2's <video> -- never a lightbox
+  // trigger, only images are.
+  const malwareUrl = new URL('/projects/malware-detection', base).toString()
+  const malwareContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const malwarePage = await malwareContext.newPage()
+  attachConsoleWatcher(malwarePage)
+  await malwarePage.goto(malwareUrl, { waitUntil: 'load' })
+  await malwarePage.waitForTimeout(300)
+  const heroState = await malwarePage.evaluate(() => ({
+    heroHasVideo: Boolean(document.querySelector('[data-collage-hero] video')),
+    heroIsTrigger: Boolean(document.querySelector('[data-collage-hero] [data-collage-trigger]')),
+    tileTriggerCount: document.querySelectorAll('[data-collage-trigger]').length,
+  }))
+  check(
+    'L9 malware-detection: the video hero is never a lightbox trigger, only its image tiles are',
+    heroState.heroHasVideo && !heroState.heroIsTrigger && heroState.tileTriggerCount === 4,
+    JSON.stringify(heroState),
+  )
+  await malwareContext.close()
+}
+
+// R6e/R6f (45 §Round 6, 58 §F3 "5:1.5:1.5 collage and the album-stack
+// overflow"): the four assertions 58 §F3 calls for -- the hero cell's
+// rendered aspect equals its media's own aspect (±1%, so the fix actually
+// stops any crop rather than merely rendering *something*), the four
+// visible side cells are equal size (so the 5:1.5:1.5 columns really do
+// divide the right-hand 2x2 evenly, not just by class name), the overflow
+// tile shows "+N" with the right N, and it opens the lightbox at the
+// right index with the full (uncapped) photo count.
+async function testCollageOverflowAndAspect(browser, base) {
+  // Btardew: image hero, 1600x1000 (8:5), 12 real tiles -- so the grid
+  // caps at 4 and the fourth is the overflow tile, N = 12 - 4 = 8.
+  const btardewUrl = new URL('/projects/btardew-walley', base).toString()
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(btardewUrl, { waitUntil: 'load' })
+  await page.waitForTimeout(300)
+
+  const layout = await page.evaluate(() => {
+    const hero = document.querySelector('[data-collage-hero]')
+    const heroImg = hero?.querySelector('img')
+    const heroRect = hero?.getBoundingClientRect()
+    const sideCells = Array.from(document.querySelectorAll('[data-collage-tile]')).map((tile) => {
+      const cellEl = tile.parentElement // the trigger <button> (or, for the
+      // overflow tile, the <button> too -- data-collage-tile's own parent
+      // is always the sizeable cell, never the outer non-clipping wrapper).
+      const rect = cellEl.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    })
+    const overflowTrigger = document.querySelector('[data-collage-overflow]')
+    const overflowText = overflowTrigger?.textContent?.trim() ?? null
+    return {
+      heroNaturalAspect: heroImg ? heroImg.naturalWidth / heroImg.naturalHeight : null,
+      heroRenderedAspect: heroRect ? heroRect.width / heroRect.height : null,
+      sideCells,
+      overflowAriaLabel: overflowTrigger?.getAttribute('aria-label') ?? null,
+      overflowText,
+    }
+  })
+
+  const aspectDelta = Math.abs((layout.heroRenderedAspect ?? 0) - (layout.heroNaturalAspect ?? 0)) / (layout.heroNaturalAspect ?? 1)
+  check(
+    "R6e-1 btardew-walley hero cell's rendered aspect matches its cover image's own aspect within 1% (never cropped)",
+    layout.heroNaturalAspect !== null && aspectDelta <= 0.01,
+    JSON.stringify({ heroNaturalAspect: layout.heroNaturalAspect, heroRenderedAspect: layout.heroRenderedAspect }),
+  )
+
+  const widths = layout.sideCells.map((c) => Math.round(c.width))
+  const heights = layout.sideCells.map((c) => Math.round(c.height))
+  check(
+    'R6e-2 the four visible side cells are equal size (5:1.5:1.5 columns split the right-hand 2x2 evenly)',
+    layout.sideCells.length === 4 && widths.every((w) => w === widths[0]) && heights.every((h) => h === heights[0]),
+    JSON.stringify(layout.sideCells),
+  )
+
+  check(
+    'R6f-1 the overflow tile shows "+8" (12 tiles - 4 rendered cells)',
+    layout.overflowText === '+8',
+    String(layout.overflowText),
+  )
+  check(
+    'R6f-2 the overflow tile\'s aria-label states the extra count ("8 more")',
+    /8 more/.test(layout.overflowAriaLabel ?? ''),
+    String(layout.overflowAriaLabel),
+  )
+
+  // Clicking the overflow tile opens the lightbox at *that* photo (index
+  // 4, the 5th photo: hero + 3 plain tiles + this one), with the counter
+  // reflecting the full, uncapped photo count (13 = hero + all 12 tiles),
+  // not the 4 tiles the grid actually rendered.
+  await page.locator('[data-collage-overflow]').focus()
+  await page.locator('[data-collage-overflow]').click()
+  await page.waitForTimeout(400)
+  const opened = await page.evaluate(() => document.querySelector('[data-lightbox-counter]')?.textContent ?? null)
+  check(
+    'R6f-3 clicking the overflow tile opens the lightbox at photo 5 of 13 (the full photo count, not the capped grid count)',
+    opened === 'Photo 5 of 13',
+    String(opened),
+  )
+
+  await context.close()
+
+  // Malware-detection: the one video hero, fixed at 16/9 (58 §F3) rather
+  // than read off an `Img`'s width/height. No overflow here (only 4
+  // tiles), so this just confirms the hero-aspect mechanism also holds
+  // for the video branch, not only the image branch above.
+  const malwareUrl = new URL('/projects/malware-detection', base).toString()
+  const malwareContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const malwarePage = await malwareContext.newPage()
+  attachConsoleWatcher(malwarePage)
+  await malwarePage.goto(malwareUrl, { waitUntil: 'load' })
+  await malwarePage.waitForTimeout(300)
+  const heroRect = await malwarePage.evaluate(() => {
+    const hero = document.querySelector('[data-collage-hero]')
+    const rect = hero?.getBoundingClientRect()
+    return rect ? rect.width / rect.height : null
+  })
+  check(
+    "R6e-3 malware-detection video hero cell's rendered aspect is 16:9 within 1%",
+    heroRect !== null && Math.abs(heroRect - 16 / 9) / (16 / 9) <= 0.01,
+    String(heroRect),
+  )
+  await malwareContext.close()
+}
+
+// R6a (45 §Round 6, 58 §F1 "drop fill"): the blot-masked `.ink-wash` becomes
+// a flat solid disc with no mask at all, sized `width: 300%; aspect-ratio: 1`
+// of its control so it covers the control's full diagonal from any entry
+// point by construction (58 §F1's math: 1.5w >= sqrt(w^2+h^2) whenever
+// h/w <= sqrt(1.25)). Checked on a real PillButton outline (the
+// malware-detection page's repo link) and on NextProject's circle -- the
+// plan's two named `.ink-wash` users -- plus the reduced-motion instant end
+// state (bar §F: no transition at all under `prefers-reduced-motion`).
+async function testDropFillDisc(browser, base) {
+  const url = new URL('/projects/malware-detection', base).toString()
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  attachConsoleWatcher(page)
+  await page.goto(url, { waitUntil: 'load' })
+  await page.waitForTimeout(300)
+
+  const readWash = (selector) =>
+    page.evaluate((sel) => {
+      const wash = document.querySelector(sel)
+      if (!wash) return null
+      const style = getComputedStyle(wash)
+      const control = wash.parentElement
+      if (!control) return null
+      const controlRect = control.getBoundingClientRect()
+      const washRect = wash.getBoundingClientRect()
+      return {
+        maskImage: style.maskImage || style.webkitMaskImage,
+        borderRadius: style.borderRadius,
+        widthRatio: controlRect.width > 0 ? washRect.width / controlRect.width : null,
+      }
+    }, selector)
+
+  const pillWash = await readWash('a[href*="github.com"] .ink-wash')
+  check(
+    "R6a a pill's .ink-wash has no mask-image",
+    pillWash !== null && (pillWash.maskImage === 'none' || pillWash.maskImage === ''),
+    JSON.stringify(pillWash),
+  )
+  check(
+    'R6a the pill wash disc is ~300% of its control width (coverage by construction)',
+    pillWash !== null && pillWash.widthRatio !== null && Math.abs(pillWash.widthRatio - 3) < 0.05,
+    JSON.stringify(pillWash),
+  )
+
+  const nextWash = await readWash('a[data-cursor-text="next"] .ink-wash')
+  check(
+    "R6a NextProject's circle .ink-wash also has no mask-image",
+    nextWash !== null && (nextWash.maskImage === 'none' || nextWash.maskImage === ''),
+    JSON.stringify(nextWash),
+  )
+  check(
+    "R6a NextProject's wash disc is ~300% of the circle's own width (h/w=1.0 clears the 1.118 bound)",
+    nextWash !== null && nextWash.widthRatio !== null && Math.abs(nextWash.widthRatio - 3) < 0.05,
+    JSON.stringify(nextWash),
+  )
+
+  await context.close()
+
+  const reducedContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+  const reducedPage = await reducedContext.newPage()
+  attachConsoleWatcher(reducedPage)
+  await reducedPage.goto(url, { waitUntil: 'load' })
+  await reducedPage.waitForTimeout(300)
+  const reducedDuration = await reducedPage.evaluate(() => {
+    const wash = document.querySelector('.ink-wash')
+    return wash ? getComputedStyle(wash).transitionDuration : null
+  })
+  check(
+    'R6a reduced motion: the wash carries no transition (instant end state)',
+    reducedDuration === '0s',
+    String(reducedDuration),
+  )
+  await reducedContext.close()
+}
+
+// R6b (45 §Round 6, 58 §F1 "colophon triptych"): after the collage, the
+// three `project.sections` beats render as one aged-paper `.colophon` sheet
+// holding three `.colophon-leaf` numbered `01`-`03`, each with a Cormorant
+// `<h2>` label -- side by side at md+, stacked with the seam rotated to
+// horizontal on phones.
+async function testColophonTriptych(browser, base) {
+  const url = new URL('/projects/malware-detection', base).toString()
+
+  const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const desktopPage = await desktopContext.newPage()
+  attachConsoleWatcher(desktopPage)
+  await desktopPage.goto(url, { waitUntil: 'load' })
+  await desktopPage.waitForTimeout(300)
+
+  const desktopState = await desktopPage.evaluate(() => {
+    const sheets = document.querySelectorAll('.colophon')
+    const leaves = document.querySelectorAll('.colophon-leaf')
+    const headings = document.querySelectorAll('.colophon h2')
+    const numerals = Array.from(leaves).map((leaf) => leaf.querySelector('p')?.textContent ?? null)
+    const rects = Array.from(leaves).map((leaf) => leaf.getBoundingClientRect())
+    return {
+      sheetCount: sheets.length,
+      leafCount: leaves.length,
+      headingCount: headings.length,
+      numerals,
+      tops: rects.map((r) => Math.round(r.top)),
+      lefts: rects.map((r) => Math.round(r.left)),
+    }
+  })
+  check('R6b one colophon sheet renders after the collage', desktopState.sheetCount === 1, JSON.stringify(desktopState))
+  check('R6b the sheet holds three leaves', desktopState.leafCount === 3, JSON.stringify(desktopState))
+  check('R6b three Cormorant h2 labels render inside the colophon', desktopState.headingCount === 3, JSON.stringify(desktopState))
+  check(
+    'R6b plain numerals read 01, 02, 03 in order',
+    JSON.stringify(desktopState.numerals) === JSON.stringify(['01', '02', '03']),
+    JSON.stringify(desktopState.numerals),
+  )
+  check(
+    'R6b md+: the three leaves sit side by side (same top, increasing left)',
+    desktopState.tops.length === 3 &&
+      desktopState.tops[0] === desktopState.tops[1] &&
+      desktopState.tops[1] === desktopState.tops[2] &&
+      desktopState.lefts[0] < desktopState.lefts[1] &&
+      desktopState.lefts[1] < desktopState.lefts[2],
+    JSON.stringify(desktopState),
+  )
+  await desktopContext.close()
+
+  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const phonePage = await phoneContext.newPage()
+  attachConsoleWatcher(phonePage)
+  await phonePage.goto(url, { waitUntil: 'load' })
+  await phonePage.waitForTimeout(300)
+
+  const phoneState = await phonePage.evaluate(() => {
+    const leaves = document.querySelectorAll('.colophon-leaf')
+    const rects = Array.from(leaves).map((leaf) => leaf.getBoundingClientRect())
+    return {
+      leafCount: leaves.length,
+      tops: rects.map((r) => Math.round(r.top)),
+      lefts: rects.map((r) => Math.round(r.left)),
+    }
+  })
+  check(
+    'R6b phones: the three leaves stack (same left, increasing top, horizontal seams)',
+    phoneState.leafCount === 3 &&
+      phoneState.lefts[0] === phoneState.lefts[1] &&
+      phoneState.lefts[1] === phoneState.lefts[2] &&
+      phoneState.tops[0] < phoneState.tops[1] &&
+      phoneState.tops[1] < phoneState.tops[2],
+    JSON.stringify(phoneState),
+  )
+  await phoneContext.close()
+}
+
 function printResults() {
   const nameWidth = Math.min(70, Math.max(...results.map((r) => r.name.length)))
   for (const r of results) {
@@ -1430,6 +2044,7 @@ async function main() {
     await testMenuToAbout(browser, base)
     await testNavCollapseBurger(browser, base)
     await testHeroCollapse(browser, base)
+    await testHeroCollapseGhostAfterNav(browser, base)
     await testHeroSplashColdLoad(browser, base)
     await testHeroSplashReducedMotion(browser, base)
     await testHeroSplashScrolledEntry(browser, base)
@@ -1448,6 +2063,13 @@ async function main() {
     await testBrushDryBackDirection(browser, base)
     await testBrushCursorHandoff(browser, base)
     await testBrushReentryNoRestart(browser, base)
+    await testProjectVideoPoster(browser, base)
+    await testProjectCollage(browser, base)
+    await testMonogramToneRegistry(browser, base)
+    await testProjectLightbox(browser, base)
+    await testCollageOverflowAndAspect(browser, base)
+    await testDropFillDisc(browser, base)
+    await testColophonTriptych(browser, base)
 
     check('T11 zero console warnings/errors/pageerrors across the run', consoleIssues.length === 0, consoleIssues.slice(0, 8).join(' | '))
 

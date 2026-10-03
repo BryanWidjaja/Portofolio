@@ -20,6 +20,7 @@
     "assets:textures": "node scripts/ink-textures.mjs",
     "assets:placeholders": "node scripts/placeholders.mjs",
     "assets:projects": "node scripts/project-images.mjs",
+    "assets:video": "node scripts/project-video.mjs",
     "assets:favicon": "node scripts/favicon.mjs",
     "assets:hero": "node scripts/hero.mjs"
   },

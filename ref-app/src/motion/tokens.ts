@@ -127,10 +127,13 @@ export const DURATION = {
   // "#work enters: eyebrow opacity .5"). Trimmed per item 3, see wordStagger's
   // comment above.
   inkIn: 0.5, // was 0.6
-  blotBleed: 0.9, // was 1.2
-  batchFade: 0.4, // was 0.5
-  // M3/M4: item-to-item stagger, 80ms ("intro and batch .08").
-  introStagger: 0.08,
+  // 51-round5-plan.md item 6 (R5d, "both, halved"): blotBleed 0.9 -> 0.45,
+  // batchFade 0.4 -> 0.2.
+  blotBleed: 0.45, // was 0.9 (originally 1.2)
+  batchFade: 0.2, // was 0.4 (originally 0.5)
+  // M3/M4: item-to-item stagger. 51-round5-plan.md item 6 (R5d) halved it,
+  // 0.08 -> 0.04.
+  introStagger: 0.04, // was 0.08
   // M3 hand-off from the title/name write (motion/Page.tsx): the Home hero
   // waits for the name (and, later, the inscription) to be well underway —
   // storyboard T0+1250; every other page's intro follows its M2 title by
