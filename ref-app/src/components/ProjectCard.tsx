@@ -1,10 +1,10 @@
-import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { Icon } from './Icon'
 import { BrushReveal } from './BrushReveal'
 import { TransitionLink } from './TransitionLink'
-import type { Project } from '../content/projects'
+import type { HomeProject } from '../content/routeData'
 
 type ProjectCardProps = {
-  project: Project
+  project: HomeProject
   slot: 'lead' | 'left' | 'right'
   eager?: boolean
 }
@@ -63,7 +63,8 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
         <div data-reveal="label" className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 md:mt-5">
           <h3 className="flex items-center gap-2 text-title font-display font-medium">
             <span className="ink-underline inline-block">{project.title}</span>
-            <ArrowUpRight
+            <Icon
+              name="ArrowUpRight"
               weight="bold"
               aria-hidden="true"
               className="size-5 shrink-0 text-ink-muted transition-transform duration-[250ms] ease-dry group-hover:translate-x-[3px] group-focus-visible:translate-x-[3px] motion-reduce:transition-none"

@@ -31,6 +31,40 @@ export type MonogramState = 'shown' | 'hero'
 let rootEl: HTMLAnchorElement | null = null
 let bEl: HTMLSpanElement | null = null
 let wEl: HTMLSpanElement | null = null
+let toneObserver: IntersectionObserver | null = null
+const inkSurfaces = new Set<Element>()
+
+function updateNavOnInk() {
+  if (inkSurfaces.size > 0) document.documentElement.setAttribute('data-nav-on-ink', '')
+  else document.documentElement.removeAttribute('data-nav-on-ink')
+}
+
+function navBandRootMargin(): string {
+  if (!rootEl) return '0px'
+  const rect = rootEl.getBoundingClientRect()
+  return `-${Math.max(rect.top, 0)}px -${Math.max(window.innerWidth - rect.right, 0)}px -${Math.max(window.innerHeight - rect.bottom, 0)}px -${Math.max(rect.left, 0)}px`
+}
+
+function rebuildToneObserver() {
+  toneObserver?.disconnect()
+  toneObserver = null
+  inkSurfaces.clear()
+  if (typeof document === 'undefined' || typeof IntersectionObserver === 'undefined') return
+  const targets = document.querySelectorAll('[data-tone="dark"]')
+  if (!targets.length) {
+    updateNavOnInk()
+    return
+  }
+  toneObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) inkSurfaces.add(entry.target)
+      else inkSurfaces.delete(entry.target)
+    }
+    updateNavOnInk()
+  }, { rootMargin: navBandRootMargin(), threshold: 0 })
+  targets.forEach((element) => toneObserver?.observe(element))
+}
+
 
 
 
@@ -90,6 +124,10 @@ export function Monogram() {
       rootEl = null
       bEl = null
       wEl = null
+      toneObserver?.disconnect()
+      toneObserver = null
+      inkSurfaces.clear()
+      document.documentElement.removeAttribute('data-nav-on-ink')
     }
   }, [])
 
@@ -99,7 +137,14 @@ export function Monogram() {
     // stays) in `hero`; every other route is `shown` from the first
     // frame -- no flash of the monogram on the home route.
     setMonogramState(pathname === '/' ? 'hero' : 'shown')
+    rebuildToneObserver()
   }, [pathname])
+
+  useEffect(() => {
+    const onResize = () => rebuildToneObserver()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // The monogram's on-screen box can also move on a plain viewport
   // resize (the md breakpoint's larger monogram size/position) without a

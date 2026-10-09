@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
-import { Plus } from '@phosphor-icons/react/dist/ssr/Plus'
+import { Icon } from './Icon'
 import type { Img } from '../content/projects'
 import { useReducedMotion } from '../app/MotionProvider'
 import { useLenisControls } from '../app/LenisProvider'
@@ -8,7 +7,7 @@ import { ProjectImage } from './ProjectImage'
 
 type ProjectLightboxProps = {
   /** Flat, ordered list -- ProjectCollage.tsx builds this from its own
-   * hero (image case only -- E2's video hero is never a lightbox target)
+   * image hero, including the malware project's first conference slide,
    * and tiles, in the same order those render in the grid. */
   photos: Img[]
   /** Index into `photos` currently shown. Owned by the parent so a
@@ -250,7 +249,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
             data-cursor="stick"
             className="grid size-10 shrink-0 place-items-center rounded-full border border-ink text-ink"
           >
-            <Plus aria-hidden="true" weight="bold" className="size-4 rotate-45" />
+            <Icon name="Plus" aria-hidden="true" weight="bold" className="size-4 rotate-45" />
           </button>
         </div>
 
@@ -263,17 +262,29 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
               data-cursor="stick"
               className="grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink"
             >
-              <ArrowRight aria-hidden="true" weight="bold" className="size-5 rotate-180" />
+              <Icon name="ArrowRight" aria-hidden="true" weight="bold" className="size-5 rotate-180" />
             </button>
           ) : null}
 
-          <figure className="isolate flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-none">
+          <figure className="isolate flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-none">
             <ProjectImage
               img={current}
               sizes="(max-width: 600px) calc(100vw - 7rem), calc(100vw - 12rem)"
               loading="eager"
-              className="max-h-full max-w-full object-contain shadow-[0_0_0_1px_rgb(60_40_15/0.14)]"
+              className="max-h-full max-w-full min-h-0 min-w-0 flex-1 self-center object-contain shadow-[0_0_0_1px_rgb(60_40_15/0.14)]"
             />
+            <figcaption className="flex min-h-10 max-h-16 shrink-0 items-center justify-center gap-3 overflow-hidden px-2 py-2 text-center text-small">
+              <span className="line-clamp-2">{current.caption ?? current.alt}</span>
+              <a
+                href={current.src}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open full-size image: ${current.alt}`}
+                className="shrink-0 underline underline-offset-4"
+              >
+                Open full-size image
+              </a>
+            </figcaption>
           </figure>
 
           {total > 1 ? (
@@ -284,7 +295,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
               data-cursor="stick"
               className="grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink"
             >
-              <ArrowRight aria-hidden="true" weight="bold" className="size-5" />
+              <Icon name="ArrowRight" aria-hidden="true" weight="bold" className="size-5" />
             </button>
           ) : null}
         </div>
@@ -293,7 +304,8 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
           <div
             data-lightbox-thumbnails
             data-lenis-prevent
-            aria-label="Photo thumbnails"
+            role="region"
+            aria-label="Photo thumbnail navigation"
             tabIndex={0}
             className="flex shrink-0 justify-start gap-2 overflow-x-auto px-4 py-2 md:gap-3 md:px-6 md:py-3"
           >

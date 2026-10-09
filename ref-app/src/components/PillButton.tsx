@@ -1,17 +1,14 @@
-import type { ComponentType, PointerEvent, ReactNode } from 'react'
-import type { IconProps } from '@phosphor-icons/react'
-import { ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
-import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
-import { DownloadSimple } from '@phosphor-icons/react/dist/ssr/DownloadSimple'
+import type { PointerEvent, ReactNode } from 'react'
+import { Icon } from './Icon'
 import { TransitionLink } from './TransitionLink'
 
 type IconName = 'arrow-right' | 'arrow-up-right' | 'download'
 
-const icons: Record<IconName, ComponentType<IconProps>> = {
-  'arrow-right': ArrowRight,
-  'arrow-up-right': ArrowUpRight,
-  download: DownloadSimple,
-}
+const iconNames = {
+  'arrow-right': 'ArrowRight',
+  'arrow-up-right': 'ArrowUpRight',
+  download: 'DownloadSimple',
+} as const
 
 type PillButtonProps = {
   children: ReactNode
@@ -81,14 +78,13 @@ const variants = {
 } as const
 
 function PillContent({ children, icon, disabled, wash }: { children: ReactNode; icon?: IconName; disabled?: boolean; wash: boolean }) {
-  const IconComponent = icon ? icons[icon] : null
-
   return (
     <>
       {disabled || !wash ? null : <span aria-hidden="true" className="ink-wash" />}
       <span className="relative whitespace-nowrap">{children}</span>
-      {IconComponent ? (
-        <IconComponent
+      {icon ? (
+        <Icon
+          name={iconNames[icon]}
           aria-hidden="true"
           weight="bold"
           className="relative size-4 shrink-0 transition-transform duration-[180ms] ease-dry pointer-fine:group-hover:translate-x-1 pointer-fine:group-hover:duration-[250ms] group-focus-visible:translate-x-1 group-focus-visible:duration-[250ms] motion-reduce:translate-x-0!"

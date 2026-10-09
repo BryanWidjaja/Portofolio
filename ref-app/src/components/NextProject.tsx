@@ -1,4 +1,4 @@
-import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { Icon } from './Icon'
 import { BrushLine } from './BrushLine'
 import { TransitionLink } from './TransitionLink'
 import type { Project } from '../content/projects'
@@ -34,7 +34,7 @@ export function NextProject({ project }: NextProjectProps) {
         className="relative isolate grid size-14 shrink-0 place-items-center overflow-hidden rounded-full border border-ink text-ink transition-[transform,color] duration-[180ms] ease-dry pointer-fine:group-hover:text-background pointer-fine:group-hover:duration-[250ms] group-focus-visible:text-background group-focus-visible:duration-[250ms] group-active:scale-95 md:size-20"
       >
         <span aria-hidden="true" className="ink-wash" />
-        <ArrowUpRight weight="bold" className="relative size-5 md:size-6" />
+        <Icon name="ArrowUpRight" weight="bold" className="relative size-5 md:size-6" />
       </span>
     </TransitionLink>
   )

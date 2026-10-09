@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Minus } from '@phosphor-icons/react/dist/ssr/Minus'
-import { Plus } from '@phosphor-icons/react/dist/ssr/Plus'
+import { Icon } from './Icon'
 import { BrushLine } from './BrushLine'
 
 export type AccordionItem = { id: string; title: string; body: string }
@@ -61,11 +60,13 @@ export function Accordion({ items, defaultOpenId }: AccordionProps) {
                     isOpen ? 'bg-ink text-background' : ''
                   }`}
                 >
-                  <Plus
+                  <Icon
+                    name="Plus"
                     weight="bold"
                     className={`col-start-1 row-start-1 size-5 transition-opacity duration-[200ms] ease-dry motion-reduce:transition-none ${isOpen ? 'opacity-0' : 'opacity-100'}`}
                   />
-                  <Minus
+                  <Icon
+                    name="Minus"
                     weight="bold"
                     className={`col-start-1 row-start-1 size-5 transition-opacity duration-[200ms] ease-dry motion-reduce:transition-none ${isOpen ? 'opacity-100' : 'opacity-0'}`}
                   />

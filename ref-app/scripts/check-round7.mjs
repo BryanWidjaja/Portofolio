@@ -82,6 +82,19 @@ async function main() {
       JSON.stringify(home),
     )
 
+    await page.goto('http://localhost:4187/about', { waitUntil: 'networkidle' })
+    const portraitSources = await page.locator('.brush-colour').evaluate((image) => ({
+      tag: image.tagName,
+      src: image.getAttribute('src'),
+      srcSet: image.getAttribute('srcset'),
+      hasPictureSource: Boolean(image.parentElement?.querySelector('source')),
+    }))
+    check(
+      'JPEG portrait keeps its actual source without fabricated format or width descriptors',
+      portraitSources.tag === 'IMG' && portraitSources.src === '/photo.jpeg' && portraitSources.srcSet === null && !portraitSources.hasPictureSource,
+      JSON.stringify(portraitSources),
+    )
+
     const shortPage = await browser.newPage({ viewport: { width: 844, height: 390 } })
     await shortPage.goto('http://localhost:4187/projects/btardew-walley', { waitUntil: 'networkidle' })
     await shortPage.locator('[data-collage-trigger]').first().click()
@@ -114,18 +127,32 @@ async function main() {
     const thumbState = await thumbsPage.evaluate(() => {
       const strip = document.querySelector('[data-lightbox-thumbnails]')
       const active = strip?.querySelector('[aria-current="true"]')
-      if (!(strip instanceof HTMLElement) || !(active instanceof HTMLElement)) return null
+      const figure = document.querySelector('[data-lightbox] figure')
+      const image = figure?.querySelector('img')
+      const caption = figure?.querySelector('figcaption')
+      if (!(strip instanceof HTMLElement) || !(active instanceof HTMLElement) || !(figure instanceof HTMLElement) || !(image instanceof HTMLImageElement) || !(caption instanceof HTMLElement)) return null
       const stripRect = strip.getBoundingClientRect()
       const activeRect = active.getBoundingClientRect()
+      const figureRect = figure.getBoundingClientRect()
+      const imageRect = image.getBoundingClientRect()
+      const captionRect = caption.getBoundingClientRect()
       return {
         count: strip.children.length,
         scrollLeft: strip.scrollLeft,
         activeFullyVisible: activeRect.left >= stripRect.left && activeRect.right <= stripRect.right,
+        imageCentered: Math.abs((imageRect.top + imageRect.bottom) / 2 - (figureRect.top + captionRect.top) / 2) <= 3,
+        imageInsideMedia: imageRect.top >= figureRect.top - 1 && imageRect.bottom <= captionRect.top + 1,
+        objectFit: getComputedStyle(image).objectFit,
       }
     })
     check(
       'long viewer keeps the active last thumbnail reachable after keyboard navigation',
       Boolean(thumbState && thumbState.count === 13 && thumbState.scrollLeft > 0 && thumbState.activeFullyVisible),
+      JSON.stringify(thumbState),
+    )
+    check(
+      'mobile viewer centers the full-frame slide in the media stage above its reserved caption',
+      Boolean(thumbState?.imageCentered && thumbState.imageInsideMedia && thumbState.objectFit === 'contain'),
       JSON.stringify(thumbState),
     )
     await thumbsPage.close()
@@ -149,7 +176,11 @@ async function main() {
       landmarkTop: document.querySelector('[data-collage]')?.getBoundingClientRect().top ?? null,
       footerInert: document.querySelector('[data-footer]')?.inert ?? false,
       footerHidden: document.querySelector('[data-footer]')?.getAttribute('aria-hidden') === 'true',
-      backgroundFocusable: Boolean(document.querySelector('[data-footer] a:not([tabindex="-1"])')),
+      backgroundFocusable: (() => {
+        const backgroundLink = document.querySelector('[data-footer] a')
+        backgroundLink?.focus()
+        return Boolean(backgroundLink && document.activeElement === backgroundLink)
+      })(),
     }))
     check(
       'reduced-motion viewer keeps a real background landmark fixed through wheel and touch input and makes background content inaccessible',
@@ -196,6 +227,46 @@ async function main() {
         slideState.counter === 'Photo 1 of 10' && slideState.thumbnails.length === 10 && /Slide 1/.test(slideState.dialogLabel ?? ''),
       JSON.stringify({ malwareState, slideState }),
     )
+    const slideOrder = []
+    for (let slide = 1; slide <= 10; slide += 1) {
+      slideOrder.push(await malwarePage.locator('[data-lightbox] figure img').getAttribute('src'))
+      if (slide < 10) await malwarePage.locator('[aria-label="Next photo"]').click()
+    }
+    check(
+      'malware viewer presents the supplied slide sources in exact numeric order through slide 10',
+      slideOrder.every((src, index) => new RegExp(`slide-${index + 1}-1920\\.(?:avif|webp)$`).test(src ?? '')),
+      JSON.stringify(slideOrder),
+    )
+    const evidenceState = await malwarePage.evaluate(() => {
+      const figure = document.querySelector('[data-lightbox] figure')
+      const caption = figure?.querySelector('figcaption')
+      const image = figure?.querySelector('img')
+      const fullSize = figure?.querySelector('a')
+      const region = document.querySelector('[data-lightbox-thumbnails]')
+      return {
+        caption: caption?.textContent?.trim() ?? '',
+        fullSizeHref: fullSize?.getAttribute('href') ?? '',
+        fullSizeTarget: fullSize?.getAttribute('target') ?? '',
+        fullSizeName: fullSize?.getAttribute('aria-label') ?? '',
+        imageSrc: image?.getAttribute('src') ?? '',
+        regionRole: region?.getAttribute('role') ?? '',
+        regionName: region?.getAttribute('aria-label') ?? '',
+      }
+    })
+    check(
+      'viewer exposes each slide caption, a direct full-size image, and named thumbnail navigation',
+      Boolean(evidenceState.caption && evidenceState.fullSizeHref === evidenceState.imageSrc &&
+        evidenceState.fullSizeTarget === '_blank' && /Open full-size image/.test(evidenceState.fullSizeName) &&
+        evidenceState.regionRole === 'region' && evidenceState.regionName === 'Photo thumbnail navigation'),
+      JSON.stringify(evidenceState),
+    )
+    const fullSizePopup = malwarePage.waitForEvent('popup')
+    await malwarePage.locator('[data-lightbox] figure a').click()
+    const fullSizePage = await fullSizePopup
+    await fullSizePage.close()
+    check('opening a full-size slide leaves the lightbox open on its current evidence', await malwarePage.locator('[data-lightbox]').isVisible())
+    await malwarePage.keyboard.press('Escape')
+    await malwarePage.locator('[data-lightbox]').waitFor({ state: 'detached' })
     const initialVideoDom = await malwarePage.evaluate(() => ({
       sources: document.querySelectorAll('[data-secondary-video] video source, [data-loop-video] source').length,
       watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
@@ -205,6 +276,10 @@ async function main() {
       initialVideoRequests.length === 0 && initialVideoDom.sources === 0 && initialVideoDom.watchButton,
       JSON.stringify({ requests: initialVideoRequests, dom: initialVideoDom }),
     )
+    if (initialVideoDom.watchButton) await malwarePage.locator('[data-secondary-video] button').click()
+    const activatedTrailer = await malwarePage.locator('[data-secondary-video] video source').getAttribute('src').catch(() => null)
+    check('the earlier experiment trailer becomes available after the visitor activates its watch control',
+      activatedTrailer === '/projects/malware-detection/trailer.mp4', String(activatedTrailer))
     await malwarePage.close()
 
     const footerPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -215,7 +290,7 @@ async function main() {
       const pages = footer?.querySelector('[data-footer-pages]')?.getBoundingClientRect()
       const social = footer?.querySelector('[data-footer-social]')?.getBoundingClientRect()
       const about = Array.from(document.querySelectorAll('section')).find((section) =>
-        section.querySelector('a[href="/about"]') && /100 to 120 students/.test(section.textContent ?? ''),
+        section.querySelector('a[href="/about"]') && /100[–-]120 students/.test(section.textContent ?? ''),
       )?.textContent ?? ''
       return {
         contactTop: contact?.top ?? null,
@@ -229,7 +304,7 @@ async function main() {
       'desktop ending shares one top-aligned contact/Pages/Social row and presents the integrated factual profile',
       ending.contactTop !== null && ending.pagesTop !== null && ending.socialTop !== null &&
         Math.abs(ending.contactTop - ending.pagesTop) <= 2 && Math.abs(ending.pagesTop - ending.socialTop) <= 2 &&
-        /BINUS University/.test(ending.about) && /100 to 120 students/.test(ending.about) && /malware research/.test(ending.about),
+        /BINUS University/.test(ending.about) && /100[–-]120 students/.test(ending.about) && /malware research/.test(ending.about),
       JSON.stringify(ending),
     )
     await footerPage.close()
@@ -258,6 +333,25 @@ async function main() {
       JSON.stringify(tabletEnding),
     )
     await tabletPage.close()
+
+    const routePage = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    await routePage.goto('http://localhost:4187/', { waitUntil: 'networkidle' })
+    await routePage.locator('a[href="/projects/malware-detection"]').first().click()
+    await routePage.waitForURL('**/projects/malware-detection')
+    await routePage.waitForFunction(() => document.documentElement.dataset.transition === 'idle')
+    const firstRoute = new URL(routePage.url()).pathname
+    await routePage.locator('a[data-cursor-text="next"]').click()
+    await routePage.waitForURL('**/projects/btardew-walley')
+    await routePage.waitForFunction(() => document.documentElement.dataset.transition === 'idle')
+    const nextRoute = new URL(routePage.url()).pathname
+    await routePage.getByRole('link', { name: 'Bryan Widjaja, home' }).click()
+    await routePage.waitForURL('http://localhost:4187/')
+    check(
+      'client route loaders preserve Home → project → NextProject → Home navigation',
+      firstRoute === '/projects/malware-detection' && nextRoute === '/projects/btardew-walley' && new URL(routePage.url()).pathname === '/',
+      JSON.stringify({ firstRoute, nextRoute, homeRoute: new URL(routePage.url()).pathname }),
+    )
+    await routePage.close()
 
     const deliveryPage = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
     await deliveryPage.goto('http://localhost:4187/projects/instatags', { waitUntil: 'networkidle' })

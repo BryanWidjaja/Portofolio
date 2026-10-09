@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLoaderData, useParams } from 'react-router-dom'
 import { Seo } from '../components/Seo'
 import { Container } from '../components/Container'
 import { BrushWords } from '../components/BrushWords'
@@ -10,7 +10,7 @@ import { ProjectVideo } from '../components/ProjectVideo'
 import { NextProject } from '../components/NextProject'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
-import { projects } from '../content/projects'
+import type { ProjectDetailData } from '../content/routeData'
 
 // 11-layout.md §Project detail (D2, short case study): header, then the
 // collage (55-projectpage-plan.md §E7 A, superseding 51 §E3/E6's two-grid
@@ -31,10 +31,9 @@ import { projects } from '../content/projects'
 // row's small sans is the whole point).
 export function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>()
-  const index = projects.findIndex((p) => p.slug === slug)
-  const project = index === -1 ? undefined : projects[index]
+  const { project, next } = (useLoaderData() ?? {}) as Partial<ProjectDetailData>
 
-  if (!project) {
+  if (!project || !next) {
     return (
       <>
         <Seo
@@ -63,7 +62,6 @@ export function ProjectDetail() {
     )
   }
 
-  const next = projects[(index + 1) % projects.length]
   const repos = project.links.repos ?? []
   const hasLinks = Boolean(project.links.live || repos.length)
 
@@ -133,8 +131,8 @@ export function ProjectDetail() {
               single cover + the two gallery squares that used to sit after
               the description. The hero tile is the project's own cover
               image, plain colour (owner, 2026-09-28: the brush paint-out
-              lives on the home page's cards only) -- except on this page's
-              malware-detection route, where it's E2's <ProjectVideo>.
+              lives on the home page's cards only) -- on malware, the
+              current conference deck's explicit detail hero.
               55 §E7 B: sits one step closer to the meta row above it
               (was `mt-breath`; no smaller spacing token exists, so a
               literal value, same fallback the story rows below take). */}
@@ -147,16 +145,16 @@ export function ProjectDetail() {
         {/* 55 §E7 B: `pt-leaf` only (was `py-leaf`) -- the bottom half used
             to stack with NextProject's `mt-leaf` below into two gaps where
             the owner wants one. */}
-        <Container as="section" className="pt-leaf">
+        <Container as="section" data-project-story className="pt-leaf">
           {/* Direction 8A: Swiss Grid — Expressive Italic Title.
               1fr / 2fr columns; large italic Cormorant title on the left with a
               hairline divider; body prose fills the right. Rows are separated by
-              horizontal hairlines (divide-y). `.colophon` / `.colophon-leaf`
-              are kept for the test suite. */}
+              horizontal hairlines (divide-y). */}
           <div className="divide-y divide-ink/10 border-y border-ink/10">
             {project.sections.map((section, i) => (
               <div
                 key={`section-${section.label}`}
+                data-project-story-row
                 className="grid items-end gap-8 py-14 md:grid-cols-[1fr_2fr] md:gap-16 md:py-20"
               >
                 {/* Left: tiny counter + large italic display title */}

@@ -4,7 +4,7 @@ import { Home } from './pages/Home'
 import { About } from './pages/About'
 import { ProjectDetail } from './pages/ProjectDetail'
 import { NotFound } from './pages/NotFound'
-import { projects } from './content/projects'
+import { homeProjectsLoader, projectDetailLoader, projectSlugs } from './content/routeData'
 
 // T2 (14-approved): eager routes, so every page ships in the initial bundle
 // and transitions never wait on a chunk. `projects/:slug` is prerendered for
@@ -16,12 +16,13 @@ export const routes: RouteRecord[] = [
     path: '/',
     Component: RootLayout,
     children: [
-      { index: true, Component: Home },
+      { index: true, Component: Home, loader: homeProjectsLoader },
       { path: 'about', Component: About },
       {
         path: 'projects/:slug',
         Component: ProjectDetail,
-        getStaticPaths: () => projects.map((project) => `projects/${project.slug}`),
+        loader: projectDetailLoader,
+        getStaticPaths: () => projectSlugs.map((slug) => `projects/${slug}`),
       },
       { path: '404', Component: NotFound },
       { path: '*', Component: NotFound },

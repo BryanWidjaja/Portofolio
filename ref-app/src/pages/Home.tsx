@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLoaderData } from 'react-router-dom'
 import { Head } from 'vite-react-ssg'
 import { Seo } from '../components/Seo'
 import { Container } from '../components/Container'
@@ -14,7 +15,7 @@ import { playHeroSplash } from '../motion/heroSplash'
 import { mountHeroCollapse } from '../motion/heroCollapse'
 import { useReducedMotion } from '../app/MotionProvider'
 import { site } from '../content/site'
-import { projects } from '../content/projects'
+import type { HomeProject } from '../content/routeData'
 
 const slotOrder: Array<'lead' | 'left' | 'right'> = ['lead', 'left', 'right']
 
@@ -32,7 +33,8 @@ function splitLetter(word: string) {
 }
 
 export function Home() {
-  const aboutLead = splitAccent(site.home.aboutCta.lead, '100+ students')
+  const projects = (useLoaderData() ?? []) as HomeProject[]
+  const aboutLead = splitAccent(site.home.aboutCta.lead, '100–120 students')
   const hasInscription = Boolean(site.home.heroInscription)
   const reduced = useReducedMotion()
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { Icon } from './Icon'
 import { TransitionLink } from './TransitionLink'
 import { site } from '../content/site'
 
@@ -30,7 +30,8 @@ export function ArrowLink({ to, href, children, external = false, size = 'md', c
       <span className="ink-underline inline-block">{children}</span>
       {/* M12: no rotate at all -- feedback is the x-nudge plus the
           underline above. */}
-      <ArrowUpRight
+      <Icon
+        name="ArrowUpRight"
         aria-hidden="true"
         weight="bold"
         className="size-[1em] shrink-0 transition-transform duration-[180ms] ease-dry group-hover:translate-x-1 group-hover:duration-[250ms] group-focus-visible:translate-x-1 group-focus-visible:duration-[250ms] motion-reduce:translate-x-0!"

@@ -17,6 +17,7 @@
     "check:transitions": "node scripts/check-transitions.mjs",
     "check:round7": "node scripts/check-round7.mjs",
     "check:budget": "node scripts/check-budget.mjs",
+    "check:project-assets": "node scripts/check-project-assets.mjs",
     "og": "node scripts/og.mjs",
     "assets:textures": "node scripts/ink-textures.mjs",
     "assets:placeholders": "node scripts/placeholders.mjs",

@@ -71,27 +71,20 @@ type ProjectCollageProps = {
 // clips its own outer box-shadow too, leaves included.
 //
 // Every cell (`min-h-0 min-w-0 overflow-hidden`) sizes its media with
-// `size-full` -- an image tile crops with `object-cover`; the video hero
-// is the one exception (ProjectVideo.tsx, 55's item-3 follow-up:
-// `object-contain` against its own sampled ground colour, since this
-// trailer's own numbers crop badly square -- now moot in practice, since
-// the hero cell's own aspect is fixed at that same video's `16/9`, but
-// kept as ProjectVideo.tsx's own safety net). Every cell carries the
+// `size-full` -- each image preserves its complete source with containment,
+// leaving the paper surface visible around different aspect ratios. Every cell carries the
 // same per-tile ink hairline `.scroll-sheet` already uses
 // (`rgb(60 40 15 / 0.14)`, styles/base.css:222) -- one box-shadow per
 // cell, not a border, so `overflow-hidden` on the same element still
 // paints it (proven already by `.scroll-art`, base.css:217-223, which
 // pairs the two the same way).
 //
-// E2's <ProjectVideo> hero (malware-detection only) is mounted with no
 // wrapping paper margin -- it fills the `[data-collage-hero]` cell
-// exactly like an image tile would. ProjectVideo.tsx owns its own crop
-// mode/ground colour.
+// exactly like an image tile would.
 //
 // 51-round5-plan.md §E6, 45-ink-approved.md R5k (owner, mid-round): every
-// image tile -- the hero when it's a cover image, and every 2x2 tile --
-// is also a lightbox trigger. E2's <ProjectVideo> hero is never wrapped:
-// only images open the lightbox. `photos` is the flat, ordered list
+// image tile -- including an explicit detail hero -- and every 2x2 tile --
+// is also a lightbox trigger. `photos` is the flat, ordered list
 // ProjectLightbox.tsx navigates (hero image first when there is one, then
 // every tile, matching reading order, overflow or not), so an index into
 // it always means the same photo, whether or not that tile ever got a

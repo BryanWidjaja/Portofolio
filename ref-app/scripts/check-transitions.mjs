@@ -664,11 +664,12 @@ async function testBrushCursorHandoff(browser, base) {
     `data-cursor-no-trail="${noTrailAfterFull}"`,
   )
 
-  await page.mouse.move(box.x - 50, box.y - 50) // leave -- D4 dry-back starts
+  const cardBox = await page.locator(FIRST_PROJECT_CARD).first().boundingBox()
+  await page.mouse.move(cardBox.x - 20, cardBox.y - 20) // leave both media and its enclosing card link
   await page.waitForTimeout(50) // let onPointerOut's leaveTarget()/setNoTrail(false) actually run
   const noTrailAfterLeave = await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)
   check(
-    'B9 cursor handoff: trail resumes as soon as the cursor leaves the figure',
+    'B9 cursor handoff: trail resumes after the cursor leaves the card link',
     noTrailAfterLeave === undefined,
     `data-cursor-no-trail="${noTrailAfterLeave}"`,
   )
@@ -1434,8 +1435,9 @@ async function testCursorReset(browser, base) {
   await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2 + 2)
   await page.waitForTimeout(250)
   check(
-    'cursor shows brush state over card media',
-    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'brush',
+    'cursor exposes the usable open state over card media',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'text' &&
+      (await page.locator('[data-cursor-dot] + span span').textContent()) === 'open',
   )
 
   await page.mouse.down()
@@ -1482,12 +1484,8 @@ async function captureCoverShots(browser, base, outDir) {
   await context.close()
 }
 
-// 51-round5-plan.md §E2, 45-ink-approved.md R5b: the malware-detection
-// trailer's poster must be the page's preloaded LCP, and reduced motion
-// must never fetch/autoplay the muted loop -- appended by E2, after E1's
-// checks above, without touching them. Wired in once E3 mounts
-// <ProjectVideo> inside ProjectCollage on the malware-detection page (this
-// agent only builds the component and the assets it needs).
+// Round 7: the slide image is the eager page evidence. The archived trailer
+// poster and video remain absent from initial transfer until activated.
 async function testProjectVideoPoster(browser, base) {
   const url = new URL('/projects/malware-detection', base).toString()
 
@@ -1497,13 +1495,17 @@ async function testProjectVideoPoster(browser, base) {
   await page.goto(url, { waitUntil: 'load' })
   await page.waitForTimeout(300)
 
-  const posterPreloaded = await page.evaluate(() => {
-    const link = document.querySelector(
-      'link[rel="preload"][as="image"][href*="/projects/malware-detection/poster"]',
-    )
-    return Boolean(link)
+  const initialVideo = await page.evaluate(() => {
+    return {
+      preloadedPoster: Boolean(document.querySelector('link[rel="preload"][as="image"][href*="/projects/malware-detection/poster"]')),
+      sourceCount: document.querySelectorAll('[data-secondary-video] video source').length,
+      watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
+      hero: document.querySelector('[data-collage-hero] img')?.getAttribute('src') ?? '',
+    }
   })
-  check('V1 malware trailer poster is preloaded as the page LCP', posterPreloaded)
+  check('V1 malware slide image is the initial hero while the archived trailer remains click-only',
+    !initialVideo.preloadedPoster && initialVideo.sourceCount === 0 && initialVideo.watchButton && /slide-1-/.test(initialVideo.hero),
+    JSON.stringify(initialVideo))
   await context.close()
 
   const reducedContext = await browser.newContext({
@@ -1515,13 +1517,13 @@ async function testProjectVideoPoster(browser, base) {
   await reducedPage.goto(url, { waitUntil: 'load' })
   await reducedPage.waitForTimeout(300)
 
-  const state = await reducedPage.evaluate(() => {
-    const loop = document.querySelector('video[data-loop-video]')
-    return { loopExists: Boolean(loop), loopAutoplay: loop ? loop.hasAttribute('autoplay') : false }
-  })
+  const state = await reducedPage.evaluate(() => ({
+    sourceCount: document.querySelectorAll('[data-secondary-video] video source').length,
+    watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
+  }))
   check(
-    'V2 reduced motion: no loop <video> carries autoplay (poster only, never fetched to play)',
-    state.loopAutoplay === false,
+    'V2 reduced motion: the archived trailer still waits for an explicit click',
+    state.sourceCount === 0 && state.watchButton,
     JSON.stringify(state),
   )
   await reducedContext.close()
@@ -1529,7 +1531,7 @@ async function testProjectVideoPoster(browser, base) {
 
 // 55-projectpage-plan.md §E7 A (superseding 51 §E3/E6's two-grid "Hotel"
 // layout): the collage replaces `Gallery` and mounts E2's `<ProjectVideo>`
-// as the malware page's hero tile, and is **one** grid, not a hero grid
+// on the malware page is a complete slide image, and is **one** grid, not a hero grid
 // sitting beside an independent 2x2 grid.
 //
 // Updated for round 6 (58 §F3, 45 R6e/R6f): `totalTiles` is each
@@ -1549,7 +1551,7 @@ async function testProjectVideoPoster(browser, base) {
 // regression this guards against would show up exactly there).
 async function testProjectCollage(browser, base) {
   const cases = [
-    { slug: 'malware-detection', totalTiles: 4, heroKind: 'video' },
+    { slug: 'malware-detection', totalTiles: 9, heroKind: 'image' },
     { slug: 'btardew-walley', totalTiles: 12, heroKind: 'image' },
     { slug: 'instatags', totalTiles: 7, heroKind: 'image' },
   ]
@@ -1580,7 +1582,7 @@ async function testProjectCollage(browser, base) {
       JSON.stringify(state),
     )
     check(
-      `W3 ${slug} hero tile is ${heroKind === 'video' ? 'the video' : 'the cover image'}`,
+      `W3 ${slug} hero tile is an image`,
       state.heroHasVideo === (heroKind === 'video'),
       JSON.stringify(state),
     )
@@ -1738,8 +1740,8 @@ async function testProjectLightbox(browser, base) {
 
   await context.close()
 
-  // The malware page's hero tile is E2's <video> -- never a lightbox
-  // trigger, only images are.
+  // The malware page's first conference slide is the image hero and opens
+  // the same evidence viewer as its other slides.
   const malwareUrl = new URL('/projects/malware-detection', base).toString()
   const malwareContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const malwarePage = await malwareContext.newPage()
@@ -1752,8 +1754,8 @@ async function testProjectLightbox(browser, base) {
     tileTriggerCount: document.querySelectorAll('[data-collage-trigger]').length,
   }))
   check(
-    'L9 malware-detection: the video hero is never a lightbox trigger, only its image tiles are',
-    heroState.heroHasVideo && !heroState.heroIsTrigger && heroState.tileTriggerCount === 4,
+    'L9 malware-detection: slide 1 opens the ten-slide viewer and all four visible side images are triggers',
+    !heroState.heroHasVideo && heroState.heroIsTrigger && heroState.tileTriggerCount === 5,
     JSON.stringify(heroState),
   )
   await malwareContext.close()
@@ -1841,10 +1843,7 @@ async function testCollageOverflowAndAspect(browser, base) {
 
   await context.close()
 
-  // Malware-detection: the one video hero, fixed at 16/9 (58 §F3) rather
-  // than read off an `Img`'s width/height. No overflow here (only 4
-  // tiles), so this just confirms the hero-aspect mechanism also holds
-  // for the video branch, not only the image branch above.
+  // Malware-detection: slide 1's own 16:9 source drives the hero aspect.
   const malwareUrl = new URL('/projects/malware-detection', base).toString()
   const malwareContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const malwarePage = await malwareContext.newPage()
@@ -1853,12 +1852,13 @@ async function testCollageOverflowAndAspect(browser, base) {
   await malwarePage.waitForTimeout(300)
   const heroRect = await malwarePage.evaluate(() => {
     const hero = document.querySelector('[data-collage-hero]')
+    const img = hero?.querySelector('img')
     const rect = hero?.getBoundingClientRect()
-    return rect ? rect.width / rect.height : null
+    return { box: rect ? rect.width / rect.height : null, source: img ? img.naturalWidth / img.naturalHeight : null }
   })
   check(
-    "R6e-3 malware-detection video hero cell's rendered aspect is 16:9 within 1%",
-    heroRect !== null && Math.abs(heroRect - 16 / 9) / (16 / 9) <= 0.01,
+    "R6e-3 malware-detection slide hero's rendered aspect matches its image",
+    heroRect.box !== null && heroRect.source !== null && Math.abs(heroRect.box - heroRect.source) / heroRect.source <= 0.01,
     String(heroRect),
   )
   await malwareContext.close()
@@ -1893,21 +1893,27 @@ async function testDropFillDisc(browser, base) {
         maskImage: style.maskImage || style.webkitMaskImage,
         borderRadius: style.borderRadius,
         widthRatio: controlRect.width > 0 ? washRect.width / controlRect.width : null,
+        coversControl: washRect.left <= controlRect.left && washRect.right >= controlRect.right &&
+          washRect.top <= controlRect.top && washRect.bottom >= controlRect.bottom,
       }
     }, selector)
 
-  const pillWash = await readWash('a[href*="github.com"] .ink-wash')
+  await page.locator('a[href="https://github.com/BryanWidjaja/MalwareDetection"]').hover()
+  await page.waitForTimeout(600)
+  const pillWash = await readWash('a[href="https://github.com/BryanWidjaja/MalwareDetection"] .ink-wash')
   check(
     "R6a a pill's .ink-wash has no mask-image",
     pillWash !== null && (pillWash.maskImage === 'none' || pillWash.maskImage === ''),
     JSON.stringify(pillWash),
   )
   check(
-    'R6a the pill wash disc is ~300% of its control width (coverage by construction)',
-    pillWash !== null && pillWash.widthRatio !== null && Math.abs(pillWash.widthRatio - 3) < 0.05,
+    'R6a the hovered pill wash fully covers its control at about 300% width',
+    pillWash !== null && pillWash.widthRatio !== null && Math.abs(pillWash.widthRatio - 3) < 0.05 && pillWash.coversControl,
     JSON.stringify(pillWash),
   )
 
+  await page.locator('a[data-cursor-text="next"]').hover()
+  await page.waitForTimeout(600)
   const nextWash = await readWash('a[data-cursor-text="next"] .ink-wash')
   check(
     "R6a NextProject's circle .ink-wash also has no mask-image",
@@ -1915,8 +1921,8 @@ async function testDropFillDisc(browser, base) {
     JSON.stringify(nextWash),
   )
   check(
-    "R6a NextProject's wash disc is ~300% of the circle's own width (h/w=1.0 clears the 1.118 bound)",
-    nextWash !== null && nextWash.widthRatio !== null && Math.abs(nextWash.widthRatio - 3) < 0.05,
+    "R6a the hovered NextProject wash fully covers its circle at about 300% width",
+    nextWash !== null && nextWash.widthRatio !== null && Math.abs(nextWash.widthRatio - 3) < 0.1 && nextWash.coversControl,
     JSON.stringify(nextWash),
   )
 
@@ -1939,12 +1945,9 @@ async function testDropFillDisc(browser, base) {
   await reducedContext.close()
 }
 
-// R6b (45 §Round 6, 58 §F1 "colophon triptych"): after the collage, the
-// three `project.sections` beats render as one aged-paper `.colophon` sheet
-// holding three `.colophon-leaf` numbered `01`-`03`, each with a Cormorant
-// `<h2>` label -- side by side at md+, stacked with the seam rotated to
-// horizontal on phones.
-async function testColophonTriptych(browser, base) {
+// Current project story: three numbered evidence rows, split into label/body
+// columns on desktop and stacked on narrow screens.
+async function testProjectStoryRows(browser, base) {
   const url = new URL('/projects/malware-detection', base).toString()
 
   const desktopContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -1954,35 +1957,24 @@ async function testColophonTriptych(browser, base) {
   await desktopPage.waitForTimeout(300)
 
   const desktopState = await desktopPage.evaluate(() => {
-    const sheets = document.querySelectorAll('.colophon')
-    const leaves = document.querySelectorAll('.colophon-leaf')
-    const headings = document.querySelectorAll('.colophon h2')
-    const numerals = Array.from(leaves).map((leaf) => leaf.querySelector('p')?.textContent ?? null)
-    const rects = Array.from(leaves).map((leaf) => leaf.getBoundingClientRect())
+    const rows = Array.from(document.querySelectorAll('[data-project-story-row]'))
+    const labels = rows.map((row) => row.querySelector('h2')?.textContent?.trim() ?? '')
+    const numerals = rows.map((row) => row.querySelector('span')?.textContent?.trim() ?? '')
+    const bodies = rows.map((row) => row.querySelector('p')?.textContent?.trim() ?? '')
+    const rects = rows.map((row) => ({ row: row.getBoundingClientRect(), label: row.querySelector('h2').getBoundingClientRect(), body: row.querySelector('p').getBoundingClientRect() }))
     return {
-      sheetCount: sheets.length,
-      leafCount: leaves.length,
-      headingCount: headings.length,
+      count: rows.length,
+      labels,
+      bodies,
       numerals,
-      tops: rects.map((r) => Math.round(r.top)),
-      lefts: rects.map((r) => Math.round(r.left)),
+      split: rects.every((r) => r.body.left > r.label.right),
     }
   })
-  check('R6b one colophon sheet renders after the collage', desktopState.sheetCount === 1, JSON.stringify(desktopState))
-  check('R6b the sheet holds three leaves', desktopState.leafCount === 3, JSON.stringify(desktopState))
-  check('R6b three Cormorant h2 labels render inside the colophon', desktopState.headingCount === 3, JSON.stringify(desktopState))
+  check('Project story has three labeled evidence rows', desktopState.count === 3 && JSON.stringify(desktopState.labels) === JSON.stringify(['The problem', 'What I built', 'The result']), JSON.stringify(desktopState))
+  check('Project story rows contain their numbered sequence and explanatory copy', JSON.stringify(desktopState.numerals) === JSON.stringify(['01', '02', '03']) && desktopState.bodies.every((body) => body.length > 40), JSON.stringify(desktopState))
   check(
-    'R6b plain numerals read 01, 02, 03 in order',
-    JSON.stringify(desktopState.numerals) === JSON.stringify(['01', '02', '03']),
-    JSON.stringify(desktopState.numerals),
-  )
-  check(
-    'R6b md+: the three leaves sit side by side (same top, increasing left)',
-    desktopState.tops.length === 3 &&
-      desktopState.tops[0] === desktopState.tops[1] &&
-      desktopState.tops[1] === desktopState.tops[2] &&
-      desktopState.lefts[0] < desktopState.lefts[1] &&
-      desktopState.lefts[1] < desktopState.lefts[2],
+    'Project story uses separate label and body columns on desktop',
+    desktopState.split,
     JSON.stringify(desktopState),
   )
   await desktopContext.close()
@@ -1994,21 +1986,16 @@ async function testColophonTriptych(browser, base) {
   await phonePage.waitForTimeout(300)
 
   const phoneState = await phonePage.evaluate(() => {
-    const leaves = document.querySelectorAll('.colophon-leaf')
-    const rects = Array.from(leaves).map((leaf) => leaf.getBoundingClientRect())
+    const rows = Array.from(document.querySelectorAll('[data-project-story-row]'))
+    const rects = rows.map((row) => ({ label: row.querySelector('h2').getBoundingClientRect(), body: row.querySelector('p').getBoundingClientRect() }))
     return {
-      leafCount: leaves.length,
-      tops: rects.map((r) => Math.round(r.top)),
-      lefts: rects.map((r) => Math.round(r.left)),
+      count: rows.length,
+      stacked: rects.every((r) => r.body.top > r.label.top && r.body.left === r.label.left),
     }
   })
   check(
-    'R6b phones: the three leaves stack (same left, increasing top, horizontal seams)',
-    phoneState.leafCount === 3 &&
-      phoneState.lefts[0] === phoneState.lefts[1] &&
-      phoneState.lefts[1] === phoneState.lefts[2] &&
-      phoneState.tops[0] < phoneState.tops[1] &&
-      phoneState.tops[1] < phoneState.tops[2],
+    'Project story stacks label above body on phones',
+    phoneState.count === 3 && phoneState.stacked,
     JSON.stringify(phoneState),
   )
   await phoneContext.close()
@@ -2069,7 +2056,7 @@ async function main() {
     await testProjectLightbox(browser, base)
     await testCollageOverflowAndAspect(browser, base)
     await testDropFillDisc(browser, base)
-    await testColophonTriptych(browser, base)
+    await testProjectStoryRows(browser, base)
 
     check('T11 zero console warnings/errors/pageerrors across the run', consoleIssues.length === 0, consoleIssues.slice(0, 8).join(' | '))
 

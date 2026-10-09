@@ -97,8 +97,8 @@ export const site = {
     workHeading: "What I've been building",
     aboutCta: {
       eyebrow: 'About',
-      // Accent phrase: "100+ students".
-      lead: 'I build machine learning and web projects, publish malware research, and teach programming labs to 100+ students a semester at BINUS University.',
+      // Accent phrase: "100–120 students".
+      lead: 'I build machine learning and web projects, publish malware research, and teach programming labs to 100–120 students a semester at BINUS University.',
       pill: 'About me',
     },
   },

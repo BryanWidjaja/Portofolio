@@ -1,4 +1,4 @@
-import { DownloadSimple } from '@phosphor-icons/react/dist/ssr/DownloadSimple'
+import { Icon } from './Icon'
 import { site } from '../content/site'
 
 type CvButtonProps = {
@@ -30,7 +30,8 @@ export function CvButton({ tone = 'ink', className = '' }: CvButtonProps) {
       className={`group label inline-flex h-9 items-center gap-1.5 rounded-full border px-4 transition-[background-color,border-color,color] duration-[200ms] ease-dry ${tones[tone]} ${className}`.trim()}
     >
       <span>{site.cvButton.label}</span>
-      <DownloadSimple
+      <Icon
+        name="DownloadSimple"
         aria-hidden="true"
         weight="bold"
         className="size-3.5 shrink-0 transition-transform duration-[200ms] ease-dry pointer-fine:group-hover:translate-y-0.5 group-focus-visible:translate-y-0.5 motion-reduce:translate-y-0!"

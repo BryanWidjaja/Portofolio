@@ -836,6 +836,22 @@ html[data-menu-open] [data-on-ink] {
   color: var(--color-background);
 }
 
+/* 45 Round 5 R5a: contrast the fixed monogram while dark project media or
+   the home painting crosses its small header band. */
+[data-on-ink] {
+  transition: color 200ms var(--ease-dry);
+}
+
+html[data-nav-on-ink] [data-on-ink] {
+  color: var(--color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-on-ink] {
+    transition: none;
+  }
+}
+
 
 
 /* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens) -- re-measured 2026-09-28

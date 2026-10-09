@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Check } from '@phosphor-icons/react/dist/ssr/Check'
-import { Copy } from '@phosphor-icons/react/dist/ssr/Copy'
+import { Icon } from './Icon'
 import { site } from '../content/site'
 
 type EmailCopyProps = {
@@ -48,9 +47,9 @@ export function EmailCopy({ email, size }: EmailCopyProps) {
       >
         {email}
         {status === 'copied' ? (
-          <Check aria-hidden="true" weight="bold" className="size-[0.7em] shrink-0" />
+          <Icon name="Check" aria-hidden="true" weight="bold" className="size-[0.7em] shrink-0" />
         ) : (
-          <Copy aria-hidden="true" weight="bold" className="size-[0.7em] shrink-0" />
+          <Icon name="Copy" aria-hidden="true" weight="bold" className="size-[0.7em] shrink-0" />
         )}
       </button>
       {status === 'copied' ? (

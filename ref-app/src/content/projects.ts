@@ -159,6 +159,10 @@ export const projects: Project[] = [
         tone: 'light',
       },
     ],
+    earlierVideo: {
+      base: '/projects/malware-detection',
+      alt: 'Earlier malware-detection experiment trailer reporting an 87.02% accuracy result.',
+    },
     sections: [
       {
         label: 'The problem',
@@ -170,7 +174,7 @@ export const projects: Project[] = [
       },
       {
         label: 'The result',
-        body: 'Grouped evaluation reached 85.74% accuracy, 81.13% recall, a 1.14% false-positive rate and 0.9881 ROC-AUC; model latency was 4.68 ms. Comparator gaps were not statistically significant, calibration degraded under family shift, and the UPX evidence covers known binaries. The paper was accepted for presentation at the 2nd International Conference on Artificial Intelligence for Learning and Optimization (ICoAILO 2026).',
+        body: 'Grouped evaluation reached 85.74% accuracy, 81.13% recall, a 1.14% false-positive rate and 0.9881 ROC-AUC; model latency was 4.68 ms. The dataset uses public VirusTotal-verified files, but source-level provenance remains open, so real-world deployment performance is unproven. Comparator gaps were not statistically significant, calibration degraded under family shift, and the UPX evidence covers known binaries. The paper was accepted for presentation at the 2nd International Conference on Artificial Intelligence for Learning and Optimization (ICoAILO 2026).',
       },
     ],
   },
@@ -322,15 +326,15 @@ export const projects: Project[] = [
     sections: [
       {
         label: 'The problem',
-        body: 'Btardew Walley started as a working console game. For our Code Reengineering final project, the job was to keep every feature and give the code a structure the next person could actually extend.',
+        body: 'Btardew Walley originated as a functional yet monolithic console farming simulation. Tightly coupled rendering, input loops, and game state made the original codebase fragile to extend, difficult to maintain, and virtually impossible to test without risking regression across interconnected mechanics.',
       },
       {
-        label: 'What we built',
-        body: 'User accounts, tile-based maps, a day cycle, crop and animal lifecycles, a stores-and-inventory economy and file-based saves. The codebase is split into model, view, viewmodel, service and repository layers: 111 classes across 32 packages.',
+        label: 'What I built',
+        body: 'Working in a team of five, we re-architected the system into a clean MVVM codebase comprising 111 classes across 32 packages. We separated concerns across model, view, viewmodel, service, and repository layers, structuring game mechanics around eight GoF design patterns: Facade, Strategy, Command, Builder, Factory Method, Template Method, Iterator, and Composite.',
       },
       {
-        label: 'The patterns',
-        body: 'Eight Gang of Four patterns, each where it earns its place: Facade, Strategy, Command, Builder, Factory Method, Template Method, Iterator and Composite.',
+        label: 'The result',
+        body: 'The refactored architecture achieved clean modular testability and zero functional regressions across all core systems—including user authentication, tile maps, day cycles, crop and livestock lifecycles, and save persistence. New gameplay features, stores, and items can now be plugged in seamlessly without altering core engine loops.',
       },
     ],
   },
@@ -423,15 +427,15 @@ export const projects: Project[] = [
     sections: [
       {
         label: 'The problem',
-        body: 'Picking hashtags for a post is mostly guesswork. InstaTags looks at the image itself and suggests tags that match what is in it.',
+        body: "Picking hashtags for an Instagram post is mostly manual guesswork. Creators spend tedious effort researching tags across separate tools or settle for generic keywords that fail to reflect the photo's content, reducing reach and engagement.",
       },
       {
-        label: 'The web app',
-        body: 'The SvelteKit site: a landing page, the image upload flow, usage guides and product pages, built from reusable Svelte components with TypeScript, Tailwind CSS and Siema carousels.',
+        label: 'What I built',
+        body: 'A dual-platform solution: a full-featured SvelteKit web application and a Manifest V3 Chrome extension. The web app provides a drag-and-drop image upload flow, interactive usage guides, and animated carousels built with TypeScript and Tailwind CSS. The browser extension leverages the Chrome Scripting API to extract photos directly from active Instagram tabs and query the generation API on the fly.',
       },
       {
-        label: 'The extension',
-        body: 'A Manifest V3 Chrome extension that pulls the image from the active Instagram tab with the Chrome Scripting API, sends it to the hashtag-generation API and shows the tags ready to copy.',
+        label: 'The result',
+        body: 'The workflow compresses hashtag generation into a single click, returning tailored tags ready for instant copying with real-time feedback toasts. Both codebases maintain strict TypeScript typing, modular component architectures, and lightweight bundle footprints across web and browser runtime environments.',
       },
     ],
   },
