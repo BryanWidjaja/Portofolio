@@ -222,7 +222,6 @@ html.brush-ready .brush-figure:not(:hover):not(:focus-within) .brush-colour {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgb(60 40 15 / 0.14);
 }
 
 /* Paper grain over the painting itself: the same alpha-only tile, static,

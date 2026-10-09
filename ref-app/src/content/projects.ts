@@ -159,10 +159,6 @@ export const projects: Project[] = [
         tone: 'light',
       },
     ],
-    earlierVideo: {
-      base: '/projects/malware-detection',
-      alt: 'An earlier experiment trailer showing the byte-image pipeline and its then-current results.',
-    },
     sections: [
       {
         label: 'The problem',
@@ -361,39 +357,19 @@ export const projects: Project[] = [
     // repo, so the web pages below are the real running SvelteKit site.
     cover: {
       src: '/projects/instatags/cover-1600.webp',
-      alt: "The InstaTags Chrome extension popup, idle, with its Get Tags button.",
-      width: 1600,
-      height: 1000,
-      tone: 'light',
+      alt: "The InstaTags landing page: “Save time on tags. Spend it on content.” with Try Now and Install for Chrome.",
+      width: 1440,
+      height: 900,
+      tone: 'dark',
     },
-    // Ordered by importance (R6e): landing, upload, extension loading,
-    // how-to-use, then round 6b's three additions. The result screen is
-    // skipped throughout (owner: no backend) -- never the `output.json`
-    // fixture, never invented tags.
-    //
-    // Round 6 (58 §F2b) fixed two flaws in the round-6 set: gallery-4 (how
-    // to use) had been captured mid-carousel, Step 6 before Step 1 and
-    // cards sliced at both edges -- a real bug in the vendored Carousel's
-    // own mount effect (it clones extra slides into the DOM *after* Siema
-    // already computed its initial transform, permanently offsetting it
-    // by one cloneCount). Recaptured after one real click of the
-    // carousel's own "next" control, which lands on the same offset the
-    // component's manual clone-insertion introduces, giving the correct
-    // reading order (Step 1 first) with no card cut -- the frame is
-    // narrower than the other web captures (1043 vs 1440) because that is
-    // the widest crop with zero mid-card cuts at this viewport. gallery-3
-    // (extension loading) was the bare popup capture, not in the paper
-    // mount the cover uses -- both it and the new toast below are now
-    // mounted the same way as `cover` (thin ink border, wide paper
-    // field), with no baked caption on either.
     collage: [
       {
         src: '/projects/instatags/gallery-1-1600.webp',
-        alt: "The InstaTags landing page: “Save time on tags. Spend it on content.” with Try Now and Install for Chrome.",
-        width: 1440,
-        height: 900,
-        caption: 'The landing page',
-        tone: 'dark',
+        alt: "The InstaTags Chrome extension popup, idle, with its Get Tags button.",
+        width: 1600,
+        height: 1000,
+        caption: 'The extension popup',
+        tone: 'light',
       },
       {
         src: '/projects/instatags/gallery-2-1600.webp',

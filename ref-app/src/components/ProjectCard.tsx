@@ -12,9 +12,9 @@ type ProjectCardProps = {
 // 11-layout.md §Index §Component props: staircase slots (L1). Lead spans
 // the full 12 cols, left/right narrow at lg so the run reads as a staircase.
 const slotClasses: Record<ProjectCardProps['slot'], string> = {
-  lead: 'md:col-span-12',
-  left: 'md:col-span-10 lg:col-span-8',
-  right: 'md:col-start-3 md:col-span-10 lg:col-start-5 lg:col-span-8',
+  lead: 'md:col-start-2 md:col-span-10 lg:col-start-2 lg:col-span-10',
+  left: 'md:col-span-9 lg:col-span-7',
+  right: 'md:col-start-4 md:col-span-9 lg:col-start-6 lg:col-span-7',
 }
 
 // M9/V26 (41-ink-replace-map.md): the old lime corner mark is gone. The
@@ -36,7 +36,7 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
         <figure
           data-reveal="scroll"
           className="scroll relative isolate"
-          style={{ aspectRatio: `${project.cover.width * 0.84} / ${project.cover.height * 0.9}` }}
+          style={{ aspectRatio: `${project.cover.width * 0.9} / ${project.cover.height * 0.85}` }}
         >
           <div className="scroll-stage">
             <div className="scroll-body">

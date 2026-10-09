@@ -13,7 +13,7 @@ type ContainerProps = {
  */
 export function Container({ as: As = 'div', id, className = '', children }: ContainerProps) {
   return (
-    <As id={id} className={`mx-auto w-full max-w-[110rem] px-6 md:px-16 xl:px-20 ${className}`.trim()}>
+    <As id={id} className={`mx-auto w-full max-w-[110rem] px-8 sm:px-12 md:px-20 lg:px-24 xl:px-28 2xl:px-32 ${className}`.trim()}>
       {children}
     </As>
   )

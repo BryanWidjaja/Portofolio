@@ -43,6 +43,7 @@ export type HeroCollapseOptions = {
 // heroExpandRewriteLeadMs (same pattern as app/inkCover.ts's MS constants).
 const FLIGHT_MS = DURATION.heroCollapseFlightMs
 const ERASE_MS = DURATION.heroCollapseEraseMs
+const EXPAND_FLIGHT_MS = DURATION.heroExpandFlightMs
 const REWRITE_LEAD_MS = DURATION.heroExpandRewriteLeadMs
 
 // Above the fixed nav (--z-index-nav: 50, styles/theme.css) so the ghost
@@ -261,7 +262,7 @@ export function mountHeroCollapse({ h1, letters, rest, reduced }: HeroCollapseOp
     const start = performance.now()
 
     function tick() {
-      const t = Math.min(1, (performance.now() - start) / FLIGHT_MS)
+      const t = Math.min(1, (performance.now() - start) / EXPAND_FLIGHT_MS)
       const ex = easeX(t)
       const ey = easeY(t)
       const liveB = letters.b.getBoundingClientRect()
@@ -306,7 +307,7 @@ export function mountHeroCollapse({ h1, letters, rest, reduced }: HeroCollapseOp
     // already starts concurrently with the flight from the top of the
     // function.)
     const REWRITE_DELAY_CUT_MS = 200
-    const rewriteDelay = Math.max(0, FLIGHT_MS - REWRITE_LEAD_MS - REWRITE_DELAY_CUT_MS) / 1000
+    const rewriteDelay = Math.max(0, EXPAND_FLIGHT_MS - REWRITE_LEAD_MS - REWRITE_DELAY_CUT_MS) / 1000
     gsap.set([rest.ryan, rest.idjaja], { willChange: 'clip-path' })
     gsap.to(rest.ryan, {
       clipPath: 'inset(0 0% 0 0)',

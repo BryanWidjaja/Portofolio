@@ -71,14 +71,15 @@ export interface InkCoverEngine {
 const COVER_MS = 450
 const RECEDE_MS = 650
 const ABORT_MS = 300
-// 47 §Shared rules "Crisp means device pixels": every canvas is min(dpr,2).
-// The old fixed 1x traded crispness for SwiftShader (headless Chromium's
-// software rasterizer) fragment cost, back when the shader ran 2-octave
-// per-pixel fbm. That cost is gone now (the field is 2 texture2D reads, not
-// ~8 hash/mix ops per octave), so the budget for dpr 2 exists; re-measured
-// under 4x CPU throttle in the R4 report.
+// Perf P2: cap DPR at 1.5 for narrow (mobile) viewports — on a 390-px-wide
+// phone at DPR 3 the old cap of 2 still rendered 780×1688 device pixels per
+// frame (~1.3M). Dropping to 1.5 brings that to 585×1266 (~0.74M) — a ~55%
+// fill-rate cut that's invisible at the blob scale used here. Desktops
+// (≥768 logical px) keep the 2-cap as measured-safe in the R4 report.
 function canvasDpr() {
-  return Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2)
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+  const cap = window.innerWidth < 768 ? 1.5 : 2
+  return Math.min(dpr, cap)
 }
 
 // A 128x128 luminance texture, baked once per engine instance (prewarm) from

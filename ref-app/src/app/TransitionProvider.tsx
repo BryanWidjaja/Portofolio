@@ -166,7 +166,11 @@ export function TransitionProvider({ children }: { children: ReactNode }) {
     navigate(to)
     await waitForPageReady(pathname)
     jumpScrollTo(hash)
-    ScrollTrigger.refresh()
+    // Perf P4: defer refresh() into rAF so the main-thread layout recalc
+    // runs after the browser has painted the new page, not synchronously
+    // on the swapping→holding tick. The hold buffer below still gives the
+    // page ample paint time under the ink cover regardless.
+    requestAnimationFrame(() => ScrollTrigger.refresh())
     setTransitionPhase('holding')
     const holdRemaining = DURATION.hold * 1000 - (performance.now() - swapStart)
     if (holdRemaining > 0) await delay(holdRemaining)
@@ -231,7 +235,8 @@ export function TransitionProvider({ children }: { children: ReactNode }) {
       if (cancelled) return
       const saved = hash || getSavedScroll(location.key)
       lenisRef.current.scrollTo(saved, { immediate: true, force: true })
-      ScrollTrigger.refresh()
+      // Perf P4 (POP path): same rAF deferral as the push flow above.
+      requestAnimationFrame(() => ScrollTrigger.refresh())
       onPageEnter('pop')
       resetCursor()
 

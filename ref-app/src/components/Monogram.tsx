@@ -116,6 +116,7 @@ export function Monogram() {
       data-nav-item
 
       data-monogram
+      data-on-ink
       className="pointer-events-auto -m-3 p-3 font-display text-[1.75rem] font-bold not-italic leading-none text-ink md:text-[2rem]"
     >
       <span

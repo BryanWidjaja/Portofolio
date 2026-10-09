@@ -85,17 +85,17 @@ export const DURATION = {
   // brush-write trims (motion/tokens.ts's own DURATION.heroWrite etc.).
   // menuRodDraw is new: the bottom rod's own left-to-right brush draw
   // (components/MenuOverlay.tsx), timed to land as the panel arrives.
-  menuOpen: 0.55, // was 0.9
+  menuOpen: 0.42, // was 0.55 (owner: "slightly too slow", 2026-10-09)
   menuClose: 0.4, // was 0.65
   menuCloseDelay: 0.08, // was 0.15
-  menuLinkIn: 0.3, // was 0.4
-  menuLinkDelay: 0.18, // was 0.35
-  menuLinkStagger: 0.045, // was 0.06
-  menuRowIn: 0.3, // was 0.4
-  menuRowDelay: 0.3, // was 0.6
+  menuLinkIn: 0.25, // was 0.3
+  menuLinkDelay: 0.14, // was 0.18
+  menuLinkStagger: 0.04, // was 0.045
+  menuRowIn: 0.25, // was 0.3
+  menuRowDelay: 0.24, // was 0.3
   menuLinkOut: 0.14, // was 0.2
   menuLinkOutStagger: 0.02, // was 0.03
-  menuRodDraw: 0.3,
+  menuRodDraw: 0.24,
 
   // Brush-write (M1/M2/M4 heading, motion/brushText.ts): word-to-word
   // stagger .12 (42 §Tokens "Staggers: word .12"); the Home hero's default
@@ -243,5 +243,6 @@ export const DURATION = {
   // finishes 0.15s after, regardless of how long the flight itself takes.
   heroCollapseFlightMs: 550,
   heroCollapseEraseMs: 235,
-  heroExpandRewriteLeadMs: 150,
+  heroExpandFlightMs: 700,
+  heroExpandRewriteLeadMs: 180,
 } as const

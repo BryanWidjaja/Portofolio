@@ -89,11 +89,12 @@ function targetDiameter(state: CursorState): number {
   if (state === 'brush') return BRUSH_DIAMETER
   if (state === 'pointer') return TIP_DIAMETER * 2.4
   if (state === 'stick') return TIP_DIAMETER * 1.6
-  if (state === 'text') return TIP_DIAMETER * 0.5
+  if (state === 'text') return 0
   return TIP_DIAMETER
 }
 
 function targetAlpha(state: CursorState): number {
+  if (state === 'text') return 0
   if (state === 'brush') return BRUSH_ALPHA
   if (state === 'stick') return STICK_ALPHA
   return TIP_ALPHA
@@ -301,9 +302,11 @@ export function Cursor() {
             jobs.push({ x: x * dpr, y: y * dpr, size: curDiameter * scale * dpr, alpha })
           }
         }
-        // The tip itself, always present and drawn last (on top), at the
+        // The tip itself, drawn last (on top) when visible, at the
         // pointer's last known position and the current eased diameter/alpha.
-        jobs.push({ x: lastTipX * dpr, y: lastTipY * dpr, size: curDiameter * dpr, alpha: curAlpha })
+        if (curAlpha > 0.005 && curDiameter > 0.1) {
+          jobs.push({ x: lastTipX * dpr, y: lastTipY * dpr, size: curDiameter * dpr, alpha: curAlpha })
+        }
         return jobs
       }
 
@@ -537,15 +540,12 @@ export function Cursor() {
         // cursor at all, the same way they don't already know about it for
         // "text"/"open" (that comes from the wrapping TransitionLink).
         if (el.dataset.brush !== undefined) {
-          // fix 4: once brush.ts marks the figure fully painted, its own
-          // brush-footprint state no longer applies -- fall through to
-          // whatever `[data-cursor]` target actually encloses it (typically
-          // the card's own TransitionLink, `cursor="open"`) instead. Scoped
-          // to `[data-cursor]` only, not the full CURSOR_TARGETS list: this
-          // is "hand off to the enclosing link", not "find the next brush
-          // figure" (there is no such thing as a nested one).
-          if (el.dataset.brushFull !== undefined) {
-            const ancestor = (el.parentElement?.closest('[data-cursor]') as HTMLElement | null) ?? null
+          // If enclosed in a [data-cursor] target (such as the card's own
+          // TransitionLink, cursor="open"), resolve to that target immediately so
+          // hovering over the card's painted or grayscale image goes straight to
+          // the "open" cursor instead of a wider brush footprint.
+          const ancestor = (el.parentElement?.closest('[data-cursor]') as HTMLElement | null) ?? null
+          if (ancestor) {
             return { ...resolveState(ancestor), viaBrushFull: true }
           }
           return { state: 'brush', source: el, viaBrushFull: false }
@@ -580,7 +580,7 @@ export function Cursor() {
         currentEl = el
         const resolved = resolveState(el)
         resolvedEl = resolved.source
-        suppressTrail = resolved.viaBrushFull
+        suppressTrail = resolved.viaBrushFull || resolved.state === 'text'
         setNoTrail(suppressTrail)
         applyState(resolved.state, resolved.source?.dataset.cursorText ?? null)
         if (resolved.source?.dataset.cursor === 'stick') armStick(resolved.source)

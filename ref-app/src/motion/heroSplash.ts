@@ -106,8 +106,11 @@ function mulberry32(seed: number) {
   }
 }
 
+// Perf P2: same mobile DPR cap as inkCover.ts — see that file's comment.
 function canvasDpr() {
-  return Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2)
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+  const cap = window.innerWidth < 768 ? 1.5 : 2
+  return Math.min(dpr, cap)
 }
 
 // A single shared angular noise ring, baked once at module load -- "a

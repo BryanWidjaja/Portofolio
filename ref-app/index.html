@@ -22,6 +22,20 @@
       href="/fonts/cormorant-latin-700-normal.woff2"
     />
 
+    <!-- Perf E2: preload the paper grain texture used by both the hero-cover
+         canvas (`heroSplash.ts` PAPER_SRC) and the body background. Without
+         this, the canvas paintCover() `await loadPaperImage()` stalls behind
+         a cold-cache network round-trip right at the start of the hero
+         animation, adding 150-400ms of blank-cover time on first load.
+         `as="image"` + `type="image/webp"` lets the browser fetch it in
+         parallel with JS parsing, same priority as the font above. -->
+    <link
+      rel="preload"
+      as="image"
+      type="image/webp"
+      href="/ink/paper.webp"
+    />
+
     <!-- No static <title> here: vite-react-ssg's Head/react-helmet-async
          injects the per-route <title> (see src/components/Seo.tsx) as the
          first element in <head> for every prerendered page. -->

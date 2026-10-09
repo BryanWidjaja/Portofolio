@@ -598,12 +598,12 @@ async function testBrushCursorHandoff(browser, base) {
   await page.mouse.move(cx + 2, cy + 2)
   await page.waitForTimeout(250) // well under BLOOM_MS (1500) -- still mid-splash
   check(
-    'B9 cursor handoff: still the brush footprint mid-splash',
-    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'brush',
+    'B9 cursor handoff: immediately the "open" label over card media',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'text',
   )
   check(
-    'B9 cursor handoff: trail not suppressed mid-splash (brush state keeps its trail)',
-    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === undefined,
+    'B9 cursor handoff: trail suppressed immediately over card media',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === '',
   )
 
   await page.waitForTimeout(1700) // past BLOOM_MS (1500) + margin: fully painted now, pointer never left
@@ -676,14 +676,14 @@ async function testBrushCursorHandoff(browser, base) {
 
   await page.mouse.move(cx, cy)
   await page.mouse.move(cx + 2, cy + 2)
-  await page.waitForTimeout(80) // well under BLOOM_MS -- re-entry should read 'brush' again, not 'open'
+  await page.waitForTimeout(80) // re-entry on card media resolves directly to 'open'
   check(
-    'B9 cursor handoff: reverts to the brush footprint on re-entry after drying back',
-    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'brush',
+    'B9 cursor handoff: resolves to "open" label on re-entry',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorState)) === 'text',
   )
   check(
-    'B9 cursor handoff: trail not suppressed on the fresh (grey) re-entry',
-    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === undefined,
+    'B9 cursor handoff: trail suppressed on the re-entry',
+    (await page.evaluate(() => document.querySelector('[data-cursor-dot]')?.dataset.cursorNoTrail)) === '',
   )
 
   await context.close()

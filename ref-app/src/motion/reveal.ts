@@ -39,40 +39,56 @@ export function createScrollReveals(root: HTMLElement, reduced: boolean) {
   const opacityItems = items.filter((el) => el.dataset.reveal === 'label' || el.dataset.reveal === 'text')
   if (opacityItems.length) gsap.set(opacityItems, { opacity: 0 })
 
-  const triggers = ScrollTrigger.batch(items, {
-    start: 'top 85%',
-    once: true,
-    onEnter: (entries) => {
-      entries.forEach((entry, i) => {
-        const el = entry as HTMLElement
-        const kind = el.dataset.reveal || 'text'
-        const delay = i * DURATION.introStagger
+  // Perf P3: defer ScrollTrigger.batch into a rAF so this layout-forcing
+  // work runs in its own frame, *after* the browser has already painted the
+  // new page under the ink cover. Without the rAF, batch() calls
+  // getBoundingClientRect on every [data-reveal] element synchronously on
+  // the transition hot-path (swapping→holding), blocking the main thread
+  // for 40-80ms on pages with many reveal items and delaying the ink
+  // recede start. The returned cleanup still kills all triggers correctly.
+  let rafId = 0
+  let cleanupBatch: (() => void) | null = null
 
-        if (kind === 'heading') {
-          writeHeadingWords(el, reduced)
-        } else if (kind === 'scroll') {
-          // A project card's mounted scroll (styles/base.css `.scroll`): it
-          // starts rolled up under `motion-ready` and unrolls by pure CSS
-          // transition once this attribute lands -- no per-frame JS.
-          gsap.delayedCall(delay, () => el.setAttribute('data-unrolled', ''))
-        } else if (kind === 'media') {
-          // F1 (45 §Owner feedback item 2): see motion/bleed.ts's identical
-          // branch for why `--blot-size` (mask-size) gets a transient
-          // `willChange` and the other masks don't.
-          gsap.to(el, {
-            '--blot-size': '300%',
-            duration: DURATION.blotBleed,
-            ease: EASE.bleed,
-            delay,
-            onStart: () => gsap.set(el, { willChange: 'mask-size' }),
-            onComplete: () => gsap.set(el, { willChange: 'auto', maskImage: 'none' }),
-          })
-        } else {
-          gsap.to(el, { opacity: 1, duration: DURATION.batchFade, ease: EASE.bleed, delay })
-        }
-      })
-    },
+  rafId = requestAnimationFrame(() => {
+    const triggers = ScrollTrigger.batch(items, {
+      start: 'top 85%',
+      once: true,
+      onEnter: (entries) => {
+        entries.forEach((entry, i) => {
+          const el = entry as HTMLElement
+          const kind = el.dataset.reveal || 'text'
+          const delay = i * DURATION.introStagger
+
+          if (kind === 'heading') {
+            writeHeadingWords(el, reduced)
+          } else if (kind === 'scroll') {
+            // A project card's mounted scroll (styles/base.css `.scroll`): it
+            // starts rolled up under `motion-ready` and unrolls by pure CSS
+            // transition once this attribute lands -- no per-frame JS.
+            gsap.delayedCall(delay, () => el.setAttribute('data-unrolled', ''))
+          } else if (kind === 'media') {
+            // F1 (45 §Owner feedback item 2): see motion/bleed.ts's identical
+            // branch for why `--blot-size` (mask-size) gets a transient
+            // `willChange` and the other masks don't.
+            gsap.to(el, {
+              '--blot-size': '300%',
+              duration: DURATION.blotBleed,
+              ease: EASE.bleed,
+              delay,
+              onStart: () => gsap.set(el, { willChange: 'mask-size' }),
+              onComplete: () => gsap.set(el, { willChange: 'auto', maskImage: 'none' }),
+            })
+          } else {
+            gsap.to(el, { opacity: 1, duration: DURATION.batchFade, ease: EASE.bleed, delay })
+          }
+        })
+      },
+    })
+    cleanupBatch = () => triggers.forEach((st) => st.kill())
   })
 
-  return () => triggers.forEach((st) => st.kill())
+  return () => {
+    cancelAnimationFrame(rafId)
+    cleanupBatch?.()
+  }
 }
