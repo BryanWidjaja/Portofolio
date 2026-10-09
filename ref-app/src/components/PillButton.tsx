@@ -1,10 +1,13 @@
-import type { PointerEvent, ReactNode } from 'react'
-import { ArrowRight, ArrowUpRight, DownloadSimple, type Icon } from '@phosphor-icons/react'
+import type { ComponentType, PointerEvent, ReactNode } from 'react'
+import type { IconProps } from '@phosphor-icons/react'
+import { ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
+import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { DownloadSimple } from '@phosphor-icons/react/dist/ssr/DownloadSimple'
 import { TransitionLink } from './TransitionLink'
 
 type IconName = 'arrow-right' | 'arrow-up-right' | 'download'
 
-const icons: Record<IconName, Icon> = {
+const icons: Record<IconName, ComponentType<IconProps>> = {
   'arrow-right': ArrowRight,
   'arrow-up-right': ArrowUpRight,
   download: DownloadSimple,
@@ -83,7 +86,7 @@ function PillContent({ children, icon, disabled, wash }: { children: ReactNode; 
   return (
     <>
       {disabled || !wash ? null : <span aria-hidden="true" className="ink-wash" />}
-      <span className="relative">{children}</span>
+      <span className="relative whitespace-nowrap">{children}</span>
       {IconComponent ? (
         <IconComponent
           aria-hidden="true"

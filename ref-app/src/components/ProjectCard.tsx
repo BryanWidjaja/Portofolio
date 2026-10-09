@@ -1,4 +1,4 @@
-import { ArrowUpRight } from '@phosphor-icons/react'
+import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
 import { BrushReveal } from './BrushReveal'
 import { TransitionLink } from './TransitionLink'
 import type { Project } from '../content/projects'
@@ -17,12 +17,6 @@ const slotClasses: Record<ProjectCardProps['slot'], string> = {
   right: 'md:col-start-3 md:col-span-10 lg:col-start-5 lg:col-span-8',
 }
 
-const mediaHeight: Record<ProjectCardProps['slot'], string> = {
-  lead: 'md:h-[70vh]',
-  left: 'md:h-[62vh]',
-  right: 'md:h-[62vh]',
-}
-
 // M9/V26 (41-ink-replace-map.md): the old lime corner mark is gone. The
 // media brushes to colour under the pointer/focus (components/BrushReveal.tsx,
 // src/ink/brush.ts), the title gets a dry-brush underline (`.ink-underline`,
@@ -39,7 +33,11 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
             (styles/base.css `.scroll`) -- horizontal at every width, torn
             and aged, a few shades off the page's own paper. It unrolls once
             as it enters (motion/reveal.ts `scroll`). */}
-        <figure data-reveal="scroll" className={`scroll relative isolate aspect-[4/3] md:aspect-auto ${mediaHeight[slot]}`}>
+        <figure
+          data-reveal="scroll"
+          className="scroll relative isolate"
+          style={{ aspectRatio: `${project.cover.width * 0.84} / ${project.cover.height * 0.9}` }}
+        >
           <div className="scroll-stage">
             <div className="scroll-body">
               <div className="scroll-sheet">
@@ -52,6 +50,7 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
                     width={project.cover.width}
                     height={project.cover.height}
                     eager={eager}
+                    sizes={slot === 'lead' ? '(min-width: 768px) calc(100vw - 8rem), calc(100vw - 3rem)' : '(min-width: 1024px) 67vw, calc(100vw - 3rem)'}
                   />
                   <span aria-hidden="true" className="scroll-grain" />
                 </div>

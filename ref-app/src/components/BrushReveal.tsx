@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../app/MotionProvider'
 import { mountBrush } from '../ink/brush'
+import { ProjectImage } from './ProjectImage'
 
 type BrushRevealProps = {
   src: string
@@ -9,6 +10,7 @@ type BrushRevealProps = {
   height: number
   eager?: boolean
   className?: string
+  sizes?: string
 }
 
 // V11/M9 (41-ink-replace-map.md), 42-ink-direction.md §Brush reveal: the
@@ -29,7 +31,7 @@ function greySrc(src: string): string {
   return src.replace(/(\.\w+)$/, '-grey$1')
 }
 
-export function BrushReveal({ src, alt, width, height, eager = false, className = '' }: BrushRevealProps) {
+export function BrushReveal({ src, alt, width, height, eager = false, className = '', sizes = '100vw' }: BrushRevealProps) {
   const figureRef = useRef<HTMLSpanElement>(null)
   const colourRef = useRef<HTMLImageElement>(null)
   const reducedMotion = useReducedMotion()
@@ -52,27 +54,21 @@ export function BrushReveal({ src, alt, width, height, eager = false, className 
 
   return (
     <span ref={figureRef} data-brush className={`brush-figure relative isolate block size-full ${className}`}>
-      <img
-        src={greySrc(src)}
+      <ProjectImage
+        img={{ src: greySrc(src), alt: '', width, height }}
         alt=""
-        aria-hidden="true"
-        width={width}
-        height={height}
+        sizes={sizes}
         loading={eager ? 'eager' : 'lazy'}
-        decoding={eager ? 'sync' : 'async'}
-        fetchPriority={eager ? 'low' : undefined}
-        className="brush-grey absolute inset-0 size-full object-cover"
+        fetchPriority={eager ? 'high' : undefined}
+        className="brush-grey absolute inset-0 size-full object-contain"
       />
-      <img
+      <ProjectImage
         ref={colourRef}
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
+        img={{ src, alt, width, height }}
+        sizes={sizes}
         loading={eager ? 'eager' : 'lazy'}
-        decoding={eager ? 'sync' : 'async'}
-        fetchPriority={eager ? 'low' : undefined}
-        className="brush-colour pointer-events-none absolute inset-0 size-full object-cover"
+        fetchPriority={eager ? 'high' : undefined}
+        className="brush-colour pointer-events-none absolute inset-0 size-full object-contain"
       />
     </span>
   )

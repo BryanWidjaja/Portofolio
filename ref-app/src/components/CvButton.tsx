@@ -1,4 +1,4 @@
-import { DownloadSimple } from '@phosphor-icons/react'
+import { DownloadSimple } from '@phosphor-icons/react/dist/ssr/DownloadSimple'
 import { site } from '../content/site'
 
 type CvButtonProps = {

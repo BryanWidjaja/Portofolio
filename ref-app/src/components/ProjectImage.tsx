@@ -1,0 +1,47 @@
+import { forwardRef } from 'react'
+import type { Img } from '../content/projects'
+
+const previewWidths = [320, 640, 960, 1600, 1920]
+
+function variant(src: string, width: number, format: 'avif' | 'webp') {
+  return src.replace(/-\d+(-grey)?\.(?:avif|webp)$/, `-${width}$1.${format}`)
+}
+
+export function projectSrcSet(img: Img, format: 'avif' | 'webp') {
+  const widths = previewWidths.filter((width) => width < img.width)
+  const full = img.src.replace(/\.(?:avif|webp)$/, `.${format}`)
+  return [...widths.map((width) => `${variant(img.src, width, format)} ${width}w`), `${full} ${img.width}w`].join(', ')
+}
+
+type ProjectImageProps = {
+  img: Img
+  sizes: string
+  alt?: string
+  className?: string
+  loading?: 'eager' | 'lazy'
+  fetchPriority?: 'high' | 'low' | 'auto'
+}
+
+export const ProjectImage = forwardRef<HTMLImageElement, ProjectImageProps>(function ProjectImage(
+  { img, sizes, alt = img.alt, className = '', loading = 'lazy', fetchPriority },
+  ref,
+) {
+  return (
+    <picture className="contents">
+      <source type="image/avif" srcSet={projectSrcSet(img, 'avif')} sizes={sizes} />
+      <img
+        ref={ref}
+        src={img.src}
+        srcSet={projectSrcSet(img, 'webp')}
+        sizes={sizes}
+        alt={alt}
+        width={img.width}
+        height={img.height}
+        loading={loading}
+        decoding={loading === 'eager' ? 'sync' : 'async'}
+        fetchPriority={fetchPriority}
+        className={className}
+      />
+    </picture>
+  )
+})

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Check, Copy } from '@phosphor-icons/react'
+import { Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { Copy } from '@phosphor-icons/react/dist/ssr/Copy'
 import { site } from '../content/site'
 
 type EmailCopyProps = {
@@ -10,8 +11,8 @@ type EmailCopyProps = {
 const sizeClasses: Record<'md' | 'lg', string> = {
   md: 'text-title',
   // 11-layout.md §Global: text-xl at 390 (text-title would overflow the
-  // 342px column with the icon), text-title from md.
-  lg: 'text-xl md:text-title',
+  // 342px column with the icon), text-title once the footer has room.
+  lg: 'text-xl lg:text-title',
 }
 
 // D5: copy button with feedback, falling back to mailto on failure.

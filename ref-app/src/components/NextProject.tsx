@@ -1,4 +1,4 @@
-import { ArrowUpRight } from '@phosphor-icons/react'
+import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
 import { BrushLine } from './BrushLine'
 import { TransitionLink } from './TransitionLink'
 import type { Project } from '../content/projects'

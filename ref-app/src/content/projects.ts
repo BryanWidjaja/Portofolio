@@ -44,6 +44,7 @@ export type Project = {
   // frontend and the Chrome extension), each its own pill.
   links: { live?: string; repos?: ProjectLink[] }
   cover: Img
+  detailHero?: Img
   /**
    * 51-round5-plan.md §E3, 45 R5c, 52 §Item 4: the project-page collage's
    * secondary tiles (the "2x2" of layout 4A). The hero tile is `cover`
@@ -54,6 +55,7 @@ export type Project = {
    * step in this sandbox -- see the round-5 report).
    */
   collage: Img[]
+  earlierVideo?: { base: string; alt: string }
   sections: ProjectSection[]
 }
 
@@ -77,55 +79,90 @@ export const projects: Project[] = [
     },
     cover: {
       src: '/projects/malware-detection/cover-1600.webp',
-      alt: "Three real input channels of one benign Windows executable (w64.exe, 101,888 bytes): byte value, block entropy and PE section type.",
+      alt: 'Slide 3: byte, entropy and section channels arranged along a Hilbert curve.',
       width: 1600,
-      height: 1000,
+      height: 900,
       tone: 'light',
     },
-    // Hero tile (ProjectDetail.tsx) is E2's <ProjectVideo>, not this array
-    // -- the malware trailer, muted-loop-first. These four are the
-    // collage's 2x2.
+    detailHero: {
+      src: '/projects/malware-detection/slide-1-1920.webp',
+      alt: 'Slide 1: A Lightweight, Entropy-Aware Byte-Image CNN for Static Malware Detection, with five authors and ICoAILO 2026.',
+      width: 1920,
+      height: 1080,
+      tone: 'light',
+    },
     collage: [
       {
-        // Same master as `cover` above (51 §E5, R5e: the home card's cover
-        // was replaced with the album-leaves image -- this collage tile
-        // reuses that same file by design, so its alt was updated to match
-        // rather than describing the byte channel alone it no longer is).
-        src: '/projects/malware-detection/cover-1600.webp',
-        alt: "Three real input channels of one benign Windows executable (w64.exe, 101,888 bytes): byte value, block entropy and PE section type.",
-        width: 1600,
-        height: 1000,
+        src: '/projects/malware-detection/slide-2-1920.webp',
+        alt: 'Slide 2: motivation for low false positives, learned byte representations and packing-aware detection.',
+        width: 1920,
+        height: 1080,
         tone: 'light',
       },
       {
-        src: '/projects/malware-detection/gallery-1-1600.webp',
-        // The alt carries every value: it doubles as the chart's table view.
-        alt: 'Bar charts comparing the proposed CNN with SqueezeNet and MobileNetV2 on the family-disjoint split. Accuracy 85.7% against 79.3% and 78.5%. Malware recall 81.1% against 71.2% and 72.0%. ROC-AUC 0.988 against 0.959 and 0.968. False-positive rate 1.14% against 0.43% and 2.00%. Parameters 114K against 392K and 251K. CPU latency 4.68 ms against 8.33 and 10.42 ms. No difference is statistically significant at five folds.',
-        width: 1200,
-        height: 900,
-        caption: 'Paper results against two standard backbones',
+        src: '/projects/malware-detection/slide-3-1920.webp',
+        alt: 'Slide 3: byte, local entropy and PE section channels arranged on a Hilbert curve.',
+        width: 1920,
+        height: 1080,
+        caption: 'Three source-grounded input channels',
         tone: 'light',
       },
       {
-        src: '/projects/malware-detection/gallery-2-1600.webp',
-        alt: "The same file's three input channels with their legends: byte value, block entropy, and PE section type.",
-        width: 900,
-        height: 1200,
-        caption: 'One executable, three input channels',
+        src: '/projects/malware-detection/slide-4-1920.webp',
+        alt: 'Slide 4: the 114,485-parameter attention CNN architecture and 0.48 MB model size.',
+        width: 1920,
+        height: 1080,
+        caption: 'A compact 0.48 MB model',
         tone: 'light',
       },
       {
-        src: '/projects/malware-detection/gallery-3-1600.webp',
-        // A still pulled from the trailer itself (ffmpeg, no re-render):
-        // a batch of five held-out byte-images the paper's demo scores,
-        // outlined in red where the detector flags one malicious.
-        alt: "A trailer frame: five held-out byte-images, four outlined blue and one red for a malicious verdict, with 82.26% recall beneath.",
-        width: 1280,
-        height: 720,
-        caption: 'One frame from the trailer: the detector scoring a held-out batch',
-        tone: 'dark',
+        src: '/projects/malware-detection/slide-5-1920.webp',
+        alt: 'Slide 5: dataset and evaluation protocols, including the source-provenance limitation.',
+        width: 1920,
+        height: 1080,
+        tone: 'light',
+      },
+      {
+        src: '/projects/malware-detection/slide-6-1920.webp',
+        alt: 'Slide 6: temperature and threshold calibration, showing degradation under family shift.',
+        width: 1920,
+        height: 1080,
+        tone: 'light',
+      },
+      {
+        src: '/projects/malware-detection/slide-7-1920.webp',
+        alt: 'Slide 7: grouped accuracy 85.74%, recall 81.13%, false-positive rate 1.14%, ROC-AUC 0.9881, and LOFO accuracy 73.37%.',
+        width: 1920,
+        height: 1080,
+        caption: 'Grouped and leave-one-family-out results',
+        tone: 'light',
+      },
+      {
+        src: '/projects/malware-detection/slide-8-1920.webp',
+        alt: 'Slide 8: backbone comparison with no statistically significant gaps and 4.68 ms model latency.',
+        width: 1920,
+        height: 1080,
+        tone: 'light',
+      },
+      {
+        src: '/projects/malware-detection/slide-9-1920.webp',
+        alt: 'Slide 9: embedding, layout and UPX findings, qualified to known binaries.',
+        width: 1920,
+        height: 1080,
+        tone: 'light',
+      },
+      {
+        src: '/projects/malware-detection/slide-10-1920.webp',
+        alt: 'Slide 10: threats to validity, calibration limits, deployment precision and future work.',
+        width: 1920,
+        height: 1080,
+        tone: 'light',
       },
     ],
+    earlierVideo: {
+      base: '/projects/malware-detection',
+      alt: 'An earlier experiment trailer showing the byte-image pipeline and its then-current results.',
+    },
     sections: [
       {
         label: 'The problem',
@@ -133,11 +170,11 @@ export const projects: Project[] = [
       },
       {
         label: 'What I built',
-        body: 'Each Windows PE file becomes a 64×64 byte-image laid along a Hilbert curve, combining byte values, local entropy and PE section metadata with a learned byte embedding. A 114,485-parameter attention CNN scores it, and a calibrated threshold turns that score into a verdict at a target false-positive rate.',
+        body: 'Each Windows PE file becomes a 64×64 byte-image laid along a Hilbert curve, combining byte values, local entropy and PE section metadata with a learned byte embedding. A 114,485-parameter, 0.48 MB attention CNN scores it, and a calibrated threshold turns that score into a verdict at a target false-positive rate.',
       },
       {
         label: 'The result',
-        body: '0.988 ROC-AUC at a 1.14% false-positive rate on family-disjoint evaluation, from a 0.48 MB model that scores a file in under 5 ms on a CPU. The paper was accepted for presentation at the 2nd International Conference on Artificial Intelligence for Learning and Optimization (ICoAILO 2026).',
+        body: 'Grouped evaluation reached 85.74% accuracy, 81.13% recall, a 1.14% false-positive rate and 0.9881 ROC-AUC; model latency was 4.68 ms. Comparator gaps were not statistically significant, calibration degraded under family shift, and the UPX evidence covers known binaries. The paper was accepted for presentation at the 2nd International Conference on Artificial Intelligence for Learning and Optimization (ICoAILO 2026).',
       },
     ],
   },
@@ -375,10 +412,10 @@ export const projects: Project[] = [
         tone: 'light',
       },
       {
-        src: '/projects/instatags/gallery-4-1600.webp',
-        alt: "The How To Use page, extension tab: steps 1 to 3.",
-        width: 1043,
-        height: 900,
+        src: '/projects/instatags/gallery-4-1920.webp',
+        alt: 'The complete How To Use page with navigation and full extension cards for steps 1 to 5 in order.',
+        width: 1920,
+        height: 1080,
         caption: 'How to use it',
         tone: 'dark',
       },

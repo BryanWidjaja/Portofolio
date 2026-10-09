@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Plus } from '@phosphor-icons/react'
+import { ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
+import { Plus } from '@phosphor-icons/react/dist/ssr/Plus'
 import type { Img } from '../content/projects'
 import { useReducedMotion } from '../app/MotionProvider'
 import { useLenisControls } from '../app/LenisProvider'
+import { ProjectImage } from './ProjectImage'
 
 type ProjectLightboxProps = {
   /** Flat, ordered list -- ProjectCollage.tsx builds this from its own
@@ -51,6 +53,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
   const [visible, setVisible] = useState(reduced)
   const rootRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([])
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const closeTimerRef = useRef<number | undefined>(undefined)
 
@@ -68,13 +71,65 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    returnFocusRef.current = document.activeElement as HTMLElement | null
+    const scrollY = window.scrollY
+    const previousScrollData = document.body.getAttribute('data-lightbox-scroll-y')
+    const previousBodyStyle = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    }
+    const changed: Array<{ element: HTMLElement; inert: boolean; ariaHidden: string | null }> = []
+    let branch: HTMLElement = root
+    while (branch.parentElement) {
+      for (const sibling of Array.from(branch.parentElement.children)) {
+        if (!(sibling instanceof HTMLElement) || sibling === branch) continue
+        changed.push({ element: sibling, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') })
+        sibling.inert = true
+        sibling.setAttribute('aria-hidden', 'true')
+      }
+      branch = branch.parentElement
+      if (branch === document.body) break
+    }
+
+    document.documentElement.setAttribute('data-lightbox-open', '')
+    document.body.dataset.lightboxScrollY = String(scrollY)
+    Object.assign(document.body.style, {
+      position: 'fixed',
+      top: `${-scrollY}px`,
+      left: '0',
+      right: '0',
+      width: '100%',
+      overflow: 'hidden',
+    })
+
+    return () => {
+      for (const { element, inert, ariaHidden } of changed) {
+        element.inert = inert
+        if (ariaHidden === null) element.removeAttribute('aria-hidden')
+        else element.setAttribute('aria-hidden', ariaHidden)
+      }
+      document.documentElement.removeAttribute('data-lightbox-open')
+      Object.assign(document.body.style, previousBodyStyle)
+      if (previousScrollData === null) delete document.body.dataset.lightboxScrollY
+      else document.body.setAttribute('data-lightbox-scroll-y', previousScrollData)
+      window.scrollTo(0, scrollY)
+      returnFocusRef.current?.focus()
+    }
+  }, [])
+
   // Mount: capture the element to return focus to on close (the trigger
   // button already called .focus() on itself synchronously before setting
   // the open index, so this is reliable across browsers), then move focus
   // into the dialog. Reduced motion skips straight to the end state and
   // never calls requestAnimationFrame.
   useEffect(() => {
-    returnFocusRef.current = document.activeElement as HTMLElement | null
     closeButtonRef.current?.focus()
     if (reduced) {
       setVisible(true)
@@ -86,6 +141,10 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
   }, [reduced])
 
   useEffect(() => () => window.clearTimeout(closeTimerRef.current), [])
+
+  useEffect(() => {
+    thumbnailRefs.current[index]?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [index])
 
   function requestClose() {
     if (reduced) {
@@ -162,7 +221,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
   // from the collage grid itself) -- the thumbnail strip derives the
   // lighter -960 variant `scripts/project-images.mjs` already emits
   // alongside it, rather than asking for a new asset pass.
-  const thumbSrc = (src: string) => src.replace('-1600.webp', '-960.webp')
+  const thumbSrc = (src: string) => src.replace(/-\d+\.(?:avif|webp)$/, '-320.webp')
 
   return (
     <div
@@ -178,8 +237,8 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
     >
       {/* Stops the backdrop's own onClick (which closes the dialog) from
           firing for clicks anywhere inside the actual dialog content. */}
-      <div onClick={(e) => e.stopPropagation()} className="flex h-full flex-col">
-        <div className="flex items-center justify-between gap-4 p-4 md:p-6">
+      <div onClick={(e) => e.stopPropagation()} className="flex h-dvh min-h-0 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center justify-between gap-4 px-4 py-2 md:px-6 md:py-3">
           <p data-lightbox-counter className="label text-ink-muted tabular-nums">
             {`Photo ${index + 1} of ${total}`}
           </p>
@@ -195,24 +254,25 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
           </button>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center px-4 md:px-16">
+        <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 md:gap-4 md:px-6">
           {total > 1 ? (
             <button
               type="button"
               onClick={showPrev}
               aria-label="Previous photo"
               data-cursor="stick"
-              className="absolute left-2 z-10 grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink md:left-6"
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink"
             >
               <ArrowRight aria-hidden="true" weight="bold" className="size-5 rotate-180" />
             </button>
           ) : null}
 
-          <figure className="isolate max-h-[65svh] max-w-full overflow-hidden rounded-none shadow-[0_0_0_1px_rgb(60_40_15/0.14)] md:max-h-[70svh]">
-            <img
-              src={current.src}
-              alt={current.alt}
-              className="max-h-[65svh] max-w-full object-contain md:max-h-[70svh]"
+          <figure className="isolate flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-none">
+            <ProjectImage
+              img={current}
+              sizes="(max-width: 600px) calc(100vw - 7rem), calc(100vw - 12rem)"
+              loading="eager"
+              className="max-h-full max-w-full object-contain shadow-[0_0_0_1px_rgb(60_40_15/0.14)]"
             />
           </figure>
 
@@ -222,7 +282,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
               onClick={showNext}
               aria-label="Next photo"
               data-cursor="stick"
-              className="absolute right-2 z-10 grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink md:right-6"
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink"
             >
               <ArrowRight aria-hidden="true" weight="bold" className="size-5" />
             </button>
@@ -230,10 +290,19 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
         </div>
 
         {total > 1 ? (
-          <div className="flex justify-center gap-3 overflow-x-auto p-4 md:p-6">
+          <div
+            data-lightbox-thumbnails
+            data-lenis-prevent
+            aria-label="Photo thumbnails"
+            tabIndex={0}
+            className="flex shrink-0 justify-start gap-2 overflow-x-auto px-4 py-2 md:gap-3 md:px-6 md:py-3"
+          >
             {photos.map((photo, i) => (
               <button
                 key={photo.src}
+                ref={(element) => {
+                  thumbnailRefs.current[i] = element
+                }}
                 type="button"
                 onClick={() => onIndexChange(i)}
                 aria-label={`Photo ${i + 1} of ${total}`}
@@ -243,7 +312,12 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
                   i === index ? 'border-ink' : 'border-transparent opacity-50'
                 }`}
               >
-                <img src={thumbSrc(photo.src)} alt="" className="size-full object-cover" />
+                <ProjectImage
+                  img={{ ...photo, src: thumbSrc(photo.src), width: Math.min(photo.width, 320), height: Math.round((photo.height / photo.width) * Math.min(photo.width, 320)) }}
+                  sizes="64px"
+                  alt=""
+                  className="size-full object-contain"
+                />
               </button>
             ))}
           </div>

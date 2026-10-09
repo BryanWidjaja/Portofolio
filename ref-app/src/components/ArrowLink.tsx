@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowUpRight } from '@phosphor-icons/react'
+import { ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
 import { TransitionLink } from './TransitionLink'
 import { site } from '../content/site'
 

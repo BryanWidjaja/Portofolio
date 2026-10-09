@@ -32,7 +32,7 @@ function splitLetter(word: string) {
 }
 
 export function Home() {
-  const aboutLead = splitAccent(site.home.aboutCta.lead, 'over a hundred students')
+  const aboutLead = splitAccent(site.home.aboutCta.lead, '100 to 120 students')
   const hasInscription = Boolean(site.home.heroInscription)
   const reduced = useReducedMotion()
 
@@ -247,12 +247,15 @@ export function Home() {
               motion/bleed.ts's plain ink-in reads just as well here — the
               `text-heading` sizing is a type-scale choice, independent of
               which M4 motion kind the element opts into. */}
-          <p data-reveal="text" className="text-heading font-display font-medium text-balance md:col-span-8 md:col-start-5">
+          <p data-reveal="text" className="text-heading font-display font-medium text-balance md:col-span-9 md:col-start-3">
             {aboutLead.before}
             <Accent>{aboutLead.accent}</Accent>
             {aboutLead.after}
           </p>
-          <div data-reveal="text" className="mt-breath md:col-span-3 md:col-start-5">
+          <p data-reveal="text" className="mt-6 max-w-[62ch] text-lead text-ink-muted md:col-span-7 md:col-start-3">
+            {site.home.aboutCta.detail}
+          </p>
+          <div data-reveal="text" className="mt-8 md:col-span-3 md:col-start-3">
             <PillButton to="/about" icon="arrow-right" variant="solid">
               {site.home.aboutCta.pill}
             </PillButton>

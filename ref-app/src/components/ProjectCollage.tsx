@@ -1,11 +1,11 @@
 import { useState, type MouseEvent } from 'react'
 import type { Img } from '../content/projects'
-import { ProjectVideo } from './ProjectVideo'
 import { ProjectLightbox } from './ProjectLightbox'
+import { ProjectImage } from './ProjectImage'
 
 type ProjectCollageProps = {
-  /** The hero tile. Either a cover image, or (malware-detection only) E2's <ProjectVideo>. */
-  hero: { kind: 'image'; img: Img } | { kind: 'video'; base: string; alt: string }
+  /** The complete image that leads this project's ordered viewer. */
+  hero: Img
   /**
    * The collage's remaining tiles (52 §Item 4's "2x2"). Any count works by
    * construction (see the layout note below) -- five real images per
@@ -102,8 +102,8 @@ type ProjectCollageProps = {
 // `e.currentTarget.focus()` itself before opening, which is what makes
 // that capture reliable rather than a second ref bookkept here.
 export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
-  const photos = hero.kind === 'image' ? [hero.img, ...tiles] : tiles
-  const heroOffset = hero.kind === 'image' ? 1 : 0
+  const photos = [hero, ...tiles]
+  const heroOffset = 1
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   // R6f: only four side cells physically exist (the right-hand 2x2), so
@@ -138,7 +138,7 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
   // (the one other bit of logic 58 §F3 allows) -- a literal
   // `aspect-[${w}/${h}]` string can't be picked up by Tailwind's static
   // class scan, only a real style property resolves it at runtime.
-  const heroAspect = hero.kind === 'video' ? '16 / 9' : `${hero.img.width} / ${hero.img.height}`
+  const heroAspect = `${hero.width} / ${hero.height}`
 
   return (
     <div
@@ -150,35 +150,28 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
         className={`relative col-span-2 md:col-span-1 md:row-span-2 ${cell}`}
         style={{ aspectRatio: heroAspect }}
       >
-        {hero.kind === 'video' ? (
-          <ProjectVideo base={hero.base} alt={hero.alt} className="size-full" />
-        ) : (
           <button
             type="button"
             data-collage-trigger
             data-cursor="text"
             data-cursor-text="view"
-            aria-label={`Open photo 1 of ${photos.length}: ${hero.img.alt}`}
+            aria-label={`Open photo 1 of ${photos.length}: ${hero.alt}`}
             onClick={(e) => {
               e.currentTarget.focus()
               setOpenIndex(0)
             }}
             className="block size-full appearance-none border-0 bg-transparent p-0 text-left"
           >
-            <figure data-intro="cover" data-tone={hero.img.tone} className="blot-mask isolate size-full rounded-none">
-              <img
-                src={hero.img.src}
-                alt={hero.img.alt}
-                width={hero.img.width}
-                height={hero.img.height}
+            <figure data-intro="cover" data-tone={hero.tone} className="blot-mask isolate size-full rounded-none">
+              <ProjectImage
+                img={hero}
+                sizes="(min-width: 1280px) calc((min(100vw, 110rem) - 11.5rem) * 0.625), (min-width: 768px) calc((100vw - 9rem) * 0.625), calc(100vw - 3rem)"
                 loading="eager"
-                decoding="async"
                 fetchPriority="high"
-                className="size-full object-cover"
+                className="size-full object-contain"
               />
             </figure>
           </button>
-        )}
       </div>
 
       {visibleTiles.map((tile, i) => {
@@ -190,14 +183,10 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
 
         const figure = (
           <figure data-collage-tile data-tone={tile.tone} className="isolate size-full rounded-none">
-            <img
-              src={tile.src}
-              alt={tile.alt}
-              width={tile.width}
-              height={tile.height}
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 size-full object-cover"
+            <ProjectImage
+              img={tile}
+              sizes="(min-width: 1280px) calc((min(100vw, 110rem) - 11.5rem) * 0.1875), (min-width: 768px) calc((100vw - 9rem) * 0.1875), calc(50vw - 1.75rem)"
+              className="absolute inset-0 size-full object-contain"
             />
             {isOverflow ? (
               // The veil sits *over* the photo (a real element, never a

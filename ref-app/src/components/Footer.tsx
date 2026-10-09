@@ -34,27 +34,27 @@ export function Footer() {
   return (
     <footer id="contact" data-footer ref={footerRef} className="relative ink-paper">
       <BrushLine className="absolute inset-x-0 top-0" />
-      <Container className="flex min-h-[90svh] flex-col py-16 md:min-h-[80vh] md:py-20">
-        <div>
+      <Container className="py-16 md:py-20">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-12 md:items-start md:gap-x-8">
+          <div data-footer-contact className="col-span-2 md:col-span-8">
           <Eyebrow data-reveal="label">{site.footer.eyebrow}</Eyebrow>
           <BrushWords
             as="h2"
             text={site.footer.heading}
             data-reveal="heading"
             tabIndex={-1}
-            className="mt-3 text-display text-balance md:max-w-[75%]"
+            className="mt-3 text-display text-balance lg:max-w-[75%]"
           />
-          <div data-reveal="text" className="mt-10 flex flex-col gap-3 md:mt-16 md:flex-row md:items-baseline md:gap-10">
+          <div data-reveal="text" className="mt-10 flex flex-col gap-3 md:mt-16 xl:flex-row xl:items-baseline xl:gap-10">
             <EmailCopy email={site.email} size="lg" />
             <ArrowLink href={`mailto:${site.email}`} size="md">
               {site.footer.openMailLabel}
             </ArrowLink>
           </div>
           <p className="mt-4 text-body text-ink-muted">{site.footer.availability}</p>
-        </div>
+          </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-x-6 gap-y-10 pt-16 md:grid-cols-12">
-          <div data-reveal="text" className="md:col-span-3 md:col-start-7">
+          <div data-footer-pages data-reveal="text" className="md:col-span-2 md:col-start-9">
             <p className="label text-ink-muted">{site.footer.pagesLabel}</p>
             <ul className="mt-3">
               {site.footer.pageLinks.map((link) => (
@@ -66,7 +66,7 @@ export function Footer() {
               ))}
             </ul>
           </div>
-          <div data-reveal="text" className="md:col-span-3">
+          <div data-footer-social data-reveal="text" className="md:col-span-2">
             <p className="label text-ink-muted">{site.footer.socialLabel}</p>
             <ul className="mt-3">
               {site.socials.map((social) => (
@@ -82,7 +82,7 @@ export function Footer() {
              keeps its own row-2 slot (explicit `md:row-start-2` now that
              there's no sibling to anchor the row) so removing it doesn't
              leave a dangling empty row or shift the footer's rhythm. */}
-          <p className="col-span-2 text-small tabular-nums text-ink-subtle md:col-span-6 md:col-start-7 md:row-start-2">
+          <p className="col-span-2 text-small tabular-nums text-ink-subtle md:col-span-12 md:mt-6">
             {site.footer.copyright}
           </p>
         </div>

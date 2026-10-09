@@ -6,6 +6,7 @@ import { BrushWords } from '../components/BrushWords'
 import { Eyebrow } from '../components/Eyebrow'
 import { PillButton } from '../components/PillButton'
 import { ProjectCollage } from '../components/ProjectCollage'
+import { ProjectVideo } from '../components/ProjectVideo'
 import { NextProject } from '../components/NextProject'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
@@ -138,15 +139,7 @@ export function ProjectDetail() {
               (was `mt-breath`; no smaller spacing token exists, so a
               literal value, same fallback the story rows below take). */}
           <ProjectCollage
-            hero={
-              project.slug === 'malware-detection'
-                ? {
-                    kind: 'video',
-                    base: '/projects/malware-detection',
-                    alt: 'A trailer for the malware detector: the byte-image pipeline, the CNN architecture, and the paper\'s own results.',
-                  }
-                : { kind: 'image', img: project.cover }
-            }
+            hero={project.detailHero ?? project.cover}
             tiles={project.collage}
           />
         </Container>
@@ -188,6 +181,23 @@ export function ProjectDetail() {
             ))}
           </div>
         </Container>
+
+        {project.earlierVideo ? (
+          <Container as="section" className="mt-leaf">
+            <div className="grid gap-6 md:grid-cols-12 md:items-start">
+              <div className="md:col-span-4">
+                <Eyebrow>Earlier experiment</Eyebrow>
+                <h2 className="mt-3 text-title font-display font-medium">Watch the earlier results trailer</h2>
+                <p className="mt-3 text-body text-ink-muted">
+                  This archived trailer reports an earlier experiment. Its accuracy differs from the latest conference slides above.
+                </p>
+              </div>
+              <div className="md:col-span-8">
+                <ProjectVideo {...project.earlierVideo} className="aspect-video w-full" />
+              </div>
+            </div>
+          </Container>
+        ) : null}
 
         <Container as="section" className="mt-leaf">
           <NextProject project={next} />
