@@ -10,6 +10,7 @@ import { useGSAP } from '../motion/gsap'
 import { createScrollReveals } from '../motion/reveal'
 import { useReducedMotion } from '../app/MotionProvider'
 import { site } from '../content/site'
+import { AmbientScene } from './AmbientScene'
 
 // V21 (41-ink-replace-map.md): a brush-line top edge instead of `border-t`
 // (13-build-plan §Conflicts still applies: M4 needs a component that can
@@ -32,7 +33,8 @@ export function Footer() {
   useGSAP(() => createScrollReveals(footerRef.current!, reduced), { scope: footerRef, dependencies: [reduced] })
 
   return (
-    <footer id="contact" data-footer ref={footerRef} className="relative ink-paper">
+    <footer id="contact" data-footer ref={footerRef} className="relative isolate ink-paper">
+      <AmbientScene preset="footer-waterline" />
       <BrushLine className="absolute inset-x-0 top-0" />
       <Container className="py-16 md:py-20">
         <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-12 md:items-start md:gap-x-8">

@@ -6,6 +6,7 @@ import { DividerRow } from '../components/DividerRow'
 import { Accordion } from '../components/Accordion'
 import { BrushReveal } from '../components/BrushReveal'
 import { Page } from '../motion/Page'
+import { AmbientScene } from '../components/AmbientScene'
 import { site } from '../content/site'
 import { aboutCommon, aboutVariant, awards, bio, education, experience, portrait, tools, whatIDo } from '../content/about'
 import type { TimelineRow } from '../content/about'
@@ -56,7 +57,8 @@ export function About() {
           </p>
         </Container>
 
-        <Container className="mt-breath grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
+        <Container className="relative isolate mt-breath grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
+          <AmbientScene preset="about-grove" />
           <div className="ml-auto w-[82%] max-w-[26rem] overflow-hidden rounded-none md:col-span-4 md:ml-0 md:w-full md:max-w-none">
             <BrushReveal
               src={portrait.src}

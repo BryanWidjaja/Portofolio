@@ -8,6 +8,7 @@ import { PillButton } from '../components/PillButton'
 import { ProjectCollage } from '../components/ProjectCollage'
 import { ProjectVideo } from '../components/ProjectVideo'
 import { NextProject } from '../components/NextProject'
+import { AmbientScene } from '../components/AmbientScene'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
 import type { ProjectDetailData } from '../content/routeData'
@@ -145,7 +146,8 @@ export function ProjectDetail() {
         {/* 55 §E7 B: `pt-leaf` only (was `py-leaf`) -- the bottom half used
             to stack with NextProject's `mt-leaf` below into two gaps where
             the owner wants one. */}
-        <Container as="section" data-project-story className="pt-leaf">
+        <Container as="section" data-project-story className="relative isolate pt-leaf">
+          <AmbientScene preset="project-story" />
           {/* Direction 8A: Swiss Grid — Expressive Italic Title.
               1fr / 2fr columns; large italic Cormorant title on the left with a
               hairline divider; body prose fills the right. Rows are separated by

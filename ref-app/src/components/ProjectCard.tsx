@@ -23,7 +23,7 @@ const slotClasses: Record<ProjectCardProps['slot'], string> = {
 // styles/base.css, V18) and the arrow nudges +3 beside it.
 export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) {
   return (
-    <li className={slotClasses[slot]}>
+    <li className={`relative isolate ${slotClasses[slot]}`}>
       <TransitionLink
         to={`/projects/${project.slug}`}
         cursor="open"

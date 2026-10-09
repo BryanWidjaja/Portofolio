@@ -16,6 +16,7 @@
     "cast": "node scripts/cast.mjs",
     "check:transitions": "node scripts/check-transitions.mjs",
     "check:round7": "node scripts/check-round7.mjs",
+    "check:ambient": "node scripts/check-ambient.mjs",
     "check:budget": "node scripts/check-budget.mjs",
     "check:project-assets": "node scripts/check-project-assets.mjs",
     "og": "node scripts/og.mjs",
@@ -24,7 +25,8 @@
     "assets:projects": "node scripts/project-images.mjs",
     "assets:video": "node scripts/project-video.mjs",
     "assets:favicon": "node scripts/favicon.mjs",
-    "assets:hero": "node scripts/hero.mjs"
+    "assets:hero": "node scripts/hero.mjs",
+    "assets:ambient": "node scripts/ambient-images.mjs"
   },
   "keywords": [],
   "author": "",

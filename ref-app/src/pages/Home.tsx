@@ -9,6 +9,7 @@ import { Eyebrow } from '../components/Eyebrow'
 import { ProjectCard } from '../components/ProjectCard'
 import { PillButton } from '../components/PillButton'
 import { Hero, HERO_DESKTOP_WIDTHS, heroSrcSet } from '../components/Hero'
+import { LandingParallaxField } from '../components/LandingParallaxField'
 import { Page } from '../motion/Page'
 import { usePageEnter, type PageEnterMode } from '../motion/pageEnter'
 import { playHeroSplash } from '../motion/heroSplash'
@@ -226,45 +227,53 @@ export function Home() {
           ) : null}
         </section>
 
-        <Container as="section" id="work" className="pt-leaf scroll-mt-20">
-          <Eyebrow data-reveal="label">{site.home.workEyebrow}</Eyebrow>
-          <BrushWords
-            as="h2"
-            text={site.home.workHeading}
-            data-reveal="heading"
-            tabIndex={-1}
-            className="mt-3 text-heading font-display font-medium text-balance md:w-2/3"
-          />
-          <ol className="mt-breath flex flex-col gap-leaf md:grid md:grid-cols-12 md:gap-x-6 md:gap-y-leaf xl:gap-x-8">
-            {projects.map((project, index) => (
-              <ProjectCard key={project.slug} project={project} slot={slotOrder[index] ?? 'left'} eager={index === 0} />
-            ))}
-          </ol>
-        </Container>
+        <div className="home-journey relative isolate">
+          <LandingParallaxField />
+          <Container as="section" id="work" className="relative z-10 pt-leaf scroll-mt-20">
+            <Eyebrow data-reveal="label">{site.home.workEyebrow}</Eyebrow>
+            <BrushWords
+              as="h2"
+              text={site.home.workHeading}
+              data-reveal="heading"
+              tabIndex={-1}
+              className="mt-3 text-heading font-display font-medium text-balance md:w-2/3"
+            />
+            <ol className="mt-breath flex flex-col gap-leaf md:grid md:grid-cols-12 md:gap-x-6 md:gap-y-leaf xl:gap-x-8">
+              {projects.map((project, index) => (
+                <ProjectCard
+                  key={project.slug}
+                  project={project}
+                  slot={slotOrder[index] ?? 'left'}
+                  eager={index === 0}
+                />
+              ))}
+            </ol>
+          </Container>
 
-        <Container as="section" className="py-leaf">
-          <div className="grid grid-cols-1 gap-y-8 md:grid-cols-12 md:items-center md:gap-x-6 md:gap-y-0 xl:gap-x-8">
-            <div className="md:col-span-8 lg:col-span-9">
-              <Eyebrow data-reveal="label">{site.home.aboutCta.eyebrow}</Eyebrow>
-              <p
+          <Container as="section" className="relative z-10 py-leaf">
+            <div className="grid grid-cols-1 gap-y-8 md:grid-cols-12 md:items-center md:gap-x-6 md:gap-y-0 xl:gap-x-8">
+              <div className="md:col-span-8 lg:col-span-9">
+                <Eyebrow data-reveal="label">{site.home.aboutCta.eyebrow}</Eyebrow>
+                <p
+                  data-reveal="text"
+                  className="mt-4 text-title font-display font-medium text-balance leading-snug"
+                >
+                  {aboutLead.before}
+                  <Accent>{aboutLead.accent}</Accent>
+                  {aboutLead.after}
+                </p>
+              </div>
+              <div
                 data-reveal="text"
-                className="mt-4 text-title font-display font-medium text-balance leading-snug"
+                className="flex items-start md:col-span-4 md:items-center md:justify-end lg:col-span-3"
               >
-                {aboutLead.before}
-                <Accent>{aboutLead.accent}</Accent>
-                {aboutLead.after}
-              </p>
+                <PillButton to="/about" icon="arrow-right" variant="outline">
+                  {site.home.aboutCta.pill}
+                </PillButton>
+              </div>
             </div>
-            <div
-              data-reveal="text"
-              className="flex items-start md:col-span-4 md:items-center md:justify-end lg:col-span-3"
-            >
-              <PillButton to="/about" icon="arrow-right" variant="outline">
-                {site.home.aboutCta.pill}
-              </PillButton>
-            </div>
-          </div>
-        </Container>
+          </Container>
+        </div>
       </Page>
     </>
   )

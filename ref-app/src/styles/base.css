@@ -762,6 +762,178 @@ html.motion-ready .hero-cover {
   background: url('/ink/paper.webp') 0 0 / 512px, var(--color-background);
 }
 
+/* One continuous handscroll behind the whole Work-to-About journey. Each
+   stationary plate is taller than its painted art needs to be, leaving
+   transparent overscan for the scroll-linked transform. */
+.landing-parallax {
+  position: absolute;
+  z-index: 0;
+  inset: -12rem 0;
+  overflow: clip;
+  contain: paint;
+  pointer-events: none;
+}
+
+.landing-parallax__plate {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: clamp(24rem, 44vw, 46rem);
+}
+
+.landing-parallax__art {
+  position: absolute;
+  display: block;
+  height: auto;
+  max-width: none;
+}
+
+.landing-parallax__art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.landing-parallax__plate--opening { top: -2%; }
+.landing-parallax__plate--upper { top: 19%; }
+.landing-parallax__plate--middle { top: 40%; }
+.landing-parallax__plate--lower { top: 62%; }
+.landing-parallax__plate--closing { bottom: -3%; }
+
+.landing-parallax__plate--opening .landing-parallax__art {
+  top: 4rem;
+  left: -8%;
+  width: 116%;
+  opacity: 0.11;
+}
+
+.landing-parallax__plate--upper .landing-parallax__art {
+  top: 4rem;
+  left: -16%;
+  width: 132%;
+  opacity: 0.14;
+}
+
+.landing-parallax__plate--middle .landing-parallax__art {
+  top: 3rem;
+  right: -15%;
+  width: 130%;
+  opacity: 0.11;
+}
+
+.landing-parallax__plate--lower .landing-parallax__art {
+  top: 4rem;
+  left: -9%;
+  width: 118%;
+  opacity: 0.105;
+}
+
+.landing-parallax__plate--closing .landing-parallax__art {
+  bottom: 4rem;
+  left: -10%;
+  width: 120%;
+  opacity: 0.09;
+}
+
+.ambient-scene {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: clip;
+  contain: paint;
+  pointer-events: none;
+}
+
+.ambient-scene__layer {
+  position: absolute;
+  display: block;
+  height: auto;
+  max-width: none;
+  opacity: 0.12;
+}
+
+.ambient-scene__layer img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ambient-scene--project-story .ambient-scene__layer--ridge {
+  top: 2%;
+  left: -10%;
+  width: 120%;
+  opacity: 0.075;
+}
+
+.ambient-scene--project-story .ambient-scene__layer--bank-right {
+  top: 48%;
+  right: -10%;
+  width: 120%;
+  opacity: 0.075;
+}
+
+.ambient-scene--about-grove .ambient-scene__layer--bank-right {
+  top: 8%;
+  left: -12%;
+  width: 124%;
+  opacity: 0.09;
+}
+
+.ambient-scene--footer-waterline .ambient-scene__layer--waterline {
+  bottom: -10%;
+  left: -10%;
+  width: 120%;
+  opacity: 0.1;
+}
+
+@media (max-width: 767px) {
+  .landing-parallax__plate {
+    height: 24rem;
+  }
+
+  .landing-parallax__plate--middle {
+    display: none;
+  }
+
+  .landing-parallax__plate--opening .landing-parallax__art,
+  .landing-parallax__plate--lower .landing-parallax__art {
+    left: -28%;
+    width: 156%;
+    opacity: 0.085;
+  }
+
+  .landing-parallax__plate--upper .landing-parallax__art,
+  .landing-parallax__plate--closing .landing-parallax__art {
+    left: -32%;
+    width: 164%;
+    opacity: 0.11;
+  }
+
+  .ambient-scene--project-story .ambient-scene__layer--ridge {
+    left: -32%;
+    width: 164%;
+    opacity: 0.06;
+  }
+
+  .ambient-scene--project-story .ambient-scene__layer--bank-right {
+    display: none;
+  }
+
+  .ambient-scene--about-grove .ambient-scene__layer--bank-right {
+    top: 12%;
+    left: -34%;
+    width: 168%;
+    opacity: 0.075;
+  }
+
+  .ambient-scene--footer-waterline .ambient-scene__layer--waterline {
+    bottom: -5%;
+    left: -22%;
+    width: 144%;
+    opacity: 0.08;
+  }
+}
+
 /* G6 (46 item 6 / 45 owner decision 2): the menu panel's dark variant --
  * 浓 fill instead of paper. The tile's own grain pixels sit lighter than
  * 浓 (they read as paper-toned fibres, ~#C2BDB2), so on a dark ground they

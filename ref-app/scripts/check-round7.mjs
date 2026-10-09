@@ -356,7 +356,9 @@ async function main() {
     const deliveryPage = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
     await deliveryPage.goto('http://localhost:4187/projects/instatags', { waitUntil: 'networkidle' })
     await deliveryPage.locator('[data-collage-trigger]').first().click()
-    await deliveryPage.waitForFunction(() => Array.from(document.images).every((image) => image.complete))
+    await deliveryPage.waitForFunction(() =>
+      Array.from(document.images).filter((image) => !image.closest('[data-ambient-scene]')).every((image) => image.complete),
+    )
     const delivery = await deliveryPage.evaluate(() => ({
       hero: document.querySelector('[data-collage-hero] img')?.currentSrc ?? '',
       tile: document.querySelector('[data-collage-tile] img')?.currentSrc ?? '',
