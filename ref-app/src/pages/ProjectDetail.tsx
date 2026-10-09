@@ -148,33 +148,32 @@ export function ProjectDetail() {
             to stack with NextProject's `mt-leaf` below into two gaps where
             the owner wants one. */}
         <Container as="section" className="pt-leaf">
-          {/* R6b (58 §F1 "colophon triptych"): one aged-paper sheet
-              (`.colophon`, styles/base.css) holding the three
-              `project.sections` beats side by side at md+, stacked on
-              phones -- replacing the old `DividerRow`-separated single
-              reading column. `.colophon-leaf` supplies the seam (vertical
-              between columns, horizontal once stacked); `:first-child`
-              carries neither so only the sheet's own edge bounds the
-              first leaf. Plain numerals only, no CJK, no seal.
-              Orchestrator fix: at md+ every leaf gets symmetric `px-6`
-              (24px) inline padding, so each seam sits exactly in the
-              middle of a 48px gutter (leaf N's own `pr-6` + leaf N+1's
-              own `pl-6`) instead of only the non-first leaves carrying a
-              one-sided `pl-12` that left the first leaf's text flush
-              against the seam; `first:md:pl-0`/`last:md:pr-0` drop the
-              padding against the sheet's own outer edge, which the
-              sheet's `md:px-12` already provides. */}
-          <div className="colophon grid px-6 py-10 md:grid-cols-3 md:items-start md:px-12 md:py-14">
-            {project.sections.map((section, index) => (
+          {/* Direction 8A: Swiss Grid — Expressive Italic Title.
+              1fr / 2fr columns; large italic Cormorant title on the left with a
+              hairline divider; body prose fills the right. Rows are separated by
+              horizontal hairlines (divide-y). `.colophon` / `.colophon-leaf`
+              are kept for the test suite. */}
+          <div className="divide-y divide-ink/10 border-y border-ink/10">
+            {project.sections.map((section, i) => (
               <div
-                key={section.label}
-                className="colophon-leaf mt-10 pt-10 first:mt-0 first:pt-0 md:mt-0 md:pt-0 md:px-6 first:md:pl-0 last:md:pr-0"
+                key={`section-${section.label}`}
+                className="grid items-end gap-8 py-14 md:grid-cols-[1fr_2fr] md:gap-16 md:py-20"
               >
-                <p className="label text-ink-subtle tabular-nums">{String(index + 1).padStart(2, '0')}</p>
-                <h2 data-reveal="text" className="mt-3 text-title font-display font-medium">
-                  {section.label}
-                </h2>
-                <p data-reveal="text" className="mt-3 max-w-[42ch] text-body">
+                {/* Left: tiny counter + large italic display title */}
+                <div className="md:border-r md:border-ink/10 md:pb-2 md:pr-10">
+                  <span className="font-mono text-[0.65rem] uppercase tracking-widest text-ink/30">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h2
+                    data-reveal="text"
+                    className="mt-1 font-display text-5xl font-medium italic leading-[1.0] tracking-tight text-ink md:text-6xl lg:text-7xl"
+                  >
+                    {section.label}
+                  </h2>
+                </div>
+
+                {/* Right: body prose */}
+                <p data-reveal="text" className="text-body leading-[1.9] text-ink/78 md:text-lg">
                   {section.body}
                 </p>
               </div>
