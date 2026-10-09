@@ -94,7 +94,8 @@ html.has-custom-cursor * {
  * layer by animating its `clip-path`. Reduced motion never mounts the
  * engine, so `:not(.brush-ready)` covers no-JS/SSR and reduced motion with
  * one instant swap (bar §F): the colour layer is hidden at rest and shown
- * on hover/focus. */
+ * on hover/focus. For the About portrait, the colour fill should respond only
+ * to hover/focus and not kick in with an entry bleed. */
 html:not(.brush-ready) .brush-colour {
   opacity: 0;
 }
@@ -104,9 +105,11 @@ html:not(.brush-ready) .brush-figure:focus-within .brush-colour {
   opacity: 1;
 }
 
-/* Fully clipped until the engine takes over a figure (it sets the clip
- * inline), so no colour layer flashes unclipped in between. */
 html.brush-ready .brush-colour {
+  clip-path: polygon(0 0, 0 0, 0 0);
+}
+
+html.brush-ready .brush-figure:not(:hover):not(:focus-within) .brush-colour {
   clip-path: polygon(0 0, 0 0, 0 0);
 }
 
@@ -834,43 +837,7 @@ html[data-menu-open] [data-on-ink] {
   color: var(--color-background);
 }
 
-/* 51-round5-plan.md §E4, 45 §Round5 R5a: the monogram tone registry.
- * `components/Monogram.tsx`'s single IntersectionObserver sets
- * `data-nav-on-ink` on <html> whenever a `data-tone="dark"` surface (the
- * hero painting, a dark project cover/collage tile, E2's video mount --
- * all driven by each surface's own existing `tone` field, never a second
- * hand-kept list here) passes under the nav band. Same `color` flip, same
- * `[data-on-ink]` marker as the menu-open rule above -- that rule is a
- * separate, higher-priority case and is untouched; both rules ever only
- * agree (paper) when they overlap, so there is no ordering conflict.
- * Whole-letter colour swap only: no `mix-blend-mode`, no `filter`, no
- * per-pixel clipping (round 4's compositor-Commit ban on blends/filters
- * over large layers, and this round's explicit "not a blend mode" call).
- * Contrast: paper (`--color-background` #F2ECDE) on the one flat dark
- * token in play here, `--color-ink-dark` #2A3035 (the video mount's tile
- * fill), is 11.34:1 -- see `.ink-paper-dark`'s own comment above, same
- * arithmetic. `--color-ink` #141A1E (the darkest ink token) computes to
- * 14.90:1. Both clear AA (4.5:1) with wide headroom; a `tone:'dark'`
- * photograph is, by that field's own definition, at least as dark as
- * these tokens' floor.
- *
- * The crossfade is a plain `color` transition -- cheap on a 72x56px text
- * layer, never the "large layer" the blend/filter ban targets. Reduced
- * motion drops the transition so the flip is instant, matching every
- * other reduced-motion end-state rule on this page. */
-[data-on-ink] {
-  transition: color 200ms var(--ease-dry);
-}
 
-html[data-nav-on-ink] [data-on-ink] {
-  color: var(--color-background);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-on-ink] {
-    transition: none;
-  }
-}
 
 /* G6: cinnabar-on-浓 is only 1.63:1 (42 §Tokens) -- re-measured 2026-09-28
  * (49-round4-plan.md §E3 item 3) at 2.46:1 against the darker #2a3035 that

@@ -96,11 +96,9 @@ export const site = {
     workEyebrow: 'Recent work',
     workHeading: "What I've been building",
     aboutCta: {
-      // Accent phrase: "100 to 120 students".
-      // TODO(owner): confirm -- the CV has no summary line; this is its
-      // Experience section in one sentence.
-      lead: 'I study computer science at BINUS University, build across machine learning and web development, and teach programming labs to 100 to 120 students a semester.',
-      detail: 'My first-author malware research and laboratory teaching both turn complex technical ideas into practical work people can use and understand.',
+      eyebrow: 'About',
+      // Accent phrase: "100+ students".
+      lead: 'I build machine learning and web projects, publish malware research, and teach programming labs to 100+ students a semester at BINUS University.',
       pill: 'About me',
     },
   },

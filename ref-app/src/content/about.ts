@@ -15,12 +15,9 @@ export type AboutVariant = 'bio' | 'accordion'
 export const aboutVariant: AboutVariant =
   import.meta.env.VITE_ABOUT_VARIANT === 'accordion' ? 'accordion' : 'bio'
 
-// A "replace with" box (scripts/placeholders.mjs), shown as a grey leaf
-// (V12, 41-ink-replace-map.md: grayscale + multiply, no brush).
-// TODO(owner): replace with a portrait photo.
 export const portrait: Img = {
-  src: '/placeholders/portrait-1200.webp',
-  alt: 'Placeholder: replace with a portrait photo of Bryan.',
+  src: '/photo.jpeg',
+  alt: 'Bryan Widjaja',
   width: 800,
   height: 1000,
 }

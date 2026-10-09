@@ -32,7 +32,7 @@ function splitLetter(word: string) {
 }
 
 export function Home() {
-  const aboutLead = splitAccent(site.home.aboutCta.lead, '100 to 120 students')
+  const aboutLead = splitAccent(site.home.aboutCta.lead, '100+ students')
   const hasInscription = Boolean(site.home.heroInscription)
   const reduced = useReducedMotion()
 
@@ -240,25 +240,27 @@ export function Home() {
           </ol>
         </Container>
 
-        <Container as="section" className="py-leaf md:grid md:grid-cols-12 md:gap-x-6 xl:gap-x-8">
-          {/* `text`, not `heading`: this lead mixes an <Accent> phrase into
-              running prose, so a brush-write pass (word masks only) would
-              either skip the accent or invent a second technique for it.
-              motion/bleed.ts's plain ink-in reads just as well here — the
-              `text-heading` sizing is a type-scale choice, independent of
-              which M4 motion kind the element opts into. */}
-          <p data-reveal="text" className="text-heading font-display font-medium text-balance md:col-span-9 md:col-start-3">
-            {aboutLead.before}
-            <Accent>{aboutLead.accent}</Accent>
-            {aboutLead.after}
-          </p>
-          <p data-reveal="text" className="mt-6 max-w-[62ch] text-lead text-ink-muted md:col-span-7 md:col-start-3">
-            {site.home.aboutCta.detail}
-          </p>
-          <div data-reveal="text" className="mt-8 md:col-span-3 md:col-start-3">
-            <PillButton to="/about" icon="arrow-right" variant="solid">
-              {site.home.aboutCta.pill}
-            </PillButton>
+        <Container as="section" className="py-leaf">
+          <div className="grid grid-cols-1 gap-y-8 md:grid-cols-12 md:items-center md:gap-x-6 md:gap-y-0 xl:gap-x-8">
+            <div className="md:col-span-8 lg:col-span-9">
+              <Eyebrow data-reveal="label">{site.home.aboutCta.eyebrow}</Eyebrow>
+              <p
+                data-reveal="text"
+                className="mt-4 text-title font-display font-medium text-balance leading-snug"
+              >
+                {aboutLead.before}
+                <Accent>{aboutLead.accent}</Accent>
+                {aboutLead.after}
+              </p>
+            </div>
+            <div
+              data-reveal="text"
+              className="flex items-start md:col-span-4 md:items-center md:justify-end lg:col-span-3"
+            >
+              <PillButton to="/about" icon="arrow-right" variant="outline">
+                {site.home.aboutCta.pill}
+              </PillButton>
+            </div>
           </div>
         </Container>
       </Page>

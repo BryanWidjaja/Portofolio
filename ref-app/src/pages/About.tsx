@@ -4,6 +4,7 @@ import { BrushWords } from '../components/BrushWords'
 import { PillButton } from '../components/PillButton'
 import { DividerRow } from '../components/DividerRow'
 import { Accordion } from '../components/Accordion'
+import { BrushReveal } from '../components/BrushReveal'
 import { Page } from '../motion/Page'
 import { site } from '../content/site'
 import { aboutCommon, aboutVariant, awards, bio, education, experience, portrait, tools, whatIDo } from '../content/about'
@@ -55,25 +56,19 @@ export function About() {
           </p>
         </Container>
 
-        <Container className="mt-breath grid gap-x-6 md:grid-cols-12 md:items-start xl:gap-x-8">
-          <div
-            data-intro="media"
-            className="blot-mask ml-auto w-4/5 overflow-hidden rounded-none md:col-span-5 md:ml-0 md:w-auto"
-          >
-            {/* V12 (41-ink-replace-map.md): a grey leaf, no brush -- CSS
-             * grayscale + multiply on the raster stand-in (scripts/placeholders.mjs),
-             * unlike the project images this never colours in. */}
-            <img
+        <Container className="mt-breath grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
+          <div className="ml-auto w-[82%] max-w-[26rem] overflow-hidden rounded-none md:col-span-4 md:ml-0 md:w-full md:max-w-none">
+            <BrushReveal
               src={portrait.src}
               alt={portrait.alt}
               width={portrait.width}
               height={portrait.height}
-              loading="eager"
-              decoding="sync"
-              className="aspect-[4/5] size-full grayscale mix-blend-multiply object-cover"
+              eager
+              sizes="(min-width: 768px) 28vw, 82vw"
+              className="aspect-[4/5] size-full"
             />
           </div>
-          <div className="mt-10 md:col-span-6 md:col-start-7 md:mt-0">
+          <div className="mt-10 md:col-span-7 md:col-start-6 md:mt-0">
             <p data-intro className="text-lead text-balance">
               {bio.lead}
             </p>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { TransitionLink } from './TransitionLink'
-import { site } from '../content/site'
+import { site } from '../content/site'
 
 /**
  * 47-round3-plan.md §R5 item 2 / 45 §Round 3 R3d: the nav's old inline `BW`
@@ -32,72 +32,7 @@ let rootEl: HTMLAnchorElement | null = null
 let bEl: HTMLSpanElement | null = null
 let wEl: HTMLSpanElement | null = null
 
-/**
- * 51-round5-plan.md §E4, 45 §Round5 R5a: the monogram tone registry.
- * Dark surfaces mark themselves `data-tone="dark"` -- driven straight off
- * each surface's own existing `tone` field (content/projects.ts, set by
- * E3) or a fixed value on E2's video mount -- so this file never
- * hand-maintains a second list of "which surfaces are dark". A single
- * module-level IntersectionObserver (rebuilt, not duplicated, on every
- * route change and on resize) watches every `[data-tone="dark"]` element
- * currently in the document, with `rootMargin` cropped down to the
- * monogram's own on-screen box -- so a dark tile anywhere else on the page
- * can never trip it, only one actually passing under the nav corner does.
- * `html[data-nav-on-ink]` is set while any tagged surface intersects that
- * cropped root and cleared otherwise; base.css crossfades the monogram's
- * `color` off it, through the same `[data-on-ink]` marker the menu-open
- * flip already uses (that rule is untouched -- see base.css). No rAF, no
- * scroll handler: the observer callback only runs on real boundary
- * crossings.
- */
-let toneObserver: IntersectionObserver | null = null
-const inkSurfaces = new Set<Element>()
 
-function updateNavOnInk() {
-  if (inkSurfaces.size > 0) document.documentElement.setAttribute('data-nav-on-ink', '')
-  else document.documentElement.removeAttribute('data-nav-on-ink')
-}
-
-// Shrinks the observer's root (the viewport) down to exactly the
-// monogram's current `getBoundingClientRect()` via negative margins on
-// all four sides -- the standard IntersectionObserver technique for
-// cropping the root to an arbitrary on-screen box rather than the whole
-// viewport. Falls back to the full viewport (a harmless over-trigger,
-// never an under-trigger) for the one frame before the component's own
-// ref is attached.
-function navBandRootMargin(): string {
-  if (!rootEl) return '0px'
-  const rect = rootEl.getBoundingClientRect()
-  const top = Math.max(rect.top, 0)
-  const left = Math.max(rect.left, 0)
-  const right = Math.max(window.innerWidth - rect.right, 0)
-  const bottom = Math.max(window.innerHeight - rect.bottom, 0)
-  return `-${top}px -${right}px -${bottom}px -${left}px`
-}
-
-function rebuildToneObserver() {
-  toneObserver?.disconnect()
-  toneObserver = null
-  inkSurfaces.clear()
-  if (typeof document === 'undefined' || typeof IntersectionObserver === 'undefined') return
-  const targets = document.querySelectorAll('[data-tone="dark"]')
-  if (!targets.length) {
-    updateNavOnInk()
-    return
-  }
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) inkSurfaces.add(entry.target)
-        else inkSurfaces.delete(entry.target)
-      }
-      updateNavOnInk()
-    },
-    { rootMargin: navBandRootMargin(), threshold: 0 },
-  )
-  targets.forEach((el) => observer.observe(el))
-  toneObserver = observer
-}
 
 /**
  * R6 API: the current `B`/`W` span rects (viewport-relative, like
@@ -155,10 +90,6 @@ export function Monogram() {
       rootEl = null
       bEl = null
       wEl = null
-      toneObserver?.disconnect()
-      toneObserver = null
-      inkSurfaces.clear()
-      document.documentElement.removeAttribute('data-nav-on-ink')
     }
   }, [])
 
@@ -168,10 +99,6 @@ export function Monogram() {
     // stays) in `hero`; every other route is `shown` from the first
     // frame -- no flash of the monogram on the home route.
     setMonogramState(pathname === '/' ? 'hero' : 'shown')
-    // The route's own dark-tone surfaces (and the monogram's own box,
-    // since `hero`/`shown` can shift its layout) just changed -- rebuild
-    // the single observer against both.
-    rebuildToneObserver()
   }, [pathname])
 
   // The monogram's on-screen box can also move on a plain viewport
@@ -179,11 +106,7 @@ export function Monogram() {
   // route change -- rebuild the crop then too. A resize listener, not a
   // scroll handler or rAF loop: it only fires on the (rare) resize event
   // itself.
-  useEffect(() => {
-    const onResize = () => rebuildToneObserver()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+
 
   return (
     <TransitionLink
@@ -191,7 +114,7 @@ export function Monogram() {
       to="/"
       aria-label={`${site.name}, home`}
       data-nav-item
-      data-on-ink
+
       data-monogram
       className="pointer-events-auto -m-3 p-3 font-display text-[1.75rem] font-bold not-italic leading-none text-ink md:text-[2rem]"
     >
