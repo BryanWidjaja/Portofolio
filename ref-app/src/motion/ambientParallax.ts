@@ -2,8 +2,12 @@ import { gsap, ScrollTrigger } from './gsap'
 
 const TRAVEL_PX = { far: 14, near: 30 } as const
 const LANDING_TRAVEL = {
-  desktop: { far: 84, mid: 148, near: 220 },
-  mobile: { far: 48, mid: 82, near: 118 },
+  desktop: { far: 120, mid: 220, near: 360 },
+  mobile: { far: 68, mid: 124, near: 180 },
+} as const
+const LANDING_DRIFT = {
+  desktop: { far: 16, mid: 28, near: 46 },
+  mobile: { far: 10, mid: 18, near: 28 },
 } as const
 
 /** Moves only the scene's own bitmap layers while its section crosses the viewport. */
@@ -47,15 +51,20 @@ export function mountLandingParallax(root: HTMLElement, reduced: boolean) {
   const media = gsap.matchMedia()
   media.add({ compact: '(max-width: 767px)', wide: '(min-width: 768px)' }, ({ conditions }) => {
     const travelSet = conditions?.compact ? LANDING_TRAVEL.mobile : LANDING_TRAVEL.desktop
+    const driftSet = conditions?.compact ? LANDING_DRIFT.mobile : LANDING_DRIFT.desktop
     const tweens: gsap.core.Tween[] = []
     layers.forEach((layer) => {
       const plate = layer.closest<HTMLElement>('[data-parallax-plate]') ?? layer
       const depth = layer.dataset.parallaxLayer as 'far' | 'mid' | 'near'
+      if (conditions?.compact && depth === 'near') return
       const travel = travelSet[depth] ?? travelSet.far
+      const drift = driftSet[depth] ?? driftSet.far
+      const direction = depth === 'mid' ? -1 : 1
 
       tweens.push(gsap.fromTo(layer,
-        { y: travel / 2 },
+        { x: direction * drift / 2, y: travel / 2 },
         {
+          x: direction * -drift / 2,
           y: -travel / 2,
           ease: 'none',
           scrollTrigger: {

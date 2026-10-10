@@ -18,7 +18,7 @@ function Timeline({ heading, rows }: { heading: string; rows: TimelineRow[] }) {
     <Container as="section" className="about-timeline-container pt-leaf">
       <div data-about-timeline-layout className="about-timeline-layout grid grid-cols-1">
       <BrushWords as="h2" text={heading} data-reveal="heading" className="text-heading font-display font-medium" />
-      <ul className="about-timeline-rows mt-breath">
+      <ul className="about-timeline-rows">
         {rows.map((row, index) => (
           <DividerRow
             key={`${row.role}-${row.org}`}

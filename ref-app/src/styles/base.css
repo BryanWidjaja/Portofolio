@@ -125,6 +125,10 @@
   container-type: inline-size;
 }
 
+.about-timeline-rows {
+  margin-top: clamp(1rem, 0.75rem + 1vw, 1.5rem);
+}
+
 @container about-timeline (max-width: 51.999rem) {
   .about-timeline-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -179,7 +183,7 @@
   }
 
   .about-tools-layout > :nth-child(2) {
-    margin-top: 2.5rem;
+    margin-top: clamp(1rem, 0.75rem + 1vw, 1.5rem);
   }
 }
 
@@ -201,7 +205,7 @@
   }
 
   .about-resume-layout > :last-child {
-    margin-top: 2.5rem;
+    margin-top: clamp(1rem, 0.75rem + 1vw, 1.5rem);
   }
 }
 
@@ -1165,39 +1169,53 @@ html.motion-ready .hero-cover {
 .landing-parallax__plate--lower { top: 62%; }
 .landing-parallax__plate--closing { bottom: -3%; }
 
-.landing-parallax__plate--opening .landing-parallax__art {
+.landing-parallax__plate--opening .landing-parallax__art[data-parallax-role='primary'] {
   top: 4rem;
   left: -8%;
   width: 116%;
   opacity: 0.11;
 }
 
-.landing-parallax__plate--upper .landing-parallax__art {
+.landing-parallax__plate--upper .landing-parallax__art[data-parallax-role='primary'] {
   top: 4rem;
   left: -16%;
   width: 132%;
   opacity: 0.14;
 }
 
-.landing-parallax__plate--middle .landing-parallax__art {
+.landing-parallax__plate--middle .landing-parallax__art[data-parallax-role='primary'] {
   top: 3rem;
   right: -15%;
   width: 130%;
   opacity: 0.11;
 }
 
-.landing-parallax__plate--lower .landing-parallax__art {
+.landing-parallax__plate--lower .landing-parallax__art[data-parallax-role='primary'] {
   top: 4rem;
   left: -9%;
   width: 118%;
   opacity: 0.105;
 }
 
-.landing-parallax__plate--closing .landing-parallax__art {
+.landing-parallax__plate--closing .landing-parallax__art[data-parallax-role='primary'] {
   bottom: 4rem;
   left: -10%;
   width: 120%;
   opacity: 0.09;
+}
+
+.landing-parallax__art[data-parallax-role='companion'][data-parallax-layer='far'] {
+  top: 0;
+  left: -10%;
+  width: 120%;
+  opacity: 0.065;
+}
+
+.landing-parallax__art[data-parallax-role='companion'][data-parallax-layer='mid'] {
+  top: 7rem;
+  left: -18%;
+  width: 136%;
+  opacity: 0.08;
 }
 
 .ambient-scene {
@@ -1256,22 +1274,35 @@ html.motion-ready .hero-cover {
     height: 24rem;
   }
 
-  .landing-parallax__plate--middle {
+  .landing-parallax__art[data-parallax-layer='near'] {
     display: none;
   }
 
-  .landing-parallax__plate--opening .landing-parallax__art,
-  .landing-parallax__plate--lower .landing-parallax__art {
+  .landing-parallax__plate--opening .landing-parallax__art[data-parallax-role='primary'],
+  .landing-parallax__plate--lower .landing-parallax__art[data-parallax-role='primary'] {
     left: -28%;
     width: 156%;
     opacity: 0.085;
   }
 
-  .landing-parallax__plate--upper .landing-parallax__art,
-  .landing-parallax__plate--closing .landing-parallax__art {
+  .landing-parallax__plate--upper .landing-parallax__art[data-parallax-role='primary'],
+  .landing-parallax__plate--closing .landing-parallax__art[data-parallax-role='primary'] {
     left: -32%;
     width: 164%;
     opacity: 0.11;
+  }
+
+  .landing-parallax__art[data-parallax-role='companion'][data-parallax-layer='far'] {
+    left: -28%;
+    width: 156%;
+    opacity: 0.055;
+  }
+
+  .landing-parallax__art[data-parallax-role='companion'][data-parallax-layer='mid'] {
+    top: 5rem;
+    left: -32%;
+    width: 164%;
+    opacity: 0.075;
   }
 
   .ambient-scene--project-story .ambient-scene__layer--ridge {
@@ -1381,6 +1412,16 @@ html[data-menu-open] [data-on-ink] {
 
 html[data-nav-on-ink] [data-on-ink] {
   color: var(--color-background);
+}
+
+/* The home hero's dark-tone rectangle includes transparent/paper pixels.
+ * Once its letters have collapsed, BW replaces them over that paper region,
+ * so the visible home monogram must use ink even while the rectangle still
+ * intersects the nav band. Menu contrast remains authoritative. */
+html[data-nav-on-ink]:not([data-menu-open])
+  [data-home-monogram]:not([aria-hidden='true']) {
+  color: var(--color-ink);
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

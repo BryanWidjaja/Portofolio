@@ -25,7 +25,7 @@ const viewports = target === 'hero'
   ? [[320, 568], [430, 932], [568, 320], [844, 390], [768, 1024], [1024, 768], [1440, 900]]
   : target === 'email' ? [[320, 568]]
   : target === 'home' ? [[600, 960], [768, 1024], [1024, 768]]
-  : target === 'about' ? [[600, 960], [768, 1024], [900, 800], [1024, 768]]
+  : target === 'about' ? [[320, 568], [430, 932], [600, 960], [768, 1024], [900, 800], [1024, 768], [1440, 900], [1920, 1080]]
   : target === 'project' ? [[768, 1024], [1024, 768]]
   : target === 'lightbox' ? [[568, 320], [667, 375], [844, 390]]
   : target === 'menu' ? [[568, 320], [667, 375], [844, 390]]
@@ -87,6 +87,12 @@ try {
           const { x, y, width, height, right, bottom } = element.getBoundingClientRect()
           return { x, y, width, height, right, bottom }
         }
+        const aboutTimelineGaps = [...document.querySelectorAll('.about-timeline-container')].map((section) => {
+          const sectionHeading = section.querySelector('h2')
+          const firstRow = section.querySelector('.about-timeline-rows > li > p')
+          if (!sectionHeading || !firstRow) return null
+          return firstRow.getBoundingClientRect().top - sectionHeading.getBoundingClientRect().bottom
+        })
         return {
           scrollWidth: document.documentElement.scrollWidth,
           clientWidth: document.documentElement.clientWidth,
@@ -111,6 +117,7 @@ try {
           aboutToolsColumns: aboutToolsLayout ? getComputedStyle(aboutToolsLayout).gridTemplateColumns.split(' ').length : 0,
           aboutResumeContainer: aboutResumeContainer ? { type: getComputedStyle(aboutResumeContainer).containerType, name: getComputedStyle(aboutResumeContainer).containerName } : null,
           aboutResumeColumns: aboutResumeLayout ? getComputedStyle(aboutResumeLayout).gridTemplateColumns.split(' ').length : 0,
+          aboutTimelineGaps,
           footerContainer: footerContainer ? {
             type: getComputedStyle(footerContainer).containerType,
             name: getComputedStyle(footerContainer).containerName,
@@ -219,6 +226,8 @@ try {
       const failedMenu = menu && (!menu.scrollRegion || !menu.overflowSupportsScroll || !menu.lastLinkReachable)
       const failedHero = route === '/' && height < 400 && geometry.heading && (geometry.heading.top < 0 || geometry.heading.bottom > height)
       const failedEmail = route === '/' && width === 320 && geometry.emailDomainLines !== 1
+      const failedAboutRhythm = route === '/about' &&
+        geometry.aboutTimelineGaps.some((gap) => gap === null || gap < 24 || gap > 56)
       const failedAbout = route === '/about' && width >= 600 && width <= 1024 && (
         geometry.aboutIntroWidth === 0 || !geometry.aboutPortrait || !geometry.aboutBio ||
         (geometry.aboutIntroWidth < 816 && geometry.aboutBio.y < geometry.aboutPortrait.bottom - 2) ||
@@ -247,7 +256,7 @@ try {
         (width === 768 && (geometry.footerColumns !== 2 || !lead || lead.width < geometry.projectJourney.width * 0.95 || geometry.projectCards.length !== 3)) ||
         (width === 1024 && geometry.footerColumns !== 12)
       )
-      const failed = geometry.scrollWidth > geometry.clientWidth || errors.length || failedImages.length || gutter !== expectedGutter || !geometry.viewportFit || !geometry.safeTop || failedMenu || failedHero || failedEmail || failedAbout || failedProject || failedComposition || failedLightbox
+      const failed = geometry.scrollWidth > geometry.clientWidth || errors.length || failedImages.length || gutter !== expectedGutter || !geometry.viewportFit || !geometry.safeTop || failedMenu || failedHero || failedEmail || failedAboutRhythm || failedAbout || failedProject || failedComposition || failedLightbox
       if (failed) {
         failures++
         console.error(`[responsive] ${route} ${width}x${height}: overflow=${geometry.scrollWidth - geometry.clientWidth}px gutter=${gutter}px expected=${expectedGutter}px safe=${Boolean(geometry.safeTop)} viewportFit=${geometry.viewportFit} heroFit=${failedHero ? JSON.stringify(geometry.heading) : true} emailDomainLines=${geometry.emailDomainLines} aboutFit=${failedAbout ? JSON.stringify({ width: geometry.aboutIntroWidth, portrait: geometry.aboutPortrait, bio: geometry.aboutBio, timeline: [geometry.aboutTimelineContainer, geometry.aboutTimelineColumns], tools: [geometry.aboutToolsContainer, geometry.aboutToolsColumns], resume: [geometry.aboutResumeContainer, geometry.aboutResumeColumns] }) : true} projectFit=${failedProject ? JSON.stringify({ intro: geometry.projectIntro, meta: geometry.projectMetaColumns, collageContainer: geometry.collageContainer, collage: geometry.collageColumns, storyContainer: geometry.storyContainer, story: geometry.storyColumns }) : true} lightbox=${failedLightbox ? JSON.stringify(lightbox) : true} composition=${failedComposition ? JSON.stringify({ projectContainer: geometry.projectContainer, lead, journey: geometry.projectJourney, footer: geometry.footerContainer, footerColumns: geometry.footerColumns }) : true} menu=${menu ? JSON.stringify(menu) : '-'} imagesFailed=${failedImages.length} errors=${errors.length}`)
@@ -278,7 +287,7 @@ if (target === 'hero') {
     await page.setViewportSize({ width: 568, height: 320 })
     await page.waitForTimeout(250)
     const compactAfter = await count()
-    if (compactBefore !== compactAfter || compactBefore !== 5 || wideCount !== 5) {
+    if (compactBefore !== compactAfter || compactBefore !== 10 || wideCount !== 11) {
       failures++
       console.error(`[responsive] GSAP resize cleanup: compact triggers ${compactBefore} -> ${compactAfter}, wide=${wideCount}`)
     } else {

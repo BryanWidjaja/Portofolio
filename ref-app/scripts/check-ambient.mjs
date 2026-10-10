@@ -39,6 +39,49 @@ async function main() {
       JSON.stringify(coverage),
     )
 
+    const plateDepths = await scene.locator('[data-parallax-plate]').evaluateAll((plates) => plates.map((plate) => ({
+      position: [...plate.classList].find((name) => name.startsWith('landing-parallax__plate--')),
+      depths: [...plate.querySelectorAll('[data-parallax-layer]')].map((layer) => layer.getAttribute('data-parallax-layer')),
+    })))
+    check(
+      'every landing chapter overlaps at least two depth planes and the centre carries all three depths',
+      plateDepths.every(({ depths }) => new Set(depths).size >= 2) &&
+        plateDepths.some(({ position, depths }) => position?.endsWith('--middle') && new Set(depths).size === 3),
+      JSON.stringify(plateDepths),
+    )
+
+    const readHeroOffsets = () => page.evaluate(() => {
+      const hero = document.querySelector('[data-home-hero]')
+      const image = hero?.querySelector('.hero-painting')
+      const mist = [...(hero?.querySelectorAll('.hero-mist') ?? [])]
+      if (!hero || !image || mist.length !== 3) return null
+      const rootTop = hero.getBoundingClientRect().top
+      return {
+        heroHeight: hero.getBoundingClientRect().height,
+        image: image.getBoundingClientRect().top - rootTop,
+        mist: mist.map((layer) => layer.getBoundingClientRect().top - rootTop),
+      }
+    })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(120)
+    const heroStart = await readHeroOffsets()
+    await page.evaluate((height) => window.scrollTo(0, height - 1), heroStart?.heroHeight ?? 900)
+    await page.waitForTimeout(120)
+    const heroEnd = await readHeroOffsets()
+    const heroImageTravel = heroStart && heroEnd ? Math.abs(heroEnd.image - heroStart.image) : 0
+    const heroMistTravel = heroStart && heroEnd
+      ? heroStart.mist.map((start, index) => Math.abs(heroEnd.mist[index] - start))
+      : []
+    check(
+      'hero painting and mist planes create an obvious increasing depth hierarchy',
+      heroImageTravel >= 32 &&
+        heroMistTravel.length === 3 &&
+        heroMistTravel[0] >= 45 &&
+        heroMistTravel[1] >= 90 &&
+        heroMistTravel[2] >= 150,
+      JSON.stringify({ heroImageTravel, heroMistTravel }),
+    )
+
     async function measureTravel(depth) {
       const layer = scene.locator(`[data-parallax-layer="${depth}"]`).first()
       const plate = layer.locator('xpath=..')
@@ -48,11 +91,17 @@ async function main() {
       })
       await page.evaluate((y) => window.scrollTo(0, y), Math.max(0, bounds.top - bounds.viewport + 8))
       await page.waitForTimeout(100)
-      const start = await layer.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)
+      const start = await layer.evaluate((element) => {
+        const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform)
+        return { x: matrix.m41, y: matrix.m42 }
+      })
       await page.evaluate((y) => window.scrollTo(0, y), bounds.bottom - 8)
       await page.waitForTimeout(100)
-      const end = await layer.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)
-      return Math.abs(end - start)
+      const end = await layer.evaluate((element) => {
+        const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform)
+        return { x: matrix.m41, y: matrix.m42 }
+      })
+      return { x: Math.abs(end.x - start.x), y: Math.abs(end.y - start.y) }
     }
 
     const farTravel = await measureTravel('far')
@@ -60,8 +109,13 @@ async function main() {
     const nearTravel = await measureTravel('near')
     check(
       'far, middle, and near planes move at visibly distinct depth rates',
-      farTravel >= 60 && midTravel > farTravel * 1.45 && nearTravel > midTravel * 1.35,
-      `far=${farTravel.toFixed(1)}, mid=${midTravel.toFixed(1)}, near=${nearTravel.toFixed(1)}`,
+      farTravel.y >= 96 && midTravel.y > farTravel.y * 1.55 && nearTravel.y > midTravel.y * 1.45,
+      `far=${farTravel.y.toFixed(1)}, mid=${midTravel.y.toFixed(1)}, near=${nearTravel.y.toFixed(1)}`,
+    )
+    check(
+      'depth planes also separate laterally instead of sliding on one vertical rail',
+      farTravel.x >= 12 && midTravel.x > farTravel.x * 1.5 && nearTravel.x > midTravel.x * 1.4,
+      `far=${farTravel.x.toFixed(1)}, mid=${midTravel.x.toFixed(1)}, near=${nearTravel.x.toFixed(1)}`,
     )
 
     const documentWidth = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: window.innerWidth }))
@@ -161,7 +215,7 @@ async function main() {
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
       scenePointerEvents: getComputedStyle(document.querySelector('[data-landing-parallax]')).pointerEvents,
-      nearDisplay: getComputedStyle(document.querySelector('[data-landing-parallax] [data-parallax-layer="near"]').parentElement).display,
+      nearDisplay: getComputedStyle(document.querySelector('[data-landing-parallax] [data-parallax-layer="near"]')).display,
     }))
     check(
       'mobile loads responsive art, removes the strongest depth plane, and stays within the viewport',
@@ -169,7 +223,7 @@ async function main() {
       JSON.stringify(mobileState),
     )
     const mobileLayers = await mobileScene.locator('[data-parallax-layer]').evaluateAll((layers) => layers.filter((layer) => getComputedStyle(layer).display !== 'none').length)
-    check('mobile keeps multiple restrained planes for real depth', mobileLayers >= 4, `visible layers=${mobileLayers}`)
+    check('mobile keeps overlapping far and middle planes for real depth', mobileLayers >= 8, `visible layers=${mobileLayers}`)
     await mobilePage.close()
   } finally {
     await browser.close()

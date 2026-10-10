@@ -154,6 +154,22 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
   const transitionObserver = new MutationObserver(sync)
   transitionObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-transition'] })
 
+  const mistRanges = [
+    { from: 6, to: -8 },
+    { from: 10, to: -16 },
+    { from: 16, to: -28 },
+  ] as const
+  function applyDepth(progress: number) {
+    gsap.set(image, {
+      scale: 1.08 + progress * 0.08,
+      yPercent: -2 + progress * 8,
+    })
+    mist.forEach((el, i) => {
+      const range = mistRanges[i] ?? mistRanges[0]
+      gsap.set(el, { yPercent: range.from + (range.to - range.from) * progress })
+    })
+  }
+
   const scrub = ScrollTrigger.create({
     trigger: root,
     start: 'top top',
@@ -165,14 +181,16 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
     // anyway (software rasterizer), but it's a no-regret real-browser fix.
     // Cleared on leave so the image re-rasterises crisp.
     onToggle: (self) => {
-      image.style.willChange = self.isActive ? 'transform' : 'auto'
+      const value = self.isActive ? 'transform' : 'auto'
+      image.style.willChange = value
+      mist.forEach((el) => { el.style.willChange = value })
     },
     onUpdate: (self) => {
       if (transitionActive()) return
-      gsap.set(image, { scale: 1 + self.progress * 0.04 })
-      mist.forEach((el, i) => gsap.set(el, { yPercent: -self.progress * (i + 1) * 3 }))
+      applyDepth(self.progress)
     },
   })
+  applyDepth(scrub.progress)
 
   return () => {
     cancelled = true
@@ -190,9 +208,12 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
     pendingImages.forEach((preload) => { preload.src = '' })
     mist.forEach((el) => {
       el.style.backgroundImage = ''
+      el.style.willChange = ''
       delete el.dataset.mistReady
+      gsap.set(el, { clearProps: 'transform' })
     })
     image.style.willChange = ''
+    gsap.set(image, { clearProps: 'transform' })
     scrub.kill()
   }
 }

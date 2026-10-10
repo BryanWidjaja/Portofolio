@@ -144,6 +144,11 @@ async function main() {
     })
     await reducedMistPage.goto(`http://localhost:${port}/`, { waitUntil: 'domcontentloaded' })
     await reducedMistPage.waitForFunction(() => window.__booted === true)
+    await reducedMistPage.waitForFunction(
+      () => matchMedia('(prefers-reduced-motion: reduce)').matches && document.querySelectorAll('.hero-mist').length === 0,
+      undefined,
+      { timeout: 1500 },
+    ).catch(() => {})
     const reducedLayerCount = await reducedMistPage.locator('.hero-mist').count()
     check(
       'reduced motion keeps hero mist static and never requests its images',

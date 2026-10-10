@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { TransitionLink } from './TransitionLink'
-import { site } from '../content/site'
+import { site } from '../content/site'
 
 /**
  * 47-round3-plan.md §R5 item 2 / 45 §Round 3 R3d: the nav's old inline `BW`
@@ -161,6 +161,7 @@ export function Monogram() {
       data-nav-item
 
       data-monogram
+      data-home-monogram={pathname === '/' ? '' : undefined}
       data-on-ink
       className="pointer-events-auto -m-3 p-3 font-display text-[1.75rem] font-bold not-italic leading-none text-ink md:text-[2rem]"
     >

@@ -1191,14 +1191,30 @@ async function testHeroCollapse(browser, base) {
 
   const rectBefore = await monoRect()
 
-  // Collapse: scroll the h1's top past ~18% of the viewport.
-  await page.mouse.wheel(0, 900)
+  // Collapse just past the h1 trigger, while its paper region still sits
+  // beneath the fixed monogram.
+  await page.evaluate(() => {
+    const h1 = document.querySelector('.home-hero-name')
+    if (!h1) return
+    window.scrollTo(0, window.scrollY + h1.getBoundingClientRect().top - window.innerHeight * 0.18 + 24)
+  })
   await waitForStableScroll(page)
   await page.waitForTimeout(900) // flight (~550ms, 49 §F2 retune, was 700ms) + margin
 
   check('R6b monogram shown after collapse trigger', (await monoVisibility()) === 'visible')
   check('R6b h1 B/W hidden after collapse', (await letterVisibility()) === 'hidden')
   check('R6b ghost removed once landed (collapse)', (await ghostCount()) === 0)
+  const collapsedTone = await page.evaluate(() => {
+    const monogram = document.querySelector('[data-monogram]')
+    if (!monogram) return null
+    const style = getComputedStyle(monogram)
+    return { color: style.color, transitionDuration: style.transitionDuration }
+  })
+  check(
+    'R6b collapsed BW replaces the hidden hero name in ink with no white fade',
+    collapsedTone?.color === 'rgb(20, 26, 30)' && collapsedTone.transitionDuration === '0s',
+    JSON.stringify(collapsedTone),
+  )
 
   const rectAfter = await monoRect()
   const dx = Math.abs(rectAfter.left - rectBefore.left)
