@@ -270,16 +270,13 @@ async function main() {
     const initialVideoDom = await malwarePage.evaluate(() => ({
       sources: document.querySelectorAll('[data-secondary-video] video source, [data-loop-video] source').length,
       watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
+      section: Boolean(document.querySelector('[data-secondary-video]')) || document.body.textContent.includes('Watch the earlier results trailer'),
     }))
     check(
-      'malware page attaches no video sources before the visitor asks to watch',
-      initialVideoRequests.length === 0 && initialVideoDom.sources === 0 && initialVideoDom.watchButton,
+      'malware page omits the earlier experiment trailer and all of its video sources',
+      initialVideoRequests.length === 0 && initialVideoDom.sources === 0 && !initialVideoDom.watchButton && !initialVideoDom.section,
       JSON.stringify({ requests: initialVideoRequests, dom: initialVideoDom }),
     )
-    if (initialVideoDom.watchButton) await malwarePage.locator('[data-secondary-video] button').click()
-    const activatedTrailer = await malwarePage.locator('[data-secondary-video] video source').getAttribute('src').catch(() => null)
-    check('the earlier experiment trailer becomes available after the visitor activates its watch control',
-      activatedTrailer === '/projects/malware-detection/trailer.mp4', String(activatedTrailer))
     await malwarePage.close()
 
     const footerPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })

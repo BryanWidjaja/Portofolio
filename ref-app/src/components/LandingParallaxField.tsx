@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../app/MotionProvider'
 import { useGSAP } from '../motion/gsap'
 import { mountLandingParallax } from '../motion/ambientParallax'
+import { deferredImagePlaceholder, observeNearViewportImages } from '../motion/nearViewportImages'
 
 type ArtName = 'ridge' | 'bank-right' | 'waterline'
 type Depth = 'far' | 'mid' | 'near'
@@ -30,6 +31,22 @@ export function LandingParallaxField() {
     return mountLandingParallax(root.current, reduced)
   }, { scope: root, dependencies: [reduced], revertOnUpdate: true })
 
+  useEffect(() => {
+    const element = root.current
+    if (!element) return
+    let stopImages: (() => void) | undefined
+    const start = () => {
+      if (stopImages) return
+      stopImages = observeNearViewportImages(element)
+    }
+    if (window.scrollY > 0) start()
+    else window.addEventListener('scroll', start, { once: true, passive: true })
+    return () => {
+      window.removeEventListener('scroll', start)
+      stopImages?.()
+    }
+  }, [])
+
   return (
     <div ref={root} aria-hidden="true" data-landing-parallax className="landing-parallax">
       {plates.map(({ art, depth, position }) => {
@@ -37,10 +54,10 @@ export function LandingParallaxField() {
         const base = `/ambient/v1/${art}`
         return (
           <div key={position} data-parallax-plate className={`landing-parallax__plate landing-parallax__plate--${position}`}>
-            <picture data-parallax-layer={depth} className={`landing-parallax__art landing-parallax__art--${art}`}>
-              <source type="image/avif" srcSet={`${base}-mobile.avif ${size.mobile}w, ${base}-wide.avif ${size.wide}w`} sizes="100vw" />
-              <source type="image/webp" srcSet={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`} sizes="100vw" />
-              <img src={`${base}-mobile.webp`} width={size.mobile} height={size.height * (size.mobile / size.wide)} alt="" loading="lazy" decoding="async" />
+            <picture data-deferred-image data-parallax-layer={depth} className={`landing-parallax__art landing-parallax__art--${art}`}>
+              <source type="image/avif" data-srcset={`${base}-mobile.avif ${size.mobile}w, ${base}-wide.avif ${size.wide}w`} data-sizes="100vw" />
+              <source type="image/webp" data-srcset={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`} data-sizes="100vw" />
+              <img data-src={`${base}-mobile.webp`} src={deferredImagePlaceholder()} data-srcset={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`} data-sizes="100vw" width={size.mobile} height={size.height * (size.mobile / size.wide)} alt="" loading="lazy" decoding="async" fetchPriority="low" />
             </picture>
           </div>
         )

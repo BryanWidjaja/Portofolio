@@ -15,14 +15,16 @@ import type { TimelineRow } from '../content/about'
 // Awards all share it, so the three sections can never drift apart.
 function Timeline({ heading, rows }: { heading: string; rows: TimelineRow[] }) {
   return (
-    <Container as="section" className="pt-leaf">
+    <Container as="section" className="about-timeline-container pt-leaf">
+      <div data-about-timeline-layout className="about-timeline-layout grid grid-cols-1">
       <BrushWords as="h2" text={heading} data-reveal="heading" className="text-heading font-display font-medium" />
-      <ul className="mt-breath">
+      <ul className="about-timeline-rows mt-breath">
         {rows.map((row, index) => (
           <DividerRow
             key={`${row.role}-${row.org}`}
             as="li"
             lineVariant={index}
+            data-about-timeline-row
             className="grid grid-cols-[1fr_auto] gap-x-4 py-6 md:grid-cols-12 md:py-8"
           >
             <p className="col-span-2 text-title font-display font-medium md:col-span-5">{row.role}</p>
@@ -33,6 +35,7 @@ function Timeline({ heading, rows }: { heading: string; rows: TimelineRow[] }) {
           </DividerRow>
         ))}
       </ul>
+      </div>
     </Container>
   )
 }
@@ -57,9 +60,10 @@ export function About() {
           </p>
         </Container>
 
-        <Container className="relative isolate mt-breath grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
+        <Container className="about-intro-container relative isolate mt-breath">
+          <div data-about-intro className="about-intro-layout grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
           <AmbientScene preset="about-grove" />
-          <div className="ml-auto w-[82%] max-w-[26rem] overflow-hidden rounded-none md:col-span-4 md:ml-0 md:w-full md:max-w-none">
+          <div data-about-portrait className="ml-auto w-[82%] max-w-[26rem] overflow-hidden rounded-none md:col-span-4 md:ml-0 md:w-full md:max-w-none">
             <BrushReveal
               src={portrait.src}
               alt={portrait.alt}
@@ -70,7 +74,7 @@ export function About() {
               className="aspect-[4/5] size-full"
             />
           </div>
-          <div className="mt-10 md:col-span-7 md:col-start-6 md:mt-0">
+          <div data-about-bio className="mt-10 md:col-span-7 md:col-start-6 md:mt-0">
             <p data-intro className="text-lead text-balance">
               {bio.lead}
             </p>
@@ -82,6 +86,7 @@ export function About() {
             <DividerRow className="mt-10 pt-6">
               <p className="label text-ink-muted">{site.footer.availability}</p>
             </DividerRow>
+          </div>
           </div>
         </Container>
 
@@ -101,7 +106,8 @@ export function About() {
         <Timeline heading={aboutCommon.educationHeading} rows={education} />
         <Timeline heading={aboutCommon.awardsHeading} rows={awards} />
 
-        <Container as="section" className="grid gap-x-6 pt-leaf md:grid-cols-12 xl:gap-x-8">
+        <Container as="section" className="about-tools-container pt-leaf">
+          <div data-about-tools-layout className="about-tools-layout grid gap-x-6 md:grid-cols-12 xl:gap-x-8">
           <BrushWords
             as="h2"
             text={aboutCommon.toolsHeading}
@@ -120,9 +126,11 @@ export function About() {
               </div>
             ))}
           </div>
+          </div>
         </Container>
 
-        <Container as="section" className="grid gap-x-6 py-leaf md:grid-cols-12 md:items-center xl:gap-x-8">
+        <Container as="section" className="about-resume-container py-leaf">
+          <div data-about-resume-layout className="about-resume-layout grid gap-x-6 md:grid-cols-12 md:items-center xl:gap-x-8">
           <BrushWords
             as="p"
             text={aboutCommon.resume.prompt}
@@ -140,6 +148,7 @@ export function About() {
           >
             {aboutCommon.resume.pill}
           </PillButton>
+          </div>
         </Container>
       </Page>
     </>

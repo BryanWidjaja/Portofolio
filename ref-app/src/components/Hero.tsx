@@ -123,8 +123,9 @@ export function Hero() {
                 if (el) mistRefs.current[i] = el
               }}
               aria-hidden="true"
-              className="hero-mist pointer-events-none absolute inset-x-0 h-[45%] bg-cover opacity-60"
-              style={{ top: `${30 + i * 20}%`, backgroundImage: `url('/ink/${name}.webp')` }}
+              className="hero-mist pointer-events-none absolute inset-x-0 h-[45%] bg-cover"
+              data-mist-src={`/ink/${name}.webp`}
+              style={{ top: `${30 + i * 20}%` }}
             />
           ))}
     </div>

@@ -6,7 +6,6 @@ import type { HomeProject } from '../content/routeData'
 type ProjectCardProps = {
   project: HomeProject
   slot: 'lead' | 'left' | 'right'
-  eager?: boolean
 }
 
 // 11-layout.md §Index §Component props: staircase slots (L1). Lead spans
@@ -21,9 +20,9 @@ const slotClasses: Record<ProjectCardProps['slot'], string> = {
 // media brushes to colour under the pointer/focus (components/BrushReveal.tsx,
 // src/ink/brush.ts), the title gets a dry-brush underline (`.ink-underline`,
 // styles/base.css, V18) and the arrow nudges +3 beside it.
-export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) {
+export function ProjectCard({ project, slot }: ProjectCardProps) {
   return (
-    <li className={`relative isolate ${slotClasses[slot]}`}>
+    <li data-project-slot={slot} className={`relative isolate ${slotClasses[slot]}`}>
       <TransitionLink
         to={`/projects/${project.slug}`}
         cursor="open"
@@ -49,8 +48,10 @@ export function ProjectCard({ project, slot, eager = false }: ProjectCardProps) 
                     alt={project.cover.alt}
                     width={project.cover.width}
                     height={project.cover.height}
-                    eager={eager}
-                    sizes={slot === 'lead' ? '(min-width: 768px) calc(100vw - 8rem), calc(100vw - 3rem)' : '(min-width: 1024px) 67vw, calc(100vw - 3rem)'}
+                    sizes={slot === 'lead'
+                      ? '(min-width: 1536px) calc((min(100vw, 110rem) - 16rem) * 0.75 - 1.65rem), (min-width: 1280px) calc((100vw - 14rem) * 0.75 - 1.65rem), (min-width: 1024px) calc((100vw - 12rem) * 0.75 - 1.575rem), (min-width: 960px) calc((100vw - 8rem) * 0.75 - 1.575rem), (min-width: 768px) calc((100vw - 9.375rem) * 0.9), (min-width: 640px) calc((100vw - 6rem - 18px) * 0.88), (min-width: 430px) calc((100vw - 4rem - 18px) * 0.88), (min-width: 360px) calc((100vw - 3rem - 18px) * 0.88), calc((100vw - 2.5rem - 18px) * 0.88)'
+                      : '(min-width: 1024px) 67vw, calc(100vw - 3rem)'}
+                    deferUntilNear
                   />
                   <span aria-hidden="true" className="scroll-grain" />
                 </div>

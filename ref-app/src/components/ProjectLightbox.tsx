@@ -35,7 +35,7 @@ const FADE_MS = 300
 // backdrop-click/Escape/close-button to dismiss) -- never its visual
 // idiom. This dialog is paper (`bg-background`), square-cornered
 // (`rounded-none` throughout, no exceptions), edged with the same ink
-// hairline value ProjectVideo.tsx/`.scroll-sheet` already use
+// hairline value `.scroll-sheet` already uses
 // (`rgb(60 40 15 / 0.14)`, styles/base.css:204), and never uses
 // `backdrop-filter`, a dark scrim, rounded corners or a spring/back/elastic
 // ease -- all banned by the quality bar and explicitly declined by the
@@ -236,8 +236,8 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
     >
       {/* Stops the backdrop's own onClick (which closes the dialog) from
           firing for clicks anywhere inside the actual dialog content. */}
-      <div onClick={(e) => e.stopPropagation()} className="flex h-dvh min-h-0 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between gap-4 px-4 py-2 md:px-6 md:py-3">
+      <div onClick={(e) => e.stopPropagation()} className="lightbox-shell flex h-dvh min-h-0 flex-col overflow-hidden">
+        <div className="lightbox-header flex shrink-0 items-center justify-between gap-4 px-4 py-2 md:px-6 md:py-3">
           <p data-lightbox-counter className="label text-ink-muted tabular-nums">
             {`Photo ${index + 1} of ${total}`}
           </p>
@@ -247,13 +247,13 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
             onClick={requestClose}
             aria-label="Close"
             data-cursor="stick"
-            className="grid size-10 shrink-0 place-items-center rounded-full border border-ink text-ink"
+            className="grid size-11 shrink-0 place-items-center rounded-full border border-ink text-ink"
           >
             <Icon name="Plus" aria-hidden="true" weight="bold" className="size-4 rotate-45" />
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 md:gap-4 md:px-6">
+        <div className="lightbox-stage grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-2 md:gap-4 md:px-6">
           {total > 1 ? (
             <button
               type="button"
@@ -307,7 +307,7 @@ export function ProjectLightbox({ photos, index, onIndexChange, onClose }: Proje
             role="region"
             aria-label="Photo thumbnail navigation"
             tabIndex={0}
-            className="flex shrink-0 justify-start gap-2 overflow-x-auto px-4 py-2 md:gap-3 md:px-6 md:py-3"
+            className="lightbox-thumbnails flex shrink-0 justify-start gap-2 overflow-x-auto px-4 py-2 md:gap-3 md:px-6 md:py-3"
           >
             {photos.map((photo, i) => (
               <button

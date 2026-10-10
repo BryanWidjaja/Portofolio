@@ -8,12 +8,11 @@ type ContainerProps = {
 }
 
 /**
- * `G` shorthand (11-layout.md): centered, capped at 1760px, with the
- * responsive gutters from 10-direction.md §Tokens final §Spacing.
+ * Centered editorial measure; shell gutters come from the shared layout token.
  */
 export function Container({ as: As = 'div', id, className = '', children }: ContainerProps) {
   return (
-    <As id={id} className={`mx-auto w-full max-w-[110rem] px-8 sm:px-12 md:px-20 lg:px-24 xl:px-28 2xl:px-32 ${className}`.trim()}>
+    <As id={id} className={`mx-auto site-container ${className}`.trim()}>
       {children}
     </As>
   )

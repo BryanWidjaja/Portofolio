@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../app/MotionProvider'
 import { mountBrush } from '../ink/brush'
-import { ProjectImage } from './ProjectImage'
+import { ProjectImage, projectSrcSet } from './ProjectImage'
+import { observeNearViewportImages } from '../motion/nearViewportImages'
 
 type BrushRevealProps = {
   src: string
@@ -11,6 +12,7 @@ type BrushRevealProps = {
   eager?: boolean
   className?: string
   sizes?: string
+  deferUntilNear?: boolean
 }
 
 // V11/M9 (41-ink-replace-map.md), 42-ink-direction.md §Brush reveal: the
@@ -31,7 +33,7 @@ function greySrc(src: string): string {
   return src.replace(/(\.\w+)$/, '-grey$1')
 }
 
-export function BrushReveal({ src, alt, width, height, eager = false, className = '', sizes = '100vw' }: BrushRevealProps) {
+export function BrushReveal({ src, alt, width, height, eager = false, className = '', sizes = '100vw', deferUntilNear = false }: BrushRevealProps) {
   const figureRef = useRef<HTMLSpanElement>(null)
   const colourRef = useRef<HTMLImageElement>(null)
   const reducedMotion = useReducedMotion()
@@ -52,6 +54,16 @@ export function BrushReveal({ src, alt, width, height, eager = false, className 
     return mountBrush(figure, colour)
   }, [reducedMotion])
 
+  useEffect(() => {
+    const figure = figureRef.current
+    if (!deferUntilNear || !figure) return
+    return observeNearViewportImages(figure, '160px 0px')
+  }, [deferUntilNear])
+
+  const fallbackMarkup = deferUntilNear
+      ? `<picture><source type="image/avif" srcset="${projectSrcSet({ src, alt, width, height }, 'avif')}" sizes="${sizes}"><img src="${src}" srcset="${projectSrcSet({ src, alt, width, height }, 'webp')}" sizes="${sizes}" alt="${alt.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}" width="${width}" height="${height}" class="brush-noscript absolute inset-0 size-full object-contain" loading="lazy" decoding="async"></picture>`
+    : ''
+
   return (
     <span ref={figureRef} data-brush className={`brush-figure relative isolate block size-full ${className}`}>
       <ProjectImage
@@ -59,7 +71,8 @@ export function BrushReveal({ src, alt, width, height, eager = false, className 
         alt=""
         sizes={sizes}
         loading={eager ? 'eager' : 'lazy'}
-        fetchPriority={eager ? 'high' : undefined}
+        fetchPriority={deferUntilNear ? 'low' : eager ? 'high' : undefined}
+        deferUntilNear={deferUntilNear}
         className="brush-grey absolute inset-0 size-full object-contain"
       />
       <ProjectImage
@@ -67,9 +80,11 @@ export function BrushReveal({ src, alt, width, height, eager = false, className 
         img={{ src, alt, width, height }}
         sizes={sizes}
         loading={eager ? 'eager' : 'lazy'}
-        fetchPriority={eager ? 'high' : undefined}
+        fetchPriority={deferUntilNear ? 'low' : eager ? 'high' : undefined}
+        deferUntilNear={deferUntilNear}
         className="brush-colour pointer-events-none absolute inset-0 size-full object-contain"
       />
+      {deferUntilNear ? <noscript dangerouslySetInnerHTML={{ __html: fallbackMarkup }} /> : null}
     </span>
   )
 }

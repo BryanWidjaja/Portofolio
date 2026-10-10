@@ -6,7 +6,6 @@ import { BrushWords } from '../components/BrushWords'
 import { Eyebrow } from '../components/Eyebrow'
 import { PillButton } from '../components/PillButton'
 import { ProjectCollage } from '../components/ProjectCollage'
-import { ProjectVideo } from '../components/ProjectVideo'
 import { NextProject } from '../components/NextProject'
 import { AmbientScene } from '../components/AmbientScene'
 import { Page } from '../motion/Page'
@@ -71,17 +70,17 @@ export function ProjectDetail() {
       <Seo title={`${project.title} · ${site.name}`} description={project.summary} path={`/projects/${project.slug}`} />
 
       <Page>
-        <Container as="section" className="pt-36 md:pt-48">
+        <Container as="section" className="project-intro-container pt-36 md:pt-48">
           <BrushWords
             as="h1"
             text={project.title}
             className="text-display font-display font-bold text-balance"
           />
-          <p data-intro className="mt-6 text-lead text-balance md:w-7/12">
+          <p data-intro data-project-summary className="mt-6 text-lead text-balance md:w-7/12">
             {project.summary}
           </p>
 
-          <dl data-intro="meta" className="mt-breath grid grid-cols-2 gap-6 md:grid-cols-12">
+          <dl data-intro="meta" data-project-meta className="mt-breath grid grid-cols-2 gap-6 md:grid-cols-12">
             <div className="md:col-span-3">
               <dt className="label text-ink-muted">Role</dt>
               <dd className="mt-2 text-body">{project.role}</dd>
@@ -127,7 +126,7 @@ export function ProjectDetail() {
           </dl>
         </Container>
 
-        <Container className="mt-10 md:mt-12">
+        <Container className="project-collage-container mt-10 md:mt-12">
           {/* 51-round5-plan.md §E3, 45 R5c: the collage replaces the old
               single cover + the two gallery squares that used to sit after
               the description. The hero tile is the project's own cover
@@ -146,7 +145,7 @@ export function ProjectDetail() {
         {/* 55 §E7 B: `pt-leaf` only (was `py-leaf`) -- the bottom half used
             to stack with NextProject's `mt-leaf` below into two gaps where
             the owner wants one. */}
-        <Container as="section" data-project-story className="relative isolate pt-leaf">
+        <Container as="section" data-project-story className="project-story-container relative isolate pt-leaf">
           <AmbientScene preset="project-story" />
           {/* Direction 8A: Swiss Grid — Expressive Italic Title.
               1fr / 2fr columns; large italic Cormorant title on the left with a
@@ -157,10 +156,10 @@ export function ProjectDetail() {
               <div
                 key={`section-${section.label}`}
                 data-project-story-row
-                className="grid items-end gap-8 py-14 md:grid-cols-[1fr_2fr] md:gap-16 md:py-20"
+                className="project-story-row grid items-end gap-8 py-14 md:gap-16 md:py-20"
               >
                 {/* Left: tiny counter + large italic display title */}
-                <div className="md:border-r md:border-ink/10 md:pb-2 md:pr-10">
+                <div data-project-story-heading className="md:pb-2 md:pr-10">
                   <span className="font-mono text-[0.65rem] uppercase tracking-widest text-ink/30">
                     {String(i + 1).padStart(2, '0')}
                   </span>
@@ -180,23 +179,6 @@ export function ProjectDetail() {
             ))}
           </div>
         </Container>
-
-        {project.earlierVideo ? (
-          <Container as="section" className="mt-leaf">
-            <div className="grid gap-6 md:grid-cols-12 md:items-start">
-              <div className="md:col-span-4">
-                <Eyebrow>Earlier experiment</Eyebrow>
-                <h2 className="mt-3 text-title font-display font-medium">Watch the earlier results trailer</h2>
-                <p className="mt-3 text-body text-ink-muted">
-                  This archived trailer reports an earlier experiment. Its accuracy differs from the latest conference slides above.
-                </p>
-              </div>
-              <div className="md:col-span-8">
-                <ProjectVideo {...project.earlierVideo} className="aspect-video w-full" />
-              </div>
-            </div>
-          </Container>
-        ) : null}
 
         <Container as="section" className="mt-leaf">
           <NextProject project={next} />

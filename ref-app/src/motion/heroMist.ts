@@ -47,6 +47,9 @@ type HeroMistRefs = {
  * scoped `will-change`.
  */
 export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+  if (reducedMotion.matches) return () => {}
+
   const MIST_PERIODS = [43, 51, 59] // 42 §Tokens: near-coprime so the planes never lock in step
   mist.forEach((el, i) => {
     // Alternate sway direction per plane (i%2===0 ? +2% : -2%), matching the
@@ -60,6 +63,66 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
 
   let intersecting = false
   let loaded = document.readyState === 'complete'
+  let cancelled = false
+  let stableScheduled = false
+  let idleHandle: number | undefined
+  let idleFallback: number | undefined
+  const pendingImages: HTMLImageElement[] = []
+
+  function attachMistImages() {
+    if (cancelled || reducedMotion.matches) return
+    for (const el of mist) {
+      const src = el.dataset.mistSrc
+      if (!src || el.dataset.mistReady === 'true') continue
+      const preload = new Image()
+      preload.decoding = 'async'
+      preload.fetchPriority = 'low'
+      pendingImages.push(preload)
+      preload.src = src
+      preload.decode().then(() => {
+        if (cancelled || reducedMotion.matches || !el.isConnected) return
+        el.style.backgroundImage = `url("${src}")`
+        el.dataset.mistReady = 'true'
+      }).catch(() => {})
+    }
+  }
+
+  function scheduleMistImages() {
+    if (stableScheduled || cancelled || reducedMotion.matches) return
+    stableScheduled = true
+    let started = false
+    const start = () => {
+      if (started) return
+      started = true
+      if (idleFallback !== undefined) window.clearTimeout(idleFallback)
+      idleFallback = undefined
+      attachMistImages()
+    }
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (handle: number) => void
+    }
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(start, { timeout: 1200 })
+      idleFallback = window.setTimeout(start, 1200)
+    } else {
+      idleFallback = window.setTimeout(start, 500)
+    }
+  }
+
+  function afterStableHeroPaint() {
+    if (cancelled || reducedMotion.matches) return
+    const decoded = image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0
+      ? image.decode().catch(() => {})
+      : Promise.resolve()
+    void decoded.then(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })).then(scheduleMistImages)
+  }
+
+  image.addEventListener('load', afterStableHeroPaint, { once: true })
+  image.addEventListener('error', afterStableHeroPaint, { once: true })
+  if (image instanceof HTMLImageElement && image.complete) afterStableHeroPaint()
 
   function transitionActive() {
     const t = document.documentElement.dataset.transition
@@ -112,10 +175,23 @@ export function mountHeroMist({ root, image, mist }: HeroMistRefs) {
   })
 
   return () => {
+    cancelled = true
     window.removeEventListener('load', onLoad)
+    image.removeEventListener('load', afterStableHeroPaint)
+    image.removeEventListener('error', afterStableHeroPaint)
     document.removeEventListener('visibilitychange', sync)
     io.disconnect()
     transitionObserver.disconnect()
+    if (idleFallback !== undefined) window.clearTimeout(idleFallback)
+    if (idleHandle !== undefined) {
+      const idleWindow = window as Window & { cancelIdleCallback?: (handle: number) => void }
+      idleWindow.cancelIdleCallback?.(idleHandle)
+    }
+    pendingImages.forEach((preload) => { preload.src = '' })
+    mist.forEach((el) => {
+      el.style.backgroundImage = ''
+      delete el.dataset.mistReady
+    })
     image.style.willChange = ''
     scrub.kill()
   }

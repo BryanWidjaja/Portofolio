@@ -299,7 +299,7 @@ export function Nav() {
   )
 
   return (
-    <header ref={navRef} className="pointer-events-none fixed inset-x-0 top-0 z-nav">
+    <header ref={navRef} className="site-nav-header pointer-events-none fixed inset-x-0 top-0 z-nav">
       <Container as="nav" className="flex h-16 items-center justify-between md:h-20">
         {/* 47-round3-plan.md §R5 item 2 / 45 §Round3 R3d: the monogram no
             longer lives inline here -- it's `Monogram.tsx`, which also

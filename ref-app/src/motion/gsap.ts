@@ -62,6 +62,7 @@ if (typeof window !== 'undefined') {
     src: scrollTriggerRafLoop ? scrollTriggerRafLoop.toString().slice(0, 200) : null,
     asleep: scrollTriggerRafAsleep,
     triggers: ScrollTrigger.getAll().map((t) => ({
+      landingParallax: Boolean(t.trigger?.closest('[data-parallax-plate]')),
       start: t.start,
       end: t.end,
       progress: t.progress,

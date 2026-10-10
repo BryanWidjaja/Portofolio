@@ -48,14 +48,12 @@ export type Project = {
   /**
    * 51-round5-plan.md §E3, 45 R5c, 52 §Item 4: the project-page collage's
    * secondary tiles (the "2x2" of layout 4A). The hero tile is `cover`
-   * (or, on the malware-detection page, E2's `ProjectVideo`, wired in
-   * ProjectDetail.tsx) -- never part of this array. Five real images per
+   * (or `detailHero` when supplied) -- never part of this array. Five real images per
    * project is the target; fewer only when a capture genuinely could not
    * be produced (52 §Item 4, InstaTags without a runnable backend/build
    * step in this sandbox -- see the round-5 report).
    */
   collage: Img[]
-  earlierVideo?: { base: string; alt: string }
   sections: ProjectSection[]
 }
 
@@ -159,10 +157,6 @@ export const projects: Project[] = [
         tone: 'light',
       },
     ],
-    earlierVideo: {
-      base: '/projects/malware-detection',
-      alt: 'Earlier malware-detection experiment trailer reporting an 87.02% accuracy result.',
-    },
     sections: [
       {
         label: 'The problem',

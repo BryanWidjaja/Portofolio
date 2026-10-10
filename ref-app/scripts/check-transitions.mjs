@@ -1484,9 +1484,9 @@ async function captureCoverShots(browser, base, outDir) {
   await context.close()
 }
 
-// Round 7: the slide image is the eager page evidence. The archived trailer
-// poster and video remain absent from initial transfer until activated.
-async function testProjectVideoPoster(browser, base) {
+// The current slide deck is the only malware evidence surface; the removed
+// earlier-experiment trailer must not leave UI or media requests behind.
+async function testMalwareEvidence(browser, base) {
   const url = new URL('/projects/malware-detection', base).toString()
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -1500,11 +1500,12 @@ async function testProjectVideoPoster(browser, base) {
       preloadedPoster: Boolean(document.querySelector('link[rel="preload"][as="image"][href*="/projects/malware-detection/poster"]')),
       sourceCount: document.querySelectorAll('[data-secondary-video] video source').length,
       watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
+      secondaryVideo: Boolean(document.querySelector('[data-secondary-video]')),
       hero: document.querySelector('[data-collage-hero] img')?.getAttribute('src') ?? '',
     }
   })
-  check('V1 malware slide image is the initial hero while the archived trailer remains click-only',
-    !initialVideo.preloadedPoster && initialVideo.sourceCount === 0 && initialVideo.watchButton && /slide-1-/.test(initialVideo.hero),
+  check('V1 malware slide image is the hero and the earlier trailer section is absent',
+    !initialVideo.preloadedPoster && initialVideo.sourceCount === 0 && !initialVideo.watchButton && !initialVideo.secondaryVideo && /slide-1-/.test(initialVideo.hero),
     JSON.stringify(initialVideo))
   await context.close()
 
@@ -1520,18 +1521,19 @@ async function testProjectVideoPoster(browser, base) {
   const state = await reducedPage.evaluate(() => ({
     sourceCount: document.querySelectorAll('[data-secondary-video] video source').length,
     watchButton: Boolean(document.querySelector('[data-secondary-video] button')),
+    secondaryVideo: Boolean(document.querySelector('[data-secondary-video]')),
   }))
   check(
-    'V2 reduced motion: the archived trailer still waits for an explicit click',
-    state.sourceCount === 0 && state.watchButton,
+    'V2 reduced motion: the removed trailer remains absent',
+    state.sourceCount === 0 && !state.watchButton && !state.secondaryVideo,
     JSON.stringify(state),
   )
   await reducedContext.close()
 }
 
 // 55-projectpage-plan.md §E7 A (superseding 51 §E3/E6's two-grid "Hotel"
-// layout): the collage replaces `Gallery` and mounts E2's `<ProjectVideo>`
-// on the malware page is a complete slide image, and is **one** grid, not a hero grid
+// layout): the collage replaces `Gallery`; malware's hero is a complete
+// slide image, and the collage is **one** grid, not a hero grid
 // sitting beside an independent 2x2 grid.
 //
 // Updated for round 6 (58 §F3, 45 R6e/R6f): `totalTiles` is each
@@ -1624,9 +1626,8 @@ async function testMonogramToneRegistry(browser, base) {
   check('N2 home: data-nav-on-ink clears once the hero painting scrolls out of the nav band', !afterScroll)
   await context.close()
 
-  // A project page's dark collage tile: same assertion, different tagged
-  // surface, proving the registry reads `data-tone` generically rather
-  // than special-casing the hero painting.
+  // The malware deck uses light slide surfaces. Removing the old dark
+  // trailer must also remove its stale nav-tone registration.
   const projectUrl = new URL('/projects/malware-detection', base).toString()
   const projectContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const projectPage = await projectContext.newPage()
@@ -1636,16 +1637,18 @@ async function testMonogramToneRegistry(browser, base) {
 
   const projectState = await projectPage.evaluate(() => {
     const darkTiles = document.querySelectorAll('[data-tone="dark"]')
+    const lightTiles = document.querySelectorAll('[data-tone="light"]')
     const rect = darkTiles[0]?.getBoundingClientRect()
     return {
       darkTileCount: darkTiles.length,
+      lightTileCount: lightTiles.length,
       navOnInk: document.documentElement.hasAttribute('data-nav-on-ink'),
       firstTileTop: rect?.top ?? null,
     }
   })
   check(
-    'N3 malware-detection: has at least one data-tone="dark" surface (the video mount)',
-    projectState.darkTileCount > 0,
+    'N3 malware-detection: uses the light slide tone with no removed dark trailer surface',
+    projectState.darkTileCount === 0 && projectState.lightTileCount > 0 && !projectState.navOnInk,
     JSON.stringify(projectState),
   )
   await projectContext.close()
@@ -1676,8 +1679,7 @@ async function testMonogramToneRegistry(browser, base) {
 // appended by E6, after E4's checks above, without touching them. Asserts
 // opening from a tile, the "Photo n of N" counter, prev/next wrap-around,
 // Escape closing with focus returned to the trigger, and that the malware
-// page's <video> hero tile is never wrapped as a lightbox trigger (only
-// images are).
+// page's complete slide deck remains image-based lightbox evidence.
 async function testProjectLightbox(browser, base) {
   const url = new URL('/projects/btardew-walley', base).toString()
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -2050,7 +2052,7 @@ async function main() {
     await testBrushDryBackDirection(browser, base)
     await testBrushCursorHandoff(browser, base)
     await testBrushReentryNoRestart(browser, base)
-    await testProjectVideoPoster(browser, base)
+    await testMalwareEvidence(browser, base)
     await testProjectCollage(browser, base)
     await testMonogramToneRegistry(browser, base)
     await testProjectLightbox(browser, base)

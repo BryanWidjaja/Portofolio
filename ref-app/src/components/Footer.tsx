@@ -36,8 +36,8 @@ export function Footer() {
     <footer id="contact" data-footer ref={footerRef} className="relative isolate ink-paper">
       <AmbientScene preset="footer-waterline" />
       <BrushLine className="absolute inset-x-0 top-0" />
-      <Container className="py-16 md:py-20">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-12 md:items-start md:gap-x-8">
+      <Container className="footer-container py-16 md:py-20">
+        <div data-footer-layout className="footer-grid grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-12 md:items-start md:gap-x-8">
           <div data-footer-contact className="col-span-2 md:col-span-8">
           <Eyebrow data-reveal="label">{site.footer.eyebrow}</Eyebrow>
           <BrushWords

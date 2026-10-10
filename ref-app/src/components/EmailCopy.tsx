@@ -11,7 +11,7 @@ const sizeClasses: Record<'md' | 'lg', string> = {
   md: 'text-title',
   // 11-layout.md §Global: text-xl at 390 (text-title would overflow the
   // 342px column with the icon), text-title once the footer has room.
-  lg: 'text-xl lg:text-title',
+  lg: 'text-[clamp(1rem,5.25vw,1.25rem)] lg:text-title',
 }
 
 // D5: copy button with feedback, falling back to mailto on failure.
@@ -43,7 +43,7 @@ export function EmailCopy({ email, size }: EmailCopyProps) {
         onClick={handleCopy}
         data-cursor="text"
         data-cursor-text={status === 'copied' ? site.cursor.copied : site.cursor.copy}
-        className={`group inline-flex items-center gap-2 underline decoration-2 underline-offset-4 transition-transform duration-[120ms] ease-dry active:scale-[0.99] [overflow-wrap:anywhere] ${sizeClasses[size]}`}
+        className={`group inline-flex items-center gap-2 whitespace-nowrap underline decoration-2 underline-offset-4 transition-transform duration-[120ms] ease-dry active:scale-[0.99] ${sizeClasses[size]}`}
       >
         {email}
         {status === 'copied' ? (

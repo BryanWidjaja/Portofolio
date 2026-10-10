@@ -224,9 +224,10 @@ export function MenuOverlay() {
     >
       <div
         ref={panelRef}
-        className="ink-paper-dark absolute inset-0 flex flex-col shadow-[0_24px_48px_-24px_rgb(20_26_30/0.35)] will-change-transform"
+        className="menu-panel ink-paper-dark absolute inset-0 flex flex-col shadow-[0_24px_48px_-24px_rgb(20_26_30/0.35)] will-change-transform"
       >
-        <Container className="relative flex h-full flex-col justify-between py-24 md:py-32">
+        <div data-menu-scroll-region className="menu-scroll-region">
+        <Container className="relative flex min-h-full flex-col justify-between py-12 md:py-32">
           {/* G6 (46 item 6 / decision 2): 浓 panel, so link text flips from
               焦 to paper (`text-background`, 11.34:1 — re-measured
               2026-09-28 against `49` §E3 item 3's darker `--color-ink-dark`,
@@ -273,6 +274,7 @@ export function MenuOverlay() {
             </div>
           </div>
         </Container>
+        </div>
         {/* 42 §Components "a 10px 焦 brush-line rod on its bottom edge",
             redone per 45 §Owner feedback item 7: the same dual mask
             BrushLine.tsx uses (tapered line silhouette ∩ brush-edge sweep)

@@ -25,7 +25,7 @@ type ProjectCollageProps = {
 // intrinsic height) is applied all the way through this time: the hero
 // cell alone gets an explicit `aspect-ratio` (inline `style`, since it's
 // the one per-project number this file needs -- `width/height` off the
-// hero `Img`, or the fixed `16/9` the malware trailer's assets actually
+// hero `Img`
 // are), and every side-tile's `<img>` is `absolute inset-0` so it adds
 // zero intrinsic size to its track. With `md:grid-rows-2` (Tailwind's own
 // `repeat(2, minmax(0, 1fr))`) and nothing else sizing the rows, the
@@ -125,8 +125,7 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
   const cell = 'min-h-0 min-w-0 overflow-hidden shadow-[0_0_0_1px_rgb(60_40_15/0.14)]'
 
   // R6e: the hero's own media dictates the hero cell's shape, at every
-  // breakpoint -- `16/9` for the malware trailer's actual assets (see
-  // ProjectVideo.tsx), otherwise the cover `Img`'s own `width`/`height`.
+  // breakpoint, using the cover `Img`'s own `width`/`height`.
   // An inline style, not a Tailwind class, because it is per-project data
   // (the one other bit of logic 58 §F3 allows) -- a literal
   // `aspect-[${w}/${h}]` string can't be picked up by Tailwind's static
@@ -136,11 +135,11 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
   return (
     <div
       data-collage
-      className="grid grid-cols-2 gap-2 md:grid-cols-[5fr_1.5fr_1.5fr] md:grid-rows-2 lg:gap-3"
+      className="project-collage grid grid-cols-2 gap-2 lg:gap-3"
     >
       <div
         data-collage-hero
-        className={`relative col-span-2 md:col-span-1 md:row-span-2 ${cell}`}
+        className={`relative col-span-2 ${cell}`}
         style={{ aspectRatio: heroAspect }}
       >
           <button
@@ -158,7 +157,7 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
             <figure data-intro="cover" data-tone={hero.tone} className="blot-mask isolate size-full rounded-none">
               <ProjectImage
                 img={hero}
-                sizes="(min-width: 1280px) calc((min(100vw, 110rem) - 11.5rem) * 0.625), (min-width: 768px) calc((100vw - 9rem) * 0.625), calc(100vw - 3rem)"
+                sizes="(min-width: 1536px) calc((min(100vw, 110rem) - 16.75rem) * 0.625), (min-width: 1280px) calc((100vw - 14.75rem) * 0.625), (min-width: 1024px) calc((100vw - 12.75rem) * 0.625), (min-width: 896px) calc((100vw - 8.5rem) * 0.625), (min-width: 768px) calc(100vw - 8rem), (min-width: 640px) calc(100vw - 6rem), (min-width: 430px) calc(100vw - 4rem), (min-width: 360px) calc(100vw - 3rem), calc(100vw - 2.5rem)"
                 loading="eager"
                 fetchPriority="high"
                 className="size-full object-contain"
@@ -178,7 +177,7 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
           <figure data-collage-tile data-tone={tile.tone} className="isolate size-full rounded-none">
             <ProjectImage
               img={tile}
-              sizes="(min-width: 1280px) calc((min(100vw, 110rem) - 11.5rem) * 0.1875), (min-width: 768px) calc((100vw - 9rem) * 0.1875), calc(50vw - 1.75rem)"
+              sizes="(min-width: 1536px) calc((min(100vw, 110rem) - 16.75rem) * 0.1875), (min-width: 1280px) calc((100vw - 14.75rem) * 0.1875), (min-width: 1024px) calc((100vw - 12.75rem) * 0.1875), (min-width: 896px) calc((100vw - 8.5rem) * 0.1875), (min-width: 768px) calc((100vw - 8.5rem) / 2), (min-width: 640px) calc((100vw - 6.5rem) / 2), (min-width: 430px) calc((100vw - 4.5rem) / 2), (min-width: 360px) calc((100vw - 3.5rem) / 2), calc((100vw - 3rem) / 2)"
               className="absolute inset-0 size-full object-contain"
             />
             {isOverflow ? (
@@ -215,7 +214,7 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
               data-cursor-text="view"
               aria-label={ariaLabel}
               onClick={onOpen}
-              className={`relative block appearance-none border-0 bg-transparent p-0 text-left aspect-[4/3] md:aspect-auto ${cell} ${tileSpan(i)}`.trim()}
+              className={`relative block appearance-none border-0 bg-transparent p-0 text-left aspect-[4/3] ${cell} ${tileSpan(i)}`.trim()}
             >
               {figure}
             </button>
@@ -231,7 +230,8 @@ export function ProjectCollage({ hero, tiles }: ProjectCollageProps) {
         return (
           <div
             key={tile.src}
-            className={`relative aspect-[4/3] md:aspect-auto ${tileSpan(i)}`.trim()}
+            data-collage-overflow-cell
+            className={`relative aspect-[4/3] ${tileSpan(i)}`.trim()}
             style={{
               boxShadow: [
                 '5px 5px 0 0 var(--color-sheet)',

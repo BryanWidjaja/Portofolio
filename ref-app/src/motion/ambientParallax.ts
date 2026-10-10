@@ -44,39 +44,45 @@ export function mountLandingParallax(root: HTMLElement, reduced: boolean) {
   const prefersReducedMotion = reduced || window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (prefersReducedMotion || layers.length === 0) return () => {}
 
-  const tweens = layers.map((layer) => {
-    const plate = layer.closest<HTMLElement>('[data-parallax-plate]') ?? layer
-    const depth = layer.dataset.parallaxLayer as 'far' | 'mid' | 'near'
-    const travel = () => {
-      const travelSet = window.matchMedia('(max-width: 767px)').matches ? LANDING_TRAVEL.mobile : LANDING_TRAVEL.desktop
-      return travelSet[depth] ?? travelSet.far
-    }
+  const media = gsap.matchMedia()
+  media.add({ compact: '(max-width: 767px)', wide: '(min-width: 768px)' }, ({ conditions }) => {
+    const travelSet = conditions?.compact ? LANDING_TRAVEL.mobile : LANDING_TRAVEL.desktop
+    const tweens: gsap.core.Tween[] = []
+    layers.forEach((layer) => {
+      const plate = layer.closest<HTMLElement>('[data-parallax-plate]') ?? layer
+      const depth = layer.dataset.parallaxLayer as 'far' | 'mid' | 'near'
+      const travel = travelSet[depth] ?? travelSet.far
 
-    return gsap.fromTo(layer,
-      { y: () => travel() / 2 },
-      {
-        y: () => -travel() / 2,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: plate,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: true,
-          invalidateOnRefresh: true,
-          onToggle: (self) => { layer.style.willChange = self.isActive ? 'transform' : 'auto' },
+      tweens.push(gsap.fromTo(layer,
+        { y: travel / 2 },
+        {
+          y: -travel / 2,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: plate,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: true,
+            invalidateOnRefresh: true,
+            onToggle: (self) => { layer.style.willChange = self.isActive ? 'transform' : 'auto' },
+          },
         },
-      },
-    )
-  })
+      ))
+    })
+    return () => {
+      tweens.forEach((tween) => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+      })
+      layers.forEach((layer) => {
+        layer.style.willChange = ''
+        gsap.set(layer, { clearProps: 'transform' })
+      })
+    }
+  }, root)
 
   return () => {
-    tweens.forEach((tween) => {
-      tween.scrollTrigger?.kill()
-      tween.kill()
-    })
-    layers.forEach((layer) => {
-      layer.style.willChange = ''
-      gsap.set(layer, { clearProps: 'transform' })
-    })
+    media.revert()
+    layers.forEach((layer) => { layer.style.willChange = '' })
   }
 }

@@ -39,6 +39,20 @@ export function Home() {
   const hasInscription = Boolean(site.home.heroInscription)
   const reduced = useReducedMotion()
 
+  useEffect(() => {
+    const work = document.getElementById('work')
+    if (!work) return
+    const firstScroll = work.querySelector('[data-reveal="scroll"]')
+    if (!firstScroll) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      work.dataset.agedPaper = 'true'
+      observer.disconnect()
+    }, { rootMargin: '160px 0px' })
+    observer.observe(firstScroll)
+    return () => observer.disconnect()
+  }, [])
+
   // 47-round3-plan.md §R6: the h1's own [Bryan, Widjaja] split into a
   // collapse-ghost letter + a brush-out/re-write remainder each.
   const [firstWord, secondWord] = site.home.heroName
@@ -145,10 +159,10 @@ export function Home() {
       </Head>
 
       <Page variant="home">
-        <section className="relative isolate overflow-hidden">
+        <section data-home-hero className="relative isolate overflow-hidden">
           <Hero />
           <Container
-            className="relative z-10 flex min-h-svh flex-col justify-end pb-22 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-32 xl:gap-x-8"
+            className="home-hero-container relative z-10 flex min-h-svh flex-col justify-end pb-22 md:grid md:grid-cols-12 md:grid-rows-[auto_1fr_auto] md:gap-x-6 md:pt-36 md:pb-32 xl:gap-x-8"
           >
             {/* 45 §Owner feedback item 4: the seal that used to sit at the
                 hero name's lower right (42 §Components Seal row) and at the
@@ -181,7 +195,7 @@ export function Home() {
                 ref={h1Ref}
                 aria-label={heroNameLabel}
                 tabIndex={-1}
-                className="text-hero font-display font-bold"
+                className="home-hero-name text-hero font-display font-bold"
               >
                 <span aria-hidden="true">
                   <span data-collapse-word>
@@ -229,7 +243,7 @@ export function Home() {
 
         <div className="home-journey relative isolate">
           <LandingParallaxField />
-          <Container as="section" id="work" className="relative z-10 pt-leaf scroll-mt-20">
+          <Container as="section" id="work" className="home-work-container relative z-10 pt-leaf scroll-mt-20">
             <Eyebrow data-reveal="label">{site.home.workEyebrow}</Eyebrow>
             <BrushWords
               as="h2"
@@ -238,13 +252,12 @@ export function Home() {
               tabIndex={-1}
               className="mt-3 text-heading font-display font-medium text-balance md:w-2/3"
             />
-            <ol className="mt-breath flex flex-col gap-leaf md:grid md:grid-cols-12 md:gap-x-6 md:gap-y-leaf xl:gap-x-8">
+            <ol data-project-journey className="home-project-journey mt-breath flex flex-col gap-leaf md:grid md:grid-cols-12 md:gap-x-6 md:gap-y-leaf xl:gap-x-8">
               {projects.map((project, index) => (
                 <ProjectCard
                   key={project.slug}
                   project={project}
                   slot={slotOrder[index] ?? 'left'}
-                  eager={index === 0}
                 />
               ))}
             </ol>

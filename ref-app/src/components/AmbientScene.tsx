@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../app/MotionProvider'
 import { useGSAP } from '../motion/gsap'
 import { mountAmbientParallax } from '../motion/ambientParallax'
+import { deferredImagePlaceholder, observeNearViewportImages } from '../motion/nearViewportImages'
 
 type ArtName = 'ridge' | 'bank-right' | 'waterline'
 export type AmbientScenePreset = 'project-story' | 'about-grove' | 'footer-waterline'
@@ -28,30 +29,40 @@ export function AmbientScene({ preset }: { preset: AmbientScenePreset }) {
     return mountAmbientParallax(element, reduced)
   }, { scope: root, dependencies: [reduced], revertOnUpdate: true })
 
+  useEffect(() => {
+    const element = root.current
+    if (!element) return
+    return observeNearViewportImages(element)
+  }, [])
+
   return (
     <div ref={root} aria-hidden="true" data-ambient-scene={preset} className={`ambient-scene ambient-scene--${preset}`}>
       {sceneArt[preset].map((name, index) => {
         const size = artSizes[name]
         const base = `/ambient/v1/${name}`
         return (
-          <picture key={name} data-ambient-layer={index === 0 ? 'far' : 'near'} className={`ambient-scene__layer ambient-scene__layer--${name}`}>
+          <picture key={name} data-deferred-image data-ambient-layer={index === 0 ? 'far' : 'near'} className={`ambient-scene__layer ambient-scene__layer--${name}`}>
             <source
               type="image/avif"
-              srcSet={`${base}-mobile.avif ${size.mobile}w, ${base}-wide.avif ${size.wide}w`}
-              sizes="100vw"
+              data-srcset={`${base}-mobile.avif ${size.mobile}w, ${base}-wide.avif ${size.wide}w`}
+              data-sizes="100vw"
             />
             <source
               type="image/webp"
-              srcSet={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`}
-              sizes="100vw"
+              data-srcset={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`}
+              data-sizes="100vw"
             />
             <img
-              src={`${base}-mobile.webp`}
+              src={deferredImagePlaceholder()}
+              data-src={`${base}-mobile.webp`}
+              data-srcset={`${base}-mobile.webp ${size.mobile}w, ${base}-wide.webp ${size.wide}w`}
+              data-sizes="100vw"
               width={size.mobile}
               height={size.height * (size.mobile / size.wide)}
               alt=""
               loading="lazy"
               decoding="async"
+              fetchPriority="low"
             />
           </picture>
         )

@@ -154,6 +154,7 @@ async function main() {
     const mobileScene = mobilePage.locator('[data-landing-parallax]')
     const mobileImage = mobileScene.locator('.landing-parallax__art--ridge img').first()
     await mobileImage.scrollIntoViewIfNeeded()
+    await mobilePage.waitForFunction(() => document.querySelector('.landing-parallax__art--ridge')?.getAttribute('data-deferred-image-ready') === 'true')
     await mobileImage.evaluate((image) => image.decode())
     const mobileState = await mobilePage.evaluate(() => ({
       currentSrc: document.querySelector('[data-landing-parallax] .landing-parallax__art--ridge img')?.currentSrc,
