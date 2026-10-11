@@ -656,6 +656,55 @@ html.brush-ready .brush-figure:not(:hover):not(:focus-within) .brush-colour {
   }
 }
 
+/* Selected handmade fibre mount. Visual changes only: original unroll
+ * structure, counter-translations, timing, and brush engine stay intact. */
+.scroll-fibre {
+  --paper: #ebe4d3;
+  --roll: 21px;
+  --edge: 12px;
+}
+
+.scroll-fibre .scroll-sheet {
+  padding: 10cqh 6cqw;
+}
+
+.scroll-fibre .scroll-sheet::before {
+  opacity: 0.16;
+}
+
+.scroll-fibre-material {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scroll-fibre-material {
+  background:
+    url('/ink/paper.webp') 17px 29px / 170px,
+    url('/ink/paper.webp') 0 0 / 850px;
+}
+
+.scroll-fibre .scroll-art {
+  z-index: 1;
+}
+
+.scroll-fibre .scroll-roll {
+  background:
+    url('/ink/paper.webp') 0 0 / 120px,
+    linear-gradient(90deg, #c9bea4, #f2ebdc 39%, #dfd4bd 76%, #bfb397);
+}
+
+.scroll-fibre .scroll-grain {
+  background-size: 210px;
+  opacity: 0.45;
+}
+
+@media (max-width: 767px) {
+  .scroll-fibre {
+    --roll: 15px;
+  }
+}
+
 /* Rolled up until reveal.ts unrolls it. */
 html.motion-ready .scroll:not([data-unrolled]) .scroll-body {
   translate: -100% 0;

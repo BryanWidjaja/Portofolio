@@ -28,18 +28,31 @@ export function ProjectCard({ project, slot }: ProjectCardProps) {
         cursor="open"
         className="group block focus-visible:outline-offset-8"
       >
-        {/* Owner, 2026-09-28: each project sits on an old paper handscroll
-            (styles/base.css `.scroll`) -- horizontal at every width, torn
-            and aged, a few shades off the page's own paper. It unrolls once
-            as it enters (motion/reveal.ts `scroll`). */}
+        <div data-reveal="label" className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 md:mb-5">
+          <h3 className="flex items-center gap-2 text-title font-display font-medium">
+            <span className="ink-underline inline-block">{project.title}</span>
+            <Icon
+              name="ArrowUpRight"
+              weight="bold"
+              aria-hidden="true"
+              className="size-5 shrink-0 text-ink-muted transition-transform duration-[250ms] ease-dry group-hover:translate-x-[3px] group-focus-visible:translate-x-[3px] motion-reduce:transition-none"
+            />
+          </h3>
+          <p className="label tabular-nums text-ink-muted">
+            {project.category} · {project.year}
+          </p>
+        </div>
+        {/* Handmade fibre mount: light paper, layered grain, and deckled
+            edges. Keeps the original once-only unroll. */}
         <figure
           data-reveal="scroll"
-          className="scroll relative isolate"
+          className="scroll scroll-fibre relative isolate"
           style={{ aspectRatio: `${project.cover.width * 0.9} / ${project.cover.height * 0.85}` }}
         >
           <div className="scroll-stage">
             <div className="scroll-body">
               <div className="scroll-sheet">
+                <span aria-hidden="true" className="scroll-fibre-material" />
                 <span aria-hidden="true" className="scroll-tear scroll-tear-top" />
                 <span aria-hidden="true" className="scroll-tear scroll-tear-bottom" />
                 <div className="scroll-art">
@@ -61,20 +74,6 @@ export function ProjectCard({ project, slot }: ProjectCardProps) {
             <span aria-hidden="true" className="scroll-roll scroll-roll-end" />
           </div>
         </figure>
-        <div data-reveal="label" className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 md:mt-5">
-          <h3 className="flex items-center gap-2 text-title font-display font-medium">
-            <span className="ink-underline inline-block">{project.title}</span>
-            <Icon
-              name="ArrowUpRight"
-              weight="bold"
-              aria-hidden="true"
-              className="size-5 shrink-0 text-ink-muted transition-transform duration-[250ms] ease-dry group-hover:translate-x-[3px] group-focus-visible:translate-x-[3px] motion-reduce:transition-none"
-            />
-          </h3>
-          <p className="label tabular-nums text-ink-muted">
-            {project.category} · {project.year}
-          </p>
-        </div>
       </TransitionLink>
     </li>
   )
